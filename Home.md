@@ -1,1 +1,54 @@
-## Build instructions1. Make sure you have a constant internet connection.1. clone the `working` branch from sagemath's sage repository:        git clone git://github.com/sagemath/sage.git -b working1. change into the source directory and run `make`:        cd sage        make1. branch off of the `build_system` directory and start working:        git branch my_branch origin/working        git checkout my_branch## Transition Status### Done- build system modifications (except as below)- git friendly trac server    * this can go live as soon as the vpn is ready- development scripts (found at [dev_scripts](https://github.com/ohanar/sage/tree/dev_scripts))    * git backend (pending no more needed functionality)    * user interface api### Needs work- resolve [#14781](http://trac.sagemath.org/14781)- development scripts (found at [dev_scripts](https://github.com/ohanar/sage/tree/dev_scripts))    * trac backend        + method to get display ticket, including all comments        + method to edit whole ticket (easy to do once the previous one is implemented)    * public interface (`SageDev` object)        + doctests and doctstrings        + finish move of SavingDicts (these should be attached to `SageDev` as opposed to `GitInterface`, as they were previously)        + finish revamp to be more pythonic (asking forgiveness, rather than a bunch of if..else blocks)    * mecurial compatibility scripts        + SPKG merge script (should be really easy to write using a truncated version of the script I use to manage the git repository)        + branch -> mercurial patch (that works with whitespace)        + make `download_patch` a bit smarter when it comes to urls- finish cleanup of the mercurial export script (nearly done)- documentation    * `walk_through.rst` needs a major overhaul    * `producing_spkgs.rst` and `patching_spkgs.rst` need updating        + old style spkgs are depricated        + unified repository now        + package_version.txt        + checksums.ini (`sage-fix-pkg-checksums`)    * `producing_patchs.rst` needs major overhaul    * `trac.rst` probably needs updating    * other smaller fixups will probably be needed throughout
+## Build instructions
+
+1. Make sure you have a constant internet connection.
+1. clone the `working` branch from sagemath's sage repository:
+
+        git clone git://github.com/sagemath/sage.git -b working
+
+1. change into the source directory and run `make`:
+
+        cd sage
+        make
+
+1. branch off and start working:
+
+        git branch my_branch origin/working
+        git checkout my_branch
+
+## Transition Status
+
+### Done
+
+- build system modifications (except as below)
+- git friendly trac server
+    * this can go live as soon as the vpn is ready
+- development scripts (found at [dev_scripts](https://github.com/ohanar/sage/tree/dev_scripts))
+    * git backend (pending no more needed functionality)
+    * user interface api
+
+### Needs work
+
+- resolve [#14781](http://trac.sagemath.org/14781)
+- development scripts (found at [dev_scripts](https://github.com/ohanar/sage/tree/dev_scripts))
+    * trac backend
+        + method to get display ticket, including all comments
+        + method to edit whole ticket (easy to do once the previous one is implemented)
+    * public interface (`SageDev` object)
+        + doctests and docstrings
+        + finish move of SavingDicts (these should be attached to `SageDev` as opposed to `GitInterface`, as they were previously)
+        + finish revamp to be more pythonic (asking forgiveness, rather than a bunch of if..else blocks)
+    * mecurial compatibility scripts
+        + SPKG merge script (should be really easy to write using a truncated version of the script I use to manage the git repository)
+        + branch -> mercurial patch (that works with whitespace)
+        + make `download_patch` a bit smarter when it comes to urls
+- finish cleanup of the mercurial export script (nearly done)
+- documentation
+    * `walk_through.rst` needs a major overhaul
+    * `producing_spkgs.rst` and `patching_spkgs.rst` need updating
+        + old style spkgs are deprecated
+        + unified repository now
+        + package_version.txt
+        + checksums.ini (`sage-fix-pkg-checksums`)
+    * `producing_patchs.rst` needs major overhaul
+    * `trac.rst` probably needs updating
+    * other smaller fixups will probably be needed throughout
