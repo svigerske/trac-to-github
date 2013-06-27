@@ -52,3 +52,5 @@
     * `producing_patchs.rst` needs major overhaul
     * `trac.rst` probably needs updating
     * other smaller fixups will probably be needed throughout
+- buildbot
+- patchbot
