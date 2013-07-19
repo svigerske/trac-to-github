@@ -1,19 +1,62 @@
 ## Build instructions
 
 1. Make sure you have a constant internet connection.
-1. clone the `working` branch from sagemath's sage repository:
+1. Clone the `build_system` branch from sagemath's sage repository:
 
-        git clone git://github.com/sagemath/sage.git -b working
+        git clone git://github.com/sagemath/sage.git -b build_system
 
-1. change into the source directory and run `make`:
+   The changes the `build_system` branch has over the `master` branch
+   are exactly the changes that need review at [#14480](http://trac.sagemath.org/14480).
+
+1. Go into the source directory and run `make`:
 
         cd sage
         make
 
-1. branch off and start working:
+## Using Git+Trac without the development scripts
 
-        git branch my_branch origin/working
-        git checkout my_branch
+1. In the preferences for your trac account, there is a SSH Keys tab. Add your public keys.
+
+1. The trac server's ssh port is 2222 (rather than the standard 22), so
+   the easiest way to deal with this is add an extra `Host` to your SSH config file (note
+   that your username should be `git`). Then you can push and pull using
+
+        git <push|pull> trac:sage.git [ARGS]
+
+   An alternative is to add a remote repository to your local sage repository:
+
+        git remote add trac ssh://git@trac.sagemath.org:2222/sage.git
+
+   Then you can push and pull using
+
+        git <push|pull> trac [ARGS]
+
+1. You have push permissions to branches of the form `u/TRAC_USERNAME/*`. So for
+   example, I have permissions to do the following
+
+        git push local_branch:u/ohanar/remote_branch
+
+   since my trac username is `ohanar`. However, the following would give me an error
+
+        git push local_branch
+        git push local_branch:master
+        ...
+
+1. To attach a branch to a ticket, push your changes to the trac server and
+   then fill the `Branch` field in the corresponding ticket with the remote branch
+   name. For example, if I have a local branch named `local_branch` and I want to
+   attach this branch to ticket #555, I would do
+
+        git push local_branch:u/ohanar/remote_branch
+
+   and then on trac, I would fill the `Branch` field with `u/ohanar/remote_branch`.
+
+   The `Branch` field is color coded: red means there is an issue, green means it will
+   merge cleanly into `master`. If it is red, the tooltip will tell you what is wrong.
+   If it is green, then it will link to a diff of the changes against `master`. Note
+   that for the moment, since all real work will be based of the `build_system` branch
+   that this diff will be massive because [#14480](http://trac.sagemath.org/14480) still
+   needs review. 
 
 ## Transition Status
 
@@ -21,14 +64,13 @@
 
 - build system modifications (except as below)
 - git friendly trac server
-    * this can go live as soon as the vpn is ready
 - development scripts (found at [dev_scripts](https://github.com/ohanar/sage/tree/dev_scripts))
     * git backend (pending no more needed functionality)
     * user interface api
+- resolve [#14781](http://trac.sagemath.org/14781)
 
 ### Needs work
 
-- resolve [#14781](http://trac.sagemath.org/14781)
 - development scripts (found at [dev_scripts](https://github.com/ohanar/sage/tree/dev_scripts))
     * trac backend
         + method to get display ticket, including all comments
