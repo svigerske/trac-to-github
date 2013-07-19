@@ -53,10 +53,9 @@
 
    The `Branch` field is color coded: red means there is an issue, green means it will
    merge cleanly into `master`. If it is red, the tooltip will tell you what is wrong.
-   If it is green, then it will link to a diff of the changes against `master`. Note
-   that for the moment, since all real work will be based of the `build_system` branch
-   that this diff will be massive because [#14480](http://trac.sagemath.org/14480) still
-   needs review. 
+   If it is green, then it will link to a diff of the changes against
+   `u/ohanar/build_system`. (This is temporary until
+   [#14480](http://trac.sagemath.org/14480) is merged into the `master` branch.)
 
 ## Transition Status
 
