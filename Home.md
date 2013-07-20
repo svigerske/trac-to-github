@@ -25,7 +25,7 @@
 
    An alternative is to add a remote repository to your local sage repository:
 
-        git remote add trac ssh://git@trac.sagemath.org:2222/sage.git
+        git remote add trac ssh://git@trac.sagemath.org:2222/sage.git -t master
 
    Then you can push and pull using
 
