@@ -15,6 +15,9 @@
 
 ## Using Git+Trac without the development scripts
 
+
+### Pushing and pulling branches to Trac
+
 1. In the preferences for your trac account, there is a SSH Keys tab. Add your public keys.
 
 1. The trac server's ssh port is 2222 (rather than the standard 22), so
@@ -56,6 +59,17 @@
    If it is green, then it will link to a diff of the changes against
    `u/ohanar/build_system`. (This is temporary until
    [#14480](http://trac.sagemath.org/14480) is merged into the `master` branch.)
+
+
+### Applying mercurial patches
+
+During the transition from mercurial to git, you may want or need to apply some patches produced by mercurial.  You can use the standard Unix tool `patch` for this, or you can use `git apply`.  The main thing to realize, for either approach, is that the sage directory structure has changed, and you will need to account for this.  The sage library is now in `SAGE_ROOT/src` instead of `SAGE_ROOT/devel/sage`.
+
+If you are in the `SAGE_ROOT` directory, you can apply a patch with
+
+    git --directory=src --ignore-space-change --whitespace=fix PATCHFILE
+
+If you `cd` to `SAGE_ROOT/src`, then the `--directory` option is not necessary.
 
 ## Transition Status
 
