@@ -76,30 +76,30 @@ If you `cd` to `SAGE_ROOT/src`, then the `--directory` option is not necessary.
 
 * Alice has made some changes for ticket 1234, and made them available on trac by uploading a branch named `u/alice/1234`.  Bob wants to review her changes, so he does
 
-    git fetch trac u/alice/1234
-    git checkout FETCH_HEAD
+        git fetch trac u/alice/1234
+        git checkout FETCH_HEAD
 
-Then Bob can test Alice's changes as much as he likes.
+    Then Bob can test Alice's changes as much as he likes.
 
 * Bob has tested, and now wants to make a very minor change as a reviewer.  He does
 
-    git checkout -b ticket/1234
-    # make the change
-    git commit -am 'helpful commit message'
-    git push trac ticket/1234:u/bob/1234
+        git checkout -b ticket/1234
+        ... (make the change) ...
+        git commit -am 'helpful commit message'
+        git push trac ticket/1234:u/bob/1234
 
-Then Bob goes to the ticket page on Trac and makes some changes to tell Alice about his review, the minor change, and the branch he just uploaded: `u/bob/1234`.  Alice can merge that branch with her own if she wants to use Bob's suggestions.
+    Then Bob goes to the ticket page on Trac and makes some changes to tell Alice about his review, the minor change, and the branch he just uploaded: `u/bob/1234`.  Alice can merge that branch with her own if she wants to use Bob's suggestions.
 
 * Later, Alice and Bob decide to collaborate on ticket 4321, where they'll both be making substantial changes.  Alice puts a branch on Trac for this at `u/alice/4321`.  The Bob does
 
-    git remote set-branches trac --add u/alice/4321
-    git remote update
-    git checkout trac/u/alice/4321 -b ticket/4321
+        git remote set-branches trac --add u/alice/4321
+        git remote update
+        git checkout trac/u/alice/4321 -b ticket/4321
 
-Then Bob does a bunch of work and makes a few commits to his local branch, `ticket/4321`.  Alice does the same to her local branch, and pushes them up to the Trach branch she started.  Bob wants to merge them in, so he does
+    Then Bob does a bunch of work and makes a few commits to his local branch, `ticket/4321`.  Alice does the  same to her local branch, and pushes them up to the Trach branch she started.  Bob wants to merge them in, so he does
 
-    git remote update
-    git merge trac/u/alice/4321
+        git remote update
+        git merge trac/u/alice/4321
 
 ## Transition Status
 
