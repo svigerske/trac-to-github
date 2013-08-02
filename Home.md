@@ -67,10 +67,7 @@ During the transition from mercurial to git, you may want or need to apply some 
 
 If you are in the `SAGE_ROOT` directory, you can apply a patch with
 
-    git --directory=src --ignore-space-change --whitespace=fix PATCHFILE
-
-If you `cd` to `SAGE_ROOT/src`, then the `--directory` option is not necessary.
-
+    git apply --directory=src --ignore-space-change --whitespace=fix PATCHFILE
 
 ### Example usage
 
