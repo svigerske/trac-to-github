@@ -52,11 +52,7 @@ See http://trac.sagemath.org/wiki/QuickStartSageGit
 
 ### Applying mercurial patches
 
-During the transition from mercurial to git, you may want or need to apply some patches produced by mercurial.  You can use the standard Unix tool `patch` for this, or you can use `git apply`.  The main thing to realize, for either approach, is that the sage directory structure has changed, and you will need to account for this.  The sage library is now in `SAGE_ROOT/src` instead of `SAGE_ROOT/devel/sage`.
-
-If you are in the `SAGE_ROOT` directory, you can apply a patch with
-
-    git apply --directory=src --ignore-space-change --whitespace=fix PATCHFILE
+During the transition from mercurial to git, you may want or need to apply some patches produced by mercurial.  The easiest way to do this is with `sage --dev import-patch` (see the help for more details).
 
 ### Example usage
 
