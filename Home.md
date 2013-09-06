@@ -1,17 +1,6 @@
 ## Build instructions
 
-1. Make sure you have a constant internet connection.
-1. Clone the `build_system` branch from sagemath's sage repository:
-
-        git clone git://github.com/sagemath/sage.git -b build_system
-
-   The changes the `build_system` branch has over the `master` branch
-   are exactly the changes that need review at [#14480](http://trac.sagemath.org/14480).
-
-1. Go into the source directory and run `make`:
-
-        cd sage
-        make
+See http://trac.sagemath.org/wiki/QuickStartSageGit
 
 ## Using Git+Trac without the development scripts
 
