@@ -96,18 +96,9 @@ During the transition from mercurial to git, you may want or need to apply some 
 
 ### Needs work
 
-- development scripts (found at [dev_scripts](https://github.com/ohanar/sage/tree/dev_scripts))
-    * trac backend
-        + method to get display ticket, including all comments
-        + method to edit whole ticket (easy to do once the previous one is implemented)
-    * public interface (`SageDev` object)
-        + doctests and docstrings
-        + finish move of SavingDicts (these should be attached to `SageDev` as opposed to `GitInterface`, as they were previously)
-        + finish revamp to be more pythonic (asking forgiveness, rather than a bunch of if..else blocks)
+- development scripts (found at http://trac.sagemath.org/ticket/14482)
     * mecurial compatibility scripts
         + SPKG merge script (should be really easy to write using a truncated version of the script I use to manage the git repository)
-        + branch -> mercurial patch (that works with whitespace)
-        + make `download_patch` a bit smarter when it comes to urls
 - finish cleanup of the mercurial export script (nearly done)
 - documentation
     * `walk_through.rst` needs a major overhaul
