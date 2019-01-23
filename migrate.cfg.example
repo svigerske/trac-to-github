@@ -1,0 +1,74 @@
+# Sample configuration file, update to meet your needs
+
+[source]
+
+# URL of the XML-RPC trac endpoint
+url: http://username:password@example.com/trac/login/xmlrpc
+
+# optional path to trac instance used to convert some attachments
+path: /path/to/trac/instance
+
+# mapping file from git hashes to subversion revisions and branche names ("hash revision @branch" in each line)
+svngitmap: /path/to/git_svn.map
+
+
+[target]
+
+# Trac to GitLab user mappings
+usernames = {
+    'trac1': 'git1',
+    'trac2': 'git2'
+    }
+
+# project's path
+project_name: foo/bar
+
+# URL of the GitLab web API
+url: https://gitlab.example.com/api/v4
+
+# API access token (if method = api)
+access_token: secretsecret
+
+# Uncomment to verify SSL keys (default = no )
+ssl_verify: yes
+
+# Overwrite existing project's data
+overwrite: yes
+
+
+
+[wiki]
+
+# Should we migrate the wiki (default = yes)
+migrate: no
+
+# Comma separated list of authors to exclude (default=trac)
+# exclude_authors:
+
+# Directory where the wiki pages should be written
+target-directory: /tmp/test.wiki/
+
+
+[issues]
+
+# Should we migrate the issues (default = yes)
+# migrate: yes
+
+# If defined, import only these issues
+# only_issues: [ 509, 561, 564, 626, 631, 792, 830]
+
+# If defined, do not import these issues
+# blacklist_issues: [ 268, 843 ]
+
+# If defined, then this is added to the ticket query string to trac
+#filter_issues: max=1000&order=id&desc=False
+#filter_issues: max=2796&order=id&page=2
+
+# Add a label to all migrated issues
+# add_label: Websites
+
+# Migrate keywords
+migrate_keywords: yes
+
+# Migrate milestones
+migrate_milestones: no
