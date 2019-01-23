@@ -30,9 +30,10 @@ import os
 import ConfigParser
 import ast
 from datetime import datetime
-from re import MULTILINE
+#from re import MULTILINE
 import xmlrpclib
-from gtk.keysyms import Prior
+#from gtk.keysyms import Prior
+from github import Github #, GithubObject
 
 """
 What
@@ -63,12 +64,11 @@ default_config = {
 
 # 6-digit hex notation with leading '#' sign (e.g. #FFAABB) or one of the CSS color names (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords)
 labelcolor = {
-  'component' : 'navy',
-  'priority' : 'red',
-  'severity' : 'red',
-  'type' : 'purple',
-  'keyword' : 'silver',
-  'vendor' : 'yellow'
+  'component' : '08517b',
+  'priority' : 'ff0000',
+  'severity' : 'ee0000',
+  'type' : '008080',
+  'keyword' : 'eeeeee'
 }
 
 config = ConfigParser.ConfigParser(default_config)
@@ -78,12 +78,11 @@ trac_url = config.get('source', 'url')
 trac_path = None
 if config.has_option('source', 'path') :
     trac_path = config.get('source', 'path')
-dest_project_name = config.get('target', 'project_name')
 
-github_url = config.get('target', 'url')
-gitlab_access_token = config.get('target', 'access_token')
-dest_ssl_verify = config.getboolean('target', 'ssl_verify')
-overwrite = config.getboolean('target', 'overwrite')
+github_api_url = config.get('target', 'url')
+github_username = config.get('target', 'username')
+github_password = config.get('target', 'password')
+github_project = config.get('target', 'project_name')
 
 users_map = ast.literal_eval(config.get('target', 'usernames'))
 must_convert_issues = config.getboolean('issues', 'migrate')
@@ -207,22 +206,34 @@ def convert_xmlrpc_datetime(dt):
     return datetime.strptime(str(dt), "%Y%m%dT%H:%M:%S")
 
 def gh_create_milestone(dest, milestone_data) :
-    return 42;
+    if dest is None : return 42
+    raise 'Unimplemented function'
 
+gh_labels = None;
 def gh_ensure_label(dest, labelname, labelcolor) :
-    pass;
+    if dest is None : return
+    if labelname.lower() in gh_labels :
+        return
+    print 'Create label %s with color #%s' % (labelname, labelcolor);
+    dest.create_label(labelname, labelcolor);
+    gh_labels.append(labelname.lower());
 
 def gh_create_issue(dest, issue_data) :
-    return 42;
+    if dest is None : return 42
+    #TODO
+    return 42
 
 def gh_comment_issue(dest, issue_id, comment) :
-    pass;
+    if dest is None : return
+    #TODO
 
 def gh_subscribe_issue(dest, issue_id, subscriber) :
-    pass;
+    if dest is None : return
+    #TODO
 
 def gh_update_issue_property(dest, issue_id, author, change_time, key, val) :
-    pass;
+    if dest is None : return
+    #TODO
 
 def gh_username(dest, origname) :
     if origname in users_map :
@@ -404,7 +415,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         print("  created issue %d with labels %s owner %s component %s" % (issue, labels, owner, component))
 
         # handle status
-        if status in ['new', 'assigned', 'analyzed', 'reopened'] : #'vendor' (would need to create label)
+        if status in ['new', 'assigned', 'analyzed', 'reopened'] :
             issue_state = 'open'
         elif status in ['closed'] :
             # sometimes a ticket is already closed at creation, so close issue
@@ -447,13 +458,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # we will forget about these old versions and only keep the latest one
                 pass
             elif change_type == "status" :
-                if change[3] == 'vendor' :
-                    # remove label 'vendor'
-                    labels.remove('vendor')
-                    # workaround #3 dest.update_issue_property(dest_project_id, issue, author, change_time, 'labels')
-
                 # we map here the various statii we have in trac to just 2 statii in gitlab (open or close), so loose some information
-                if change[4] in ['new', 'assigned', 'analyzed', 'vendor', 'reopened'] :
+                if change[4] in ['new', 'assigned', 'analyzed', 'reopened'] :
                     newstate = 'open'
                 elif change[4] in ['closed'] :
                     newstate = 'closed'
@@ -463,12 +469,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if issue_state != newstate :
                     issue_state = newstate
                     # workaround #3 dest.update_issue_property(dest_project_id, issue, author, change_time, 'state')
-
-                if change[4] == 'vendor' :
-                    # add label 'vendor'
-                    labels.append('vendor')
-                    gh_ensure_label(dest, 'vendor', labelcolor['vendor'])
-                    # workaround #3 dest.update_issue_property(dest_project_id, issue, author, change_time, 'labels')
 
                 # workaround #3
                 gh_comment_issue(dest, issue, {'note' : 'Changing status from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author})
@@ -583,10 +583,17 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             gh_subscribe_issue(dest, issue, gh_username(dest, person))
 
 if __name__ == "__main__":
-    #FIXME dest = None; Connection(gitlab_url, gitlab_access_token, dest_ssl_verify)
-    dest = None
-
     source = xmlrpclib.ServerProxy(trac_url)
+
+    dest = None
+    github = Github(github_username, github_password, base_url=github_api_url)
+    dest = github.get_repo(github_project)
+    
+    if dest is not None :
+        gh_labels = []
+        for l in dest.get_labels() :
+            gh_labels.append(l.name.lower())
+        print 'Existing labels:', gh_labels
 
     if svngit_mapfile is not None :
         svngit_map = dict()
