@@ -251,10 +251,14 @@ def gh_comment_issue(dest, issue, comment) :
         filename = comment['attachment_name']
         gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
         filecontent = InputFileContent(comment['attachment'])
-        gist = gh_user.create_gist(False,
-                                   { gistname : filecontent },
-                                   'Attachment %s to Ipopt issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
-        note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
+        try :
+            gist = gh_user.create_gist(False,
+                                       { gistname : filecontent },
+                                       'Attachment %s to Ipopt issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
+            note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
+        except UnicodeDecodeError :
+            note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
+            print '  LOOSING ATTACHMENT', filename, 'in issue', issue.number
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
     else :
