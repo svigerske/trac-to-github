@@ -264,10 +264,6 @@ def gh_comment_issue(dest, issue, comment) :
 
     issue.create_comment(note)
 
-def gh_subscribe_issue(dest, issue_id, subscriber) :
-    if dest is None : return
-    #TODO
-
 def gh_update_issue_property(dest, issue, key, val) :
     if dest is None : return
 
@@ -456,6 +452,17 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if version is not None and version != 'trunk' :
             description_pre += 'Version: ' + version + '\n\n'
 
+        # subscribe persons in cc
+        cc = src_ticket_data.get('cc', '').lower()
+        ccstr = ''
+        for person in cc.split(',') :
+            person = person.strip()
+            if person == '' : continue
+            person = gh_username(dest, person)
+            ccstr += ' ' + person
+        if ccstr != '' :
+            description_pre += 'CC: ' + ccstr + '\n\n'
+
         description = description_pre + trac2markdown(description, '/issues/', False)
         assert description.find('/wikis/') < 0
 
@@ -623,13 +630,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             else :
                 raise BaseException("Unknown change type " + change_type)
         assert attachment is None
-
-        # subscribe persons in cc
-        cc = src_ticket_data.get('cc', '').lower()
-        for person in cc.split(',') :
-            person = person.strip()
-            if person == '' : continue
-            gh_subscribe_issue(dest, issue, gh_username(dest, person))
 
 if __name__ == "__main__":
     source = xmlrpclib.ServerProxy(trac_url)
