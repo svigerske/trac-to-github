@@ -33,7 +33,7 @@ from datetime import datetime
 #from re import MULTILINE
 import xmlrpclib
 #from gtk.keysyms import Prior
-from github import Github #, GithubObject
+from github import Github, GithubObject
 
 """
 What
@@ -119,6 +119,7 @@ matcher_svnrev1 = re.compile(pattern_svnrev1)
 pattern_svnrev2 = r'\b(?:changeset *)?r([0-9]+)\b'
 matcher_svnrev2 = re.compile(pattern_svnrev2)
 
+gh_labels = dict();
 
 def format_changeset_comment(m):
     if svngit_map is not None and m.group(1) in svngit_map :
@@ -209,19 +210,35 @@ def gh_create_milestone(dest, milestone_data) :
     if dest is None : return 42
     raise 'Unimplemented function'
 
-gh_labels = None;
 def gh_ensure_label(dest, labelname, labelcolor) :
     if dest is None : return
     if labelname.lower() in gh_labels :
         return
     print 'Create label %s with color #%s' % (labelname, labelcolor);
-    dest.create_label(labelname, labelcolor);
-    gh_labels.append(labelname.lower());
+    gh_label = dest.create_label(labelname, labelcolor);
+    gh_labels[labelname.lower()] = gh_label;
 
 def gh_create_issue(dest, issue_data) :
-    if dest is None : return 42
-    #TODO
-    return 42
+    if dest is None : return None
+
+    if 'labels' in issue_data :
+        labels = [gh_labels[label.lower()] for label in issue_data['labels']]
+    else :
+        labels = GithubObject.NotSet
+
+    if 'milestone' in issue_data :
+        milestone = dest.get_milestone(issue_data['milestone'])   # TODO this might need adjustment
+    else :
+        milestone = GithubObject.NotSet
+
+    gh_issue = dest.create_issue(issue_data['title'],
+                                 issue_data['description'],
+                                 assignee = issue_data.get('assignee', GithubObject.NotSet),
+                                 milestone = milestone,
+                                 labels = labels)
+    print("  created issue " + str(gh_issue))
+
+    return gh_issue
 
 def gh_comment_issue(dest, issue_id, comment) :
     if dest is None : return
@@ -273,22 +290,21 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if blacklist_issues and src_ticket_id in blacklist_issues:
             print("SKIP blacklisted ticket #%s" % src_ticket_id)
             continue
-        
-        while nextticketid < src_ticket_id :
-            print("Ticket %d missing in Trac. Generating empty one in GitHub." % nextticketid)
-            
-            issue_data = {
-                'title' : 'Deleted trac ticket %d' % nextticketid,
-                'description' : 'Ticket %d had been deleted in the original Trac instance. This empty ticket serves as placeholder to ensure a proper 1:1 mapping of ticket ids to issue ids.',
-                'labels' : [],
-                #'reporter' : reporter,
-                #'created_at' : str(convert_xmlrpc_datetime(src_ticket[1]))
-            }
 
-            issue = gh_create_issue(dest, issue_data)
-            gh_update_issue_property(dest, issue, None, None, 'state', 'closed')
-            
-            nextticketid = nextticketid+1
+        if not only_issues and not blacklist_issues and not config.has_option('issues', 'filter_issues') :
+            while nextticketid < src_ticket_id :
+                print("Ticket %d missing in Trac. Generating empty one in GitHub." % nextticketid)
+
+                issue_data = {
+                    'title' : 'Deleted trac ticket %d' % nextticketid,
+                    'description' : 'Ticket %d had been deleted in the original Trac instance. This empty ticket serves as placeholder to ensure a proper 1:1 mapping of ticket ids to issue ids.',
+                    'labels' : []
+                }
+
+                issue = gh_create_issue(dest, issue_data)
+                gh_update_issue_property(dest, issue, None, None, 'state', 'closed')
+
+                nextticketid = nextticketid+1
 
         nextticketid = nextticketid+1;
 
@@ -389,30 +405,37 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
 
         description_add = ''
-        if version is not None and version != 'trunk' :
-            description_add += '\n\nVersion: ' + version
 
-        description = trac2markdown(description, '/issues/', False) + description_add
+        description_pre = 'Issue created by migration from Trac.\n\n'
+        description_pre += 'Original creator: ' + reporter + '\n\n'
+        description_pre += 'Original creation time: ' + str(convert_xmlrpc_datetime(src_ticket[1])) + '\n\n'
+
+        assignee = None
+        if 'owner' != '' :
+            assignee = gh_username(dest, owner)
+            if not assignee.startswith('@'):
+                description_pre += 'Assignee: ' + assignee + '\n\n'
+                assignee = GithubObject.NotSet
+
+        if version is not None and version != 'trunk' :
+            description_pre += 'Version: ' + version + '\n\n'
+
+        description = description_pre + trac2markdown(description, '/issues/', False)
         assert description.find('/wikis/') < 0
 
         # collect all parameters
         issue_data = {
             'title' : summary,
             'description' : description,
-            'labels' : ",".join(labels),
-            'reporter' : reporter,
-            'created_at' : str(convert_xmlrpc_datetime(src_ticket[1]))
+            'labels' : labels,
+            'assignee' : assignee
         }
-        if owner != '' :
-            issue_data['assignee'] = gh_username(dest, owner)
-
         if 'milestone' in src_ticket_data:
             milestone = src_ticket_data['milestone']
             if milestone and milestone in milestone_map_id:
                 issue_data['milestone'] = milestone_map_id[milestone]
 
         issue = gh_create_issue(dest, issue_data)
-        print("  created issue %d with labels %s owner %s component %s" % (issue, labels, owner, component))
 
         # handle status
         if status in ['new', 'assigned', 'analyzed', 'reopened'] :
@@ -588,12 +611,11 @@ if __name__ == "__main__":
     dest = None
     github = Github(github_username, github_password, base_url=github_api_url)
     dest = github.get_repo(github_project)
-    
+
     if dest is not None :
-        gh_labels = []
         for l in dest.get_labels() :
-            gh_labels.append(l.name.lower())
-        print 'Existing labels:', gh_labels
+            gh_labels[l.name.lower()] = l
+        print 'Existing labels:', gh_labels.keys()
 
     if svngit_mapfile is not None :
         svngit_map = dict()
