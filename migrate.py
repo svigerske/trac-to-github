@@ -33,7 +33,7 @@ from datetime import datetime
 #from re import MULTILINE
 import xmlrpclib
 #from gtk.keysyms import Prior
-from github import Github, GithubObject
+from github import Github, GithubObject, InputFileContent
 
 """
 What
@@ -119,7 +119,8 @@ matcher_svnrev1 = re.compile(pattern_svnrev1)
 pattern_svnrev2 = r'\b(?:changeset *)?r([0-9]+)\b'
 matcher_svnrev2 = re.compile(pattern_svnrev2)
 
-gh_labels = dict();
+gh_labels = dict()
+gh_user = None
 
 def format_changeset_comment(m):
     if svngit_map is not None and m.group(1) in svngit_map :
@@ -240,9 +241,27 @@ def gh_create_issue(dest, issue_data) :
 
     return gh_issue
 
-def gh_comment_issue(dest, issue_id, comment) :
+def gh_comment_issue(dest, issue, comment) :
     if dest is None : return
-    #TODO
+
+    # upload attachement, if there is one
+    if 'attachment_name' in comment :
+        assert gh_user is not None
+        filename = comment['attachment_name']
+        gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
+        filecontent = InputFileContent(comment['attachment'])
+        gist = gh_user.create_gist(False,
+                                   { gistname : filecontent },
+                                   'Attachment %s to Ipopt issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
+        note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
+        if 'note' in comment and comment['note'] != '' :
+            note += '\n\n' + comment['note']
+    else :
+        note = 'Comment by %s created at %s' % (comment['author'], comment['created_at'])
+        if 'note' in comment and comment['note'] != '' :
+            note += '\n\n' + comment['note']
+
+    issue.create_comment(note)
 
 def gh_subscribe_issue(dest, issue_id, subscriber) :
     if dest is None : return
@@ -611,6 +630,7 @@ if __name__ == "__main__":
     dest = None
     github = Github(github_username, github_password, base_url=github_api_url)
     dest = github.get_repo(github_project)
+    gh_user = github.get_user()
 
     if dest is not None :
         for l in dest.get_labels() :
