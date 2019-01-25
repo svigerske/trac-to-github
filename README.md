@@ -45,7 +45,7 @@ Usage:
 License
 =======
 
-LGPL license version 3.0 (see the [licences directory](licences)).
+LGPL license version 3.0.
 
 Requirements
 ==============
