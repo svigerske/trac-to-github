@@ -80,8 +80,12 @@ if config.has_option('source', 'path') :
     trac_path = config.get('source', 'path')
 
 github_api_url = config.get('target', 'url')
-github_username = config.get('target', 'username')
-github_password = config.get('target', 'password')
+github_token = None
+if config.has_option('target', 'token') :
+    github_token = config.get('target', 'token')
+else :
+    github_username = config.get('target', 'username')
+    github_password = config.get('target', 'password')
 github_project = config.get('target', 'project_name')
 
 users_map = ast.literal_eval(config.get('target', 'usernames'))
@@ -639,7 +643,10 @@ if __name__ == "__main__":
     source = xmlrpclib.ServerProxy(trac_url)
 
     dest = None
-    github = Github(github_username, github_password, base_url=github_api_url)
+    if github_token is not None :
+        github = Github(github_token, base_url=github_api_url)
+    else :
+        github = Github(github_username, github_password, base_url=github_api_url)
     dest = github.get_repo(github_project)
     gh_user = github.get_user()
 

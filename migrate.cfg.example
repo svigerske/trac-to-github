@@ -23,19 +23,20 @@ usernames = {
 # project's path
 project_name: foo/bar
 
-# URL of the GitLab web API
-url: https://gitlab.example.com/api/v4
+# URL of the GitHub web API
+url: https://api.github.com
 
-# API access token (if method = api)
-access_token: secretsecret
+# project's path
+project_name: username/projectname
 
-# Uncomment to verify SSL keys (default = no )
-ssl_verify: yes
+# GitHub access token
+token : 2190valkrl123c
 
-# Overwrite existing project's data
-overwrite: yes
+# GitHub username (if no token specified)
+username: johndoe
 
-
+# GitHub password (if no token specified)
+password: secret
 
 [wiki]
 
