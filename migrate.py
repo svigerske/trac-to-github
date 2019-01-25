@@ -59,10 +59,7 @@ Requirements
 """
 
 default_config = {
-    'ssl_verify': 'no',
-    'migrate' : 'true',
-    'overwrite' : 'true',
-    'exclude_authors' : 'trac',
+    'migrate' : 'true'
 }
 
 # 6-digit hex notation with leading '#' sign (e.g. #FFAABB) or one of the CSS color names (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords)
