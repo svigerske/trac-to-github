@@ -505,6 +505,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             change_type = change[2]
             print(("  %s by %s (%s -> %s)" % (change_type, change[1], change[3][:40].replace("\n", " "), change[4][:40].replace("\n", " "))).encode("ascii", "replace"))
             assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
+            if change[1] == 'anonymous' :
+                print "  SKIPPING CHANGE BY ANONYMOUS"
+                continue
             author = gh_username(dest, change[1])
             if change_type == "attachment":
                 # The attachment will be described in the next change!
