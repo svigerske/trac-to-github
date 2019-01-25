@@ -30,10 +30,13 @@ import os
 import ConfigParser
 import ast
 from datetime import datetime
+from time import sleep
 #from re import MULTILINE
 import xmlrpclib
-#from gtk.keysyms import Prior
 from github import Github, GithubObject, InputFileContent
+
+#import github as gh
+#gh.enable_console_debug_logging()
 
 """
 What
@@ -70,6 +73,9 @@ labelcolor = {
   'type' : '008080',
   'keyword' : 'eeeeee'
 }
+
+sleep_after_request = 2.0;
+sleep_after_ticket = 5.0;
 
 config = ConfigParser.ConfigParser(default_config)
 config.read('migrate.cfg')
@@ -216,6 +222,7 @@ def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
 
     milestone = dest.create_milestone(milestone_data['title'], milestone_data['state'], milestone_data['description'], milestone_data.get('due_date', GitlabObject.NotSet) )
+    sleep(sleep_after_request)
     return milestone
 
 def gh_ensure_label(dest, labelname, labelcolor) :
@@ -225,6 +232,7 @@ def gh_ensure_label(dest, labelname, labelcolor) :
     print 'Create label %s with color #%s' % (labelname, labelcolor);
     gh_label = dest.create_label(labelname, labelcolor);
     gh_labels[labelname.lower()] = gh_label;
+    sleep(sleep_after_request)
 
 def gh_create_issue(dest, issue_data) :
     if dest is None : return None
@@ -240,6 +248,7 @@ def gh_create_issue(dest, issue_data) :
                                  milestone = issue_data.get('milestone', GithubObject.NotSet),
                                  labels = labels)
     print("  created issue " + str(gh_issue))
+    sleep(sleep_after_request)
 
     return gh_issue
 
@@ -260,6 +269,7 @@ def gh_comment_issue(dest, issue, comment) :
         except UnicodeDecodeError :
             note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
             print '  LOOSING ATTACHMENT', filename, 'in issue', issue.number
+        sleep(sleep_after_request)
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
     else :
@@ -268,6 +278,7 @@ def gh_comment_issue(dest, issue, comment) :
             note += '\n\n' + comment['note']
 
     issue.create_comment(note)
+    sleep(sleep_after_request)
 
 def gh_update_issue_property(dest, issue, key, val) :
     if dest is None : return
@@ -292,6 +303,8 @@ def gh_update_issue_property(dest, issue, key, val) :
         issue.edit(milestone = val)
     else :
         raise 'Unknown key ' + key
+
+    sleep(sleep_after_request)
 
 def gh_username(dest, origname) :
     if origname in users_map :
@@ -644,6 +657,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             else :
                 raise BaseException("Unknown change type " + change_type)
         assert attachment is None
+        sleep(sleep_after_ticket)
 
 if __name__ == "__main__":
     source = xmlrpclib.ServerProxy(trac_url)
@@ -659,7 +673,7 @@ if __name__ == "__main__":
     if dest is not None :
         for l in dest.get_labels() :
             gh_labels[l.name.lower()] = l
-        print 'Existing labels:', gh_labels.keys()
+        #print 'Existing labels:', gh_labels.keys()
 
     if svngit_mapfile is not None :
         svngit_map = dict()
