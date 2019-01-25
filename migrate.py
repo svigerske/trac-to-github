@@ -75,7 +75,7 @@ labelcolor = {
 }
 
 sleep_after_request = 2.0;
-sleep_after_ticket = 5.0;
+sleep_after_10tickets = 600.0;
 
 config = ConfigParser.ConfigParser(default_config)
 config.read('migrate.cfg')
@@ -334,6 +334,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         get_all_tickets.ticket.get(ticket)
 
     nextticketid = 1;
+    ticketcount = 0;
     for src_ticket in get_all_tickets():
         #src_ticket is [id, time_created, time_changed, attributes]
         src_ticket_id = src_ticket[0]
@@ -517,8 +518,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             change_type = change[2]
             print(("  %s by %s (%s -> %s)" % (change_type, change[1], change[3][:40].replace("\n", " "), change[4][:40].replace("\n", " "))).encode("ascii", "replace"))
             assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
-            if change[1] == 'anonymous' :
-                print "  SKIPPING CHANGE BY ANONYMOUS"
+            if change[1] in ['anonymous', 'Draftmen888'] :
+                print "  SKIPPING CHANGE BY", change[1]
                 continue
             author = gh_username(dest, change[1])
             if change_type == "attachment":
@@ -657,7 +658,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             else :
                 raise BaseException("Unknown change type " + change_type)
         assert attachment is None
-        sleep(sleep_after_ticket)
+
+        ticketcount = ticketcount + 1
+        if ticketcount % 10 == 0 :
+            print '%d tickets migrated. Waiting %d seconds to let GitHub cool down.' % (ticketcount, sleep_after_10tickets)
+            sleep(sleep_after_10tickets)
 
 if __name__ == "__main__":
     source = xmlrpclib.ServerProxy(trac_url)
