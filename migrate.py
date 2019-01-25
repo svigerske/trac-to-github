@@ -213,8 +213,10 @@ def convert_xmlrpc_datetime(dt):
     return datetime.strptime(str(dt), "%Y%m%dT%H:%M:%S")
 
 def gh_create_milestone(dest, milestone_data) :
-    if dest is None : return 42
-    raise 'Unimplemented function'
+    if dest is None : return None
+
+    milestone = dest.create_milestone(milestone_data['title'], milestone_data['state'], milestone_data['description'], milestone_data.get('due_date', GitlabObject.NotSet) )
+    return milestone
 
 def gh_ensure_label(dest, labelname, labelcolor) :
     if dest is None : return
@@ -232,15 +234,10 @@ def gh_create_issue(dest, issue_data) :
     else :
         labels = GithubObject.NotSet
 
-    if 'milestone' in issue_data :
-        milestone = dest.get_milestone(issue_data['milestone'])   # TODO this might need adjustment
-    else :
-        milestone = GithubObject.NotSet
-
     gh_issue = dest.create_issue(issue_data['title'],
                                  issue_data['description'],
                                  assignee = issue_data.get('assignee', GithubObject.NotSet),
-                                 milestone = milestone,
+                                 milestone = issue_data.get('milestone', GithubObject.NotSet),
                                  labels = labels)
     print("  created issue " + str(gh_issue))
 
@@ -291,6 +288,8 @@ def gh_update_issue_property(dest, issue, key, val) :
         issue.edit(body = val)
     elif key == 'title' :
         issue.edit(title = val)
+    elif key == 'milestone' :
+        issue.edit(milestone = val)
     else :
         raise 'Unknown key ' + key
 
@@ -301,21 +300,20 @@ def gh_username(dest, origname) :
     return origname;
 
 def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
-    milestone_map_id = {}
+    milestone_map = {}
 
     if migrate_milestones:
         for milestone_name in source.ticket.milestone.getAll():
             milestone = source.ticket.milestone.get(milestone_name)
-            print(milestone)
+            print("Creating milestone " + milestone['name'])
             new_milestone = {
                 'description' : trac2markdown(milestone['description'], '/milestones/', False),
                 'title' : milestone['name'],
-                'state' : 'active' if str(milestone['completed']) == '0'  else 'closed'
+                'state' : 'open' if str(milestone['completed']) == '0'  else 'closed'
             }
             if milestone['due']:
-                new_milestone['due_date'] = convert_xmlrpc_datetime(milestone['due'])
-            id = gh_create_milestone(dest, new_milestone)
-            milestone_map_id[milestone_name] = id
+                new_milestone['due_date'] = milestone['due']  #convert_xmlrpc_datetime(milestone['due'])
+            milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
 
     get_all_tickets = xmlrpclib.MultiCall(source)
 
@@ -481,10 +479,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             'labels' : labels,
             'assignee' : assignee
         }
+
         if 'milestone' in src_ticket_data:
             milestone = src_ticket_data['milestone']
-            if milestone and milestone in milestone_map_id:
-                issue_data['milestone'] = milestone_map_id[milestone]
+            if milestone  and milestone in milestone_map:
+                issue_data['milestone'] = milestone_map[milestone]
 
         issue = gh_create_issue(dest, issue_data)
 
@@ -590,9 +589,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 }
                 gh_comment_issue(dest, issue, note)
             elif change_type == "milestone" :
-                pass  # we ignore milestones so far
+                if change[4] != '' and change[4] in milestone_map:
+                    issue_data['milestone'] = milestone_map[change[4]]
+                elif 'milestone' in issue_data :
+                    del issue_data['milestone']
+                gh_update_issue_property(dest, issue, 'milestone', issue_data.get('milestone', GithubObject.NotSet))
             elif change_type == "cc" :
-                pass  # we handle only the final list of CCs (below)
+                pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
                 labels.remove(change[3])
                 labels.append(change[4])
