@@ -348,7 +348,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
                 issue_data = {
                     'title' : 'Deleted trac ticket %d' % nextticketid,
-                    'description' : 'Ticket %d had been deleted in the original Trac instance. This empty ticket serves as placeholder to ensure a proper 1:1 mapping of ticket ids to issue ids.',
+                    'description' : 'Ticket %d had been deleted in the original Trac instance. This empty ticket serves as placeholder to ensure a proper 1:1 mapping of ticket ids to issue ids.' % nextticketid,
                     'labels' : []
                 }
 
