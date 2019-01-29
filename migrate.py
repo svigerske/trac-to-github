@@ -72,7 +72,8 @@ labelcolor = {
 }
 
 sleep_after_request = 2.0;
-sleep_after_10tickets = 600.0;
+sleep_after_attachment = 60.0;
+sleep_after_10tickets = 600.0;  # TODO maybe this can be reduced due to the longer sleep after attaching something
 
 config = ConfigParser.ConfigParser(default_config)
 config.read('migrate.cfg')
@@ -266,7 +267,7 @@ def gh_comment_issue(dest, issue, comment) :
         except UnicodeDecodeError :
             note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
             print '  LOOSING ATTACHMENT', filename, 'in issue', issue.number
-        sleep(sleep_after_request)
+        sleep(sleep_after_attachment)
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
     else :
