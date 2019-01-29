@@ -23,8 +23,8 @@ usernames = {
 # project's path
 project_name: foo/bar
 
-# URL of the GitHub web API
-url: https://api.github.com
+# URL of the GitHub web API (default: https://api.github.com)
+# url: https://api.github.com
 
 # project's path
 project_name: username/projectname
