@@ -38,17 +38,6 @@ username: johndoe
 # GitHub password (if no token specified)
 password: secret
 
-[wiki]
-
-# Should we migrate the wiki (default = yes)
-migrate: no
-
-# Comma separated list of authors to exclude (default=trac)
-# exclude_authors:
-
-# Directory where the wiki pages should be written
-target-directory: /tmp/test.wiki/
-
 
 [issues]
 
