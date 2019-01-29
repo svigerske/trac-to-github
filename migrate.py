@@ -287,7 +287,7 @@ def gh_update_issue_property(dest, issue, key, val) :
         if issue.assignee == val :
             return
         if len(issue.assignees) > 0 :
-            issue.remove__from_assignees(issue.assignee)
+            issue.remove_from_assignees(issue.assignee)
         if val is not None and val is not GithubObject.NotSet and val != '' :
             issue.add_to_assignees(val)
     elif key == 'state' :
@@ -462,9 +462,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         assignee = GithubObject.NotSet
         if owner != '' :
             assignee = gh_username(dest, owner)
-            if not assignee.startswith('@'):
+            # FIXME creating an issue with an assignee failed for me
+            # error was like this: https://github.com/google/go-github/issues/75
+            if True : # not assignee.startswith('@'):
                 description_pre += 'Assignee: ' + assignee + '\n\n'
                 assignee = GithubObject.NotSet
+            else :
+                assignee = assignee[1:]
 
         if version is not None and version != 'trunk' :
             description_pre += 'Version: ' + version + '\n\n'
