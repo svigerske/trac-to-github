@@ -15,11 +15,11 @@ Features
  * Version and CC are added to the issue description
  * Resolution is added as comment
  * Text attachments are uploaded as Gist (GitHub doesn't allow to attach files to issues via the GitHub API)
+   or all attachments are exported to files
  * References to SVN commits can be replaced by references to Githashes.
 
 Missing
 -------
- * Binary attachments are lost as GitHub doesn't seem to allow to create non-text Gist files via the API
  * Trac Wiki is not migrated
 
 
