@@ -62,7 +62,7 @@ Requirements
 default_config = {
     'migrate' : 'true',
     'keywords_to_labels' : 'false',
-    'attachment_export' : 'true',
+    'export' : 'true',  # attachments
     'url' : 'https://api.github.com'
 }
 
@@ -121,10 +121,10 @@ if config.has_option('source', 'svngitmap') :
     svngit_mapfile = config.get('source', 'svngitmap')
 svngit_map = None
 
-attachment_export = config.getboolean('issues', 'attachment_export')
+attachment_export = config.getboolean('attachments', 'export')
 if attachment_export :
-    attachment_export_dir = config.get('issues', 'attachment_export_dir')
-    attachment_export_url = config.get('issues', 'attachment_export_url')
+    attachment_export_dir = config.get('attachments', 'export_dir')
+    attachment_export_url = config.get('attachments', 'export_url')
     if not attachment_export_url.endswith('/') :
         attachment_export_url += '/'
 

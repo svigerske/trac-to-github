@@ -63,14 +63,16 @@ password: secret
 # Migrate milestones
 migrate_milestones: no
 
+[attachments]
+
 # Export attachement as files to the local filesystem or try to upload them as Gist?
 # Gist only allows text files, so binary attachments will be lost
 # Gists are associated with the GitHub user, not the project
-# attachment_export : yes
+export : yes
 
 # Path where to store exported attachement
-# attachment_export_dir : /path/to/attachment/directory
+export_dir : /path/to/attachment/directory
 
 # Base URL under which attachments will be reachable
 # It is assumed that the export directory will be put into this location
-# attachment_export_url : http://www.example.org/trac-attachments/foo/bar
+export_url : http://www.example.org/trac-attachments/foo/bar
