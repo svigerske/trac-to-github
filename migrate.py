@@ -62,6 +62,7 @@ Requirements
 default_config = {
     'migrate' : 'true',
     'keywords_to_labels' : 'false',
+    'attachment_export' : 'true',
     'url' : 'https://api.github.com'
 }
 
@@ -119,6 +120,13 @@ svngit_mapfile = None
 if config.has_option('source', 'svngitmap') :
     svngit_mapfile = config.get('source', 'svngitmap')
 svngit_map = None
+
+attachment_export = config.getboolean('issues', 'attachment_export')
+if attachment_export :
+    attachment_export_dir = config.get('issues', 'attachment_export_dir')
+    attachment_export_url = config.get('issues', 'attachment_export_url')
+    if not attachment_export_url.endswith('/') :
+        attachment_export_url += '/'
 
 #pattern_changeset = r'(?sm)In \[changeset:"([^"/]+?)(?:/[^"]+)?"\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
 pattern_changeset = r'(?sm)In \[changeset:"[0-9]+" ([0-9]+)\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
@@ -257,29 +265,39 @@ def gh_create_issue(dest, issue_data) :
     return gh_issue
 
 def gh_comment_issue(dest, issue, comment) :
-    if dest is None : return
-
     # upload attachement, if there is one
     if 'attachment_name' in comment :
-        assert gh_user is not None
         filename = comment['attachment_name']
-        gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
-        filecontent = InputFileContent(comment['attachment'])
-        try :
-            gist = gh_user.create_gist(False,
-                                       { gistname : filecontent },
-                                       'Attachment %s to Ipopt issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
-            note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
-        except UnicodeDecodeError :
-            note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
-            print '  LOOSING ATTACHMENT', filename, 'in issue', issue.number
-        sleep(sleep_after_attachment)
+        if attachment_export :
+            issuenumber = issue.number if dest is not None else 42
+            dirname = os.path.join(attachment_export_dir, 'ticket' + str(issuenumber))
+            if not os.path.isdir(dirname) :
+                os.makedirs(dirname)
+            # write attachment data to binary file
+            open(os.path.join(dirname, filename), 'wb').write(comment['attachment'])
+            note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(issuenumber) + '/' + filename, comment['author'], comment['created_at'])
+        else :
+            if dest is None : return
+            assert gh_user is not None
+            gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
+            filecontent = InputFileContent(comment['attachment'])
+            try :
+                gist = gh_user.create_gist(False,
+                                           { gistname : filecontent },
+                                           'Attachment %s to Ipopt issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
+                note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
+            except UnicodeDecodeError :
+                note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
+                print '  LOOSING ATTACHMENT', filename, 'in issue', issue.number
+            sleep(sleep_after_attachment)
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
     else :
         note = 'Comment by %s created at %s' % (comment['author'], comment['created_at'])
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
+
+    if dest is None : return
 
     issue.create_comment(note)
     sleep(sleep_after_request)
