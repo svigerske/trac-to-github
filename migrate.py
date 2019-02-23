@@ -27,6 +27,7 @@ along with this library. If not, see <http://www.gnu.org/licenses/>.
 
 import re
 import os
+import sys
 import ConfigParser
 import ast
 from datetime import datetime
@@ -77,7 +78,10 @@ sleep_after_attachment = 60.0;
 sleep_after_10tickets = 600.0;  # TODO maybe this can be reduced due to the longer sleep after attaching something
 
 config = ConfigParser.ConfigParser(default_config)
-config.read('migrate.cfg')
+if len(sys.argv) > 1 :
+    config.read(sys.argv[1])
+else :
+    config.read('migrate.cfg')
 
 trac_url = config.get('source', 'url')
 trac_path = None
