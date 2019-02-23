@@ -691,10 +691,12 @@ if __name__ == "__main__":
         svngit_map = dict()
         for line in open(svngit_mapfile, 'r') :
             l = line.split()
+            if len(l) <= 1 :
+                continue
             assert len(l) >= 2, line
             githash = l[0]
             svnrev = l[1]
-            svnbranch = l[2][1:] if len(l) > 2 else 'trunk'
+            svnbranch = l[2] if len(l) > 2 else 'trunk'
             #print l[1], l[0]
             # if already have a svn revision entry from branch trunk, then ignore others
             if svnrev in svngit_map and svngit_map[svnrev][1] == 'trunk' :
