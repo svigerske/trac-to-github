@@ -61,6 +61,7 @@ Requirements
 
 default_config = {
     'migrate' : 'true',
+    'keywords_to_labels' : 'false',
     'url' : 'https://api.github.com'
 }
 
@@ -108,7 +109,7 @@ if config.has_option('issues', 'blacklist_issues'):
 filter_issues = 'max=0&order=id'
 if config.has_option('issues', 'filter_issues') :
     filter_issues = config.get('issues', 'filter_issues')
-migrate_keywords = config.getboolean('issues', 'migrate_keywords')
+keywords_to_labels = config.getboolean('issues', 'keywords_to_labels')
 migrate_milestones = config.getboolean('issues', 'migrate_milestones')
 add_label = None
 if config.has_option('issues', 'add_label'):
@@ -456,7 +457,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             gh_ensure_label(dest, severity, labelcolor['severity'])
         labels.append(tickettype)
         gh_ensure_label(dest, tickettype, labelcolor['type'])
-        if keywords != '' and migrate_keywords:
+        if keywords != '' and keywords_to_labels :
             for keyword in keywords.split(','):
                 labels.append(keyword.strip())
                 gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
@@ -489,6 +490,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             ccstr += ' ' + person
         if ccstr != '' :
             description_pre += 'CC: ' + ccstr + '\n\n'
+
+        if keywords != '' and not keywords_to_labels :
+            description_pre += 'Keywords: ' + keywords + '\n\n'
 
         description = description_pre + trac2markdown(description, '/issues/', False)
         assert description.find('/wikis/') < 0
@@ -646,22 +650,24 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_comment_issue(dest, issue, { 'note' : 'Changing severity from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "keywords" :
-                if not migrate_keywords : continue
-                oldkeywords = change[3].split(',')
-                newkeywords = change[4].split(',')
-                for keyword in oldkeywords :
-                    keyword = keyword.strip()
-                    if keyword != '' :
-                        labels.remove(keyword)
-                for keyword in newkeywords :
-                    keyword = keyword.strip()
-                    if keyword != '' :
-                        labels.append(keyword)
-                        gh_ensure_label(dest, keyword, labelcolor['keyword'])
-                oldkeywords = [ kw.strip() for kw in oldkeywords ]
-                newkeywords = [ kw.strip() for kw in newkeywords ]
-                gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from ' + ','.join(oldkeywords) + ' to ' + ','.join(newkeywords) + '".', 'created_at' : change_time, 'author' : author })
-                gh_update_issue_property(dest, issue, 'labels', labels)
+                if keywords_to_labels :
+                    oldkeywords = change[3].split(',')
+                    newkeywords = change[4].split(',')
+                    for keyword in oldkeywords :
+                        keyword = keyword.strip()
+                        if keyword != ''  :
+                            labels.remove(keyword)
+                    for keyword in newkeywords :
+                        keyword = keyword.strip()
+                        if keyword != '' :
+                            labels.append(keyword)
+                            gh_ensure_label(dest, keyword, labelcolor['keyword'])
+                    oldkeywords = [ kw.strip() for kw in oldkeywords ]
+                    newkeywords = [ kw.strip() for kw in newkeywords ]
+                    gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".', 'created_at' : change_time, 'author' : author })
+                    gh_update_issue_property(dest, issue, 'labels', labels)
+                else :
+                    gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + change[3] + '" to "' + change[4] + '".', 'created_at' : change_time, 'author' : author })
             else :
                 raise BaseException("Unknown change type " + change_type)
         assert attachment is None

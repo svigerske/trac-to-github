@@ -57,8 +57,8 @@ password: secret
 # Add a label to all migrated issues
 # add_label: Websites
 
-# Migrate keywords
-migrate_keywords: yes
+# Migrate keywords to labels, or add to issue description
+# keywords_to_labels: no
 
 # Migrate milestones
 migrate_milestones: no
