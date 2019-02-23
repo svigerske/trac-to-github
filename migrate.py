@@ -202,8 +202,8 @@ def trac2markdown(text, base_path, multilines = True) :
         if not line.startswith('    '):
             line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
             line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
-            line = re.sub(r'\[wiki:([^\s\[\]]+)\s([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/wikis/', base_path), line)
-            line = re.sub(r'\[/wiki/([^\s\[\]]+)\s([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/wikis/', base_path), line)
+            line = re.sub(r'\[wiki:([^\s\[\]]+)\s([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/wiki/', base_path), line)
+            line = re.sub(r'\[/wiki/([^\s\[\]]+)\s([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/wiki/', base_path), line)
             line = re.sub(r'\[source:([^\s\[\]]+)\s([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
             line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
             line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
@@ -513,7 +513,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             description_pre += 'Keywords: ' + keywords + '\n\n'
 
         description = description_pre + trac2markdown(description, '/issues/', False)
-        assert description.find('/wikis/') < 0
+        #assert description.find('/wiki/') < 0, description
 
         # collect all parameters
         issue_data = {
