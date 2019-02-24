@@ -234,6 +234,15 @@ def convert_xmlrpc_datetime(dt):
     # datetime.strptime(str(dt), "%Y%m%dT%X").isoformat() + "Z"
     return datetime.strptime(str(dt), "%Y%m%dT%H:%M:%S")
 
+def maptickettype(tickettype) :
+    if tickettype == 'defect' :
+        return 'bug'
+    if tickettype == 'clarification' :
+        return 'question'
+    if tickettype == 'task' :
+        return 'enhancement'
+    return tickettype;
+
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
 
@@ -465,6 +474,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if status is None :
             status = src_ticket_data['status']
         reporter = gh_username(dest, src_ticket_data['reporter']);
+        tickettype = maptickettype(tickettype)
 
         labels = []
         if add_label:
@@ -644,9 +654,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
-                labels.remove(change[3])
-                labels.append(change[4])
-                gh_ensure_label(dest, change[4], labelcolor['type'])
+                oldtype = maptickettype(change[3])
+                newtype = maptickettype(change[4])
+                labels.remove(oldtype)
+                labels.append(newtype)
+                gh_ensure_label(dest, newtype, labelcolor['type'])
                 gh_comment_issue(dest, issue, { 'note' : 'Changing type from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
