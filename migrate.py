@@ -724,27 +724,12 @@ def convert_wiki(source, dest):
             attachmentname = os.path.basename(attachment)
             attachmentdata = source.wiki.getAttachment(attachment).data
 
-            if attachment_export :
-                dirname = os.path.join(attachment_export_dir, 'wiki', pagename)
-                if not os.path.isdir(dirname) :
-                    os.makedirs(dirname)
-                # write attachment data to binary file
-                open(os.path.join(dirname, attachmentname), 'wb').write(attachmentdata)
-                attachmenturl = attachment_export_url + 'wiki/' + pagename + '/' + attachmentname
-            else :
-                if dest is None : return
-                assert gh_user is not None
-                gistname = dest.name + ' wikipage attachment ' + attachment
-                filecontent = InputFileContent(attachmentdata)
-                try :
-                    gist = gh_user.create_gist(False,
-                                               { gistname : filecontent },
-                                               'Wiki attachment ' + attachment)
-                    attachmenturl = gist.files[gistname].raw_url
-                except UnicodeDecodeError :
-                    attachmenturl = None
-                    print '  LOOSING ATTACHMENT', attachment
-                sleep(sleep_after_attachment)
+            dirname = os.path.join(wiki_export_dir, pagename)
+            if not os.path.isdir(dirname) :
+                os.makedirs(dirname)
+            # write attachment data to binary file
+            open(os.path.join(dirname, attachmentname), 'wb').write(attachmentdata)
+            attachmenturl = pagename + '/' + attachmentname
 
             converted = re.sub(r'\[attachment:%s\s([^\[\]]+)\]' % re.escape(attachmentname), r'[\1](%s)' % attachmenturl, converted)
 
