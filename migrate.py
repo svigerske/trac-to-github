@@ -139,7 +139,7 @@ matcher_changeset = re.compile(pattern_changeset)
 pattern_changeset2 = r'\[changeset:([a-zA-Z0-9]+)\]'
 matcher_changeset2 = re.compile(pattern_changeset2)
 
-pattern_svnrev1 = r'(?:\bchangeset *)?\[([0-9]+)\]'
+pattern_svnrev1 = r'(?:\bchangeset *)|(?<=\s)\[([0-9]+)\]'
 matcher_svnrev1 = re.compile(pattern_svnrev1)
 
 pattern_svnrev2 = r'\b(?:changeset *)?r([0-9]+)\b'
@@ -176,7 +176,7 @@ def trac2markdown(text, base_path, multilines = True) :
     text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
     text = re.sub(r'(?sm){{{(\n?#![^\n]+)?\n(.*?)\n}}}', r'```\n\2\n```', text)
 
-    text = text.replace('[[TOC]]', '')
+    text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
     text = text.replace('[[BR]]', '\n')
     text = text.replace('[[br]]', '\n')
     text = text.replace("@", "`@`")
