@@ -76,3 +76,11 @@ export_dir : /path/to/attachment/directory
 # Base URL under which attachments will be reachable
 # It is assumed that the export directory will be put into this location
 export_url : http://www.example.org/trac-attachments/foo/bar
+
+[wiki]
+
+migrate : yes
+
+# Directory where to write wiki pages to
+# This can be a clone of the projects wiki repository
+export_dir : /path/to/wiki/repository

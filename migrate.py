@@ -128,6 +128,10 @@ if attachment_export :
     if not attachment_export_url.endswith('/') :
         attachment_export_url += '/'
 
+must_convert_wiki = config.getboolean('wiki', 'migrate')
+if must_convert_wiki :
+    wiki_export_dir = config.get('wiki', 'export_dir')
+
 #pattern_changeset = r'(?sm)In \[changeset:"([^"/]+?)(?:/[^"]+)?"\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
 pattern_changeset = r'(?sm)In \[changeset:"[0-9]+" ([0-9]+)\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
 matcher_changeset = re.compile(pattern_changeset)
@@ -695,6 +699,67 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             print '%d tickets migrated. Waiting %d seconds to let GitHub cool down.' % (ticketcount, sleep_after_10tickets)
             sleep(sleep_after_10tickets)
 
+
+def convert_wiki(source, dest):
+    exclude_authors = ['trac']
+
+    if not os.path.isdir(wiki_export_dir) :
+        os.makedirs(wiki_export_dir)
+
+    xmlrpclib.MultiCall(source)
+    for pagename in source.wiki.getAllPages() :
+        info = source.wiki.getPageInfo(pagename)
+        if info['author'] in exclude_authors :
+            continue
+
+        page = source.wiki.getPage(pagename)
+        print "Migrate Wikipage", pagename
+        if pagename == 'WikiStart' :
+            pagename = 'Home'
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename))
+
+        attachments = []
+        for attachment in source.wiki.listAttachments(pagename) :
+            print "  Attachment", attachment
+            attachmentname = os.path.basename(attachment)
+            attachmentdata = source.wiki.getAttachment(attachment).data
+
+            if attachment_export :
+                dirname = os.path.join(attachment_export_dir, 'wiki', pagename)
+                if not os.path.isdir(dirname) :
+                    os.makedirs(dirname)
+                # write attachment data to binary file
+                open(os.path.join(dirname, attachmentname), 'wb').write(attachmentdata)
+                attachmenturl = attachment_export_url + 'wiki/' + pagename + '/' + attachmentname
+            else :
+                if dest is None : return
+                assert gh_user is not None
+                gistname = dest.name + ' wikipage attachment ' + attachment
+                filecontent = InputFileContent(attachmentdata)
+                try :
+                    gist = gh_user.create_gist(False,
+                                               { gistname : filecontent },
+                                               'Wiki attachment ' + attachment)
+                    attachmenturl = gist.files[gistname].raw_url
+                except UnicodeDecodeError :
+                    attachmenturl = None
+                    print '  LOOSING ATTACHMENT', attachment
+                sleep(sleep_after_attachment)
+
+            converted = re.sub(r'\[attachment:%s\s([^\[\]]+)\]' % re.escape(attachmentname), r'[\1](%s)' % attachmenturl, converted)
+
+            attachments.append((attachmentname, attachmenturl))
+
+        # add a list of attachments
+        if len(attachments) > 0 :
+            converted += '\n---\n\nAttachments:\n'
+            for (name, url) in attachments :
+                converted += ' * [' + name + '](' + url + ')\n'
+
+        # TODO we could use the GitHub API to write into the Wiki repository of the GitHub project
+        open(os.path.join(wiki_export_dir, pagename + '.md'), 'w').write(converted)
+
+
 if __name__ == "__main__":
     source = xmlrpclib.ServerProxy(trac_url)
 
@@ -729,3 +794,6 @@ if __name__ == "__main__":
 
     if must_convert_issues:
         convert_issues(source, dest, only_issues = only_issues, blacklist_issues = blacklist_issues)
+
+    if must_convert_wiki:
+        convert_wiki(source, dest)

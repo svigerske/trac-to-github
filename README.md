@@ -1,7 +1,7 @@
 What
 =====
 
-This script migrates milestones and issues from Trac to GitHub.
+This script migrates milestones, issues, and wiki pages from Trac to GitHub.
 
 The script has its origin at https://github.com/moimael/trac-to-gitlab,
 which then has been [extended to suite a specific use case of SVN+Trac to GitLab migration](https://www.gams.com/~stefan/svn2git/).
@@ -17,10 +17,12 @@ Features
  * Text attachments are uploaded as Gist (GitHub doesn't allow to attach files to issues via the GitHub API)
    or all attachments are exported to files
  * References to SVN commits can be replaced by references to Githashes.
+ * Wiki pages are exported in a form that they can be uploaded to GitHub.
 
 Missing
 -------
- * Trac Wiki is not migrated
+ * Wiki pages could automatically be added to a projects wiki repository.
+ * History on wiki pages is not kept.
 
 
 How
