@@ -454,13 +454,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         # if no change changed a certain attribute, then that attribute is given by ticket data
         if component is None :
-            component = src_ticket_data['component']
+            component = src_ticket_data.get('component')
         if owner is None :
             owner = src_ticket_data['owner']
         if version is None :
             version = src_ticket_data.get('version')
         if tickettype is None :
-            tickettype = src_ticket_data['type']
+            tickettype = src_ticket_data.get('type')
         if description is None :
             description = src_ticket_data['description']
         if summary is None :
