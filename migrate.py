@@ -474,21 +474,24 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if status is None :
             status = src_ticket_data['status']
         reporter = gh_username(dest, src_ticket_data['reporter']);
-        tickettype = maptickettype(tickettype)
+        if tickettype is not None :
+            tickettype = maptickettype(tickettype)
 
         labels = []
         if add_label:
             labels.append(add_label)
-        labels.append(component)
-        gh_ensure_label(dest, component, labelcolor['component'])
+        if component is not None :
+            labels.append(component)
+            gh_ensure_label(dest, component, labelcolor['component'])
         if priority != 'normal' :
             labels.append(priority)
             gh_ensure_label(dest, priority, labelcolor['priority'])
         if severity != 'normal' :
             labels.append(severity)
             gh_ensure_label(dest, severity, labelcolor['severity'])
-        labels.append(tickettype)
-        gh_ensure_label(dest, tickettype, labelcolor['type'])
+        if tickettype is not None :
+            labels.append(tickettype)
+            gh_ensure_label(dest, tickettype, labelcolor['type'])
         if keywords != '' and keywords_to_labels :
             for keyword in keywords.split(','):
                 labels.append(keyword.strip())
@@ -616,7 +619,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 }
                 gh_comment_issue(dest, issue, note)
             elif change_type == "component" :
-                labels.remove(change[3])
+                if change[3] != '' :
+                    labels.remove(change[3])
                 labels.append(change[4])
                 gh_ensure_label(dest, change[4], labelcolor['component'])
                 gh_comment_issue(dest, issue, { 'note' : 'Changing component from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
@@ -654,9 +658,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
-                oldtype = maptickettype(change[3])
+                if change[3] != '' :
+                    oldtype = maptickettype(change[3])
+                    labels.remove(oldtype)
                 newtype = maptickettype(change[4])
-                labels.remove(oldtype)
                 labels.append(newtype)
                 gh_ensure_label(dest, newtype, labelcolor['type'])
                 gh_comment_issue(dest, issue, { 'note' : 'Changing type from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
