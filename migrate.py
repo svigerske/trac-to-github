@@ -640,7 +640,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 else :
                     desc = "Version: " + change[4]
                 note = {
-                    'note' : "Version: " + desc,
+                    'note' : desc,
                     'author' : author,
                     'created_at' : change_time
                 }
