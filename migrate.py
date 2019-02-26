@@ -246,7 +246,7 @@ def maptickettype(tickettype) :
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
 
-    milestone = dest.create_milestone(milestone_data['title'], milestone_data['state'], milestone_data['description'], milestone_data.get('due_date', GitlabObject.NotSet) )
+    milestone = dest.create_milestone(milestone_data['title'], milestone_data['state'], milestone_data['description'], milestone_data.get('due_date', GithubObject.NotSet) )
     sleep(sleep_after_request)
     return milestone
 
