@@ -737,7 +737,7 @@ def convert_wiki(source, dest):
         converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename))
 
         attachments = []
-        for attachment in source.wiki.listAttachments(pagename) :
+        for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart') :
             print "  Attachment", attachment
             attachmentname = os.path.basename(attachment)
             attachmentdata = source.wiki.getAttachment(attachment).data
