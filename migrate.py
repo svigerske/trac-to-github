@@ -519,7 +519,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         # subscribe persons in cc
         cc = src_ticket_data.get('cc', '').lower()
         ccstr = ''
-        for person in cc.split(',') :
+        for person in cc.replace(';', ',').split(',') :
             person = person.strip()
             if person == '' : continue
             person = gh_username(dest, person)
