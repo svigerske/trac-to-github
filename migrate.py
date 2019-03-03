@@ -424,34 +424,34 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         for change in changelog :
             #change is tuple (time, author, field, oldvalue, newvalue, permanent)
             if component is None and change[2] == 'component' :
-                component = change[3]
+                component = change[3].strip()
                 continue
             if owner is None and change[2] == 'owner' :
-                owner = change[3]
+                owner = change[3].strip()
                 continue
             if version is None and change[2] == 'version' :
-                version = change[3]
+                version = change[3].strip()
                 continue
             if tickettype is None and change[2] == 'type' :
-                tickettype = change[3]
+                tickettype = change[3].strip()
                 continue
             if description is None and change[2] == 'description' :
-                description = change[3]
+                description = change[3].strip()
                 continue
             if summary is None and change[2] == 'summary' :
-                summary = change[3]
+                summary = change[3].strip()
                 continue
             if priority is None and change[2] == 'priority' :
-                priority = change[3]
+                priority = change[3].strip()
                 continue
             if severity is None and change[2] == 'severity' :
-                severity = change[3]
+                severity = change[3].strip()
                 continue
             if keywords is None and change[2] == 'keywords' :
-                keywords = change[3]
+                keywords = change[3].strip()
                 continue
             if status is None and change[2] == 'status' :
-                status = change[3]
+                status = change[3].strip()
                 continue
 
         # if no change changed a certain attribute, then that attribute is given by ticket data
@@ -482,7 +482,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         labels = []
         if add_label:
             labels.append(add_label)
-        if component is not None :
+        if component is not None and component.strip() != '' :
             labels.append(component)
             gh_ensure_label(dest, component, labelcolor['component'])
         if priority != 'normal' :
