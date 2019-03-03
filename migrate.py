@@ -30,6 +30,7 @@ import os
 import sys
 import ConfigParser
 import ast
+import codecs
 from datetime import datetime
 from time import sleep
 #from re import MULTILINE
@@ -283,7 +284,7 @@ def gh_comment_issue(dest, issue, comment) :
     if 'attachment_name' in comment :
         filename = comment['attachment_name']
         if attachment_export :
-            issuenumber = issue.number if dest is not None else 42
+            issuenumber = issue.number if dest is not None else 0
             dirname = os.path.join(attachment_export_dir, 'ticket' + str(issuenumber))
             if not os.path.isdir(dirname) :
                 os.makedirs(dirname)
@@ -760,7 +761,13 @@ def convert_wiki(source, dest):
                 converted += ' * [' + name + '](' + url + ')\n'
 
         # TODO we could use the GitHub API to write into the Wiki repository of the GitHub project
-        open(os.path.join(wiki_export_dir, pagename + '.md'), 'w').write(converted)
+        try :
+            open(os.path.join(wiki_export_dir, pagename + '.md'), 'w').write(converted)
+        except UnicodeEncodeError as e :
+            print 'EXCEPTION:', e
+            print '  Context:', e.object[e.start-20:e.end+20]
+            print '  Retrying with UTF-8 encoding'
+            codecs.open(os.path.join(wiki_export_dir, pagename + '.md'), 'w', 'utf-8').write(converted)
 
 
 if __name__ == "__main__":
