@@ -3,7 +3,11 @@
 [source]
 
 # URL of the XML-RPC trac endpoint
-url: http://username:password@example.com/trac/login/xmlrpc
+# unauthenticated works for globally readable trac instances
+url: https://example.com/xmlrpc
+# authentication broken with python3.8 or later, due to
+# https://github.com/python/cpython/issues/82219
+# url: http://username:password@example.com/trac/login/xmlrpc
 
 # optional path to trac instance used to convert some attachments
 path: /path/to/trac/instance
