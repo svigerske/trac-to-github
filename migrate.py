@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=python fileencoding=utf-8
 '''
 Copyright © 2018-2019
@@ -28,13 +28,13 @@ along with this library. If not, see <http://www.gnu.org/licenses/>.
 import re
 import os
 import sys
-import ConfigParser
+import configparser
 import ast
 import codecs
 from datetime import datetime
 from time import sleep
 #from re import MULTILINE
-import xmlrpclib
+from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
 
 #import github as gh
@@ -80,7 +80,7 @@ sleep_after_request = 2.0;
 sleep_after_attachment = 60.0;
 sleep_after_10tickets = 0.0;  # TODO maybe this can be reduced due to the longer sleep after attaching something
 
-config = ConfigParser.ConfigParser(default_config)
+config = configparser.ConfigParser(default_config)
 if len(sys.argv) > 1 :
     config.read(sys.argv[1])
 else :
@@ -154,7 +154,7 @@ def format_changeset_comment(m):
         r = 'In ' + svngit_map[m.group(1)][0][:10]
     else :
         if svngit_map is not None :
-            print '  WARNING: svn revision', m.group(1), 'not given in svn to git mapping'
+            print ('  WARNING: svn revision', m.group(1), 'not given in svn to git mapping')
         r = 'In changeset ' + m.group(1)
     r += ':\n> ' + m.group(3).replace('\n', '\n> ')
     return r
@@ -256,7 +256,7 @@ def gh_ensure_label(dest, labelname, labelcolor) :
     if dest is None : return
     if labelname.lower() in gh_labels :
         return
-    print 'Create label %s with color #%s' % (labelname, labelcolor);
+    print ('Create label %s with color #%s' % (labelname, labelcolor));
     gh_label = dest.create_label(labelname, labelcolor);
     gh_labels[labelname.lower()] = gh_label;
     sleep(sleep_after_request)
@@ -303,7 +303,7 @@ def gh_comment_issue(dest, issue, comment) :
                 note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
             except UnicodeDecodeError :
                 note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
-                print '  LOOSING ATTACHMENT', filename, 'in issue', issue.number
+                print ('  LOOSING ATTACHMENT', filename, 'in issue', issue.number)
             sleep(sleep_after_attachment)
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
@@ -365,7 +365,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 new_milestone['due_date'] = milestone['due']  #convert_xmlrpc_datetime(milestone['due'])
             milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
 
-    get_all_tickets = xmlrpclib.MultiCall(source)
+    get_all_tickets = client.MultiCall(source)
 
     for ticket in source.ticket.query(filter_issues):
         get_all_tickets.ticket.get(ticket)
@@ -567,7 +567,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             print(("  %s by %s (%s -> %s)" % (change_type, change[1], change[3][:40].replace("\n", " "), change[4][:40].replace("\n", " "))).encode("ascii", "replace"))
             assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
             if change[1] in ['anonymous', 'Draftmen888'] :
-                print "  SKIPPING CHANGE BY", change[1]
+                print ("  SKIPPING CHANGE BY", change[1])
                 continue
             author = gh_username(dest, change[1])
             if change_type == "attachment":
@@ -715,7 +715,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         ticketcount = ticketcount + 1
         if ticketcount % 10 == 0 and sleep_after_10tickets > 0 :
-            print '%d tickets migrated. Waiting %d seconds to let GitHub cool down.' % (ticketcount, sleep_after_10tickets)
+            print ('%d tickets migrated. Waiting %d seconds to let GitHub cool down.' % (ticketcount, sleep_after_10tickets))
             sleep(sleep_after_10tickets)
 
 
@@ -725,21 +725,21 @@ def convert_wiki(source, dest):
     if not os.path.isdir(wiki_export_dir) :
         os.makedirs(wiki_export_dir)
 
-    xmlrpclib.MultiCall(source)
+    client.MultiCall(source)
     for pagename in source.wiki.getAllPages() :
         info = source.wiki.getPageInfo(pagename)
         if info['author'] in exclude_authors :
             continue
 
         page = source.wiki.getPage(pagename)
-        print "Migrate Wikipage", pagename
+        print ("Migrate Wikipage", pagename)
         if pagename == 'WikiStart' :
             pagename = 'Home'
         converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename))
 
         attachments = []
         for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart') :
-            print "  Attachment", attachment
+            print ("  Attachment", attachment)
             attachmentname = os.path.basename(attachment)
             attachmentdata = source.wiki.getAttachment(attachment).data
 
@@ -764,14 +764,14 @@ def convert_wiki(source, dest):
         try :
             open(os.path.join(wiki_export_dir, pagename + '.md'), 'w').write(converted)
         except UnicodeEncodeError as e :
-            print 'EXCEPTION:', e
-            print '  Context:', e.object[e.start-20:e.end+20]
-            print '  Retrying with UTF-8 encoding'
+            print ('EXCEPTION:', e)
+            print ('  Context:', e.object[e.start-20:e.end+20])
+            print ('  Retrying with UTF-8 encoding')
             codecs.open(os.path.join(wiki_export_dir, pagename + '.md'), 'w', 'utf-8').write(converted)
 
 
 if __name__ == "__main__":
-    source = xmlrpclib.ServerProxy(trac_url)
+    source = client.ServerProxy(trac_url)
 
     dest = None
     if github_token is not None :
