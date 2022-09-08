@@ -339,7 +339,7 @@ def gh_update_issue_property(dest, issue, key, val) :
     elif key == 'milestone' :
         issue.edit(milestone = val)
     else :
-        raise 'Unknown key ' + key
+        raise ValueError('Unknown key ' + key)
 
     sleep(sleep_after_request)
 
@@ -557,7 +557,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             issue_state = 'closed'
             gh_update_issue_property(dest, issue, 'state', 'closed')
         else :
-            raise("  unknown ticket status: " + status)
+            raise ValueError("  unknown ticket status: " + status)
 
         attachment = None
         for change in changelog:
@@ -584,7 +584,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 }
                 if attachment is not None :
                     note['attachment_name'] = attachment[4]  # name of attachment
-                    note['attachment'] = source.ticket.getAttachment(src_ticket_id, attachment[4].encode('utf8')).data
+                    note['attachment'] = source.ticket.getAttachment(src_ticket_id, attachment[4]).data
                     attachment = None
                 note['created_at'] = change_time
                 note['author'] = author
@@ -596,14 +596,14 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 pass
             elif change_type == "status" :
                 # we map here the various statii we have in trac to just 2 statii in gitlab (open or close), so loose some information
-                if change[4] in ['new', 'assigned', 'analyzed', 'reopened'] :
+                if change[4] in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'positive_review'] :
                     newstate = 'open'
                     # should not need an extra comment if closing ticket
                     gh_comment_issue(dest, issue, {'note' : 'Changing status from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author})
                 elif change[4] in ['closed'] :
                     newstate = 'closed'
                 else :
-                    raise("  unknown ticket status: " + change[4])
+                    raise ValueError("  unknown ticket status: " + change[4])
 
                 if issue_state != newstate :
                     issue_state = newstate
@@ -709,6 +709,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_update_issue_property(dest, issue, 'labels', labels)
                 else :
                     gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + change[3] + '" to "' + change[4] + '".', 'created_at' : change_time, 'author' : author })
+            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author"] :
+                print("TODO Change type: ", change_type)
             else :
                 raise BaseException("Unknown change type " + change_type)
         assert attachment is None
