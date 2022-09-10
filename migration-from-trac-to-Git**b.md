@@ -22,6 +22,7 @@ See also: https://trac.sagemath.org/ticket/30363
     - "Cc": use `@USERNAME` either in the Issue description or in any comment
     - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
     - "Report Upstream" is replaced by [automatic cross references between Issues/PRs in different repos](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/autolinked-references-and-urls#issues-and-pull-requests)
+    - "Milestone = duplicate/invalid/wontfix" is replaced by [marking as duplicate](https://docs.github.com/en/issues/tracking-your-work-with-issues/marking-issues-or-pull-requests-as-a-duplicate) or closing with a comment
 
 - For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
   - Push the branch to the remote named `github-USERNAME`
