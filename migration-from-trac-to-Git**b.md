@@ -11,15 +11,16 @@ See also: https://trac.sagemath.org/ticket/30363
     git remote add github-USERNAME https://github.com/USERNAME/sage.git
     ```
 
-- Instead of opening a Trac ticket:
+- For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
 
   - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/dimpase/trac_to_gh/issues?q=
-  - Trac "Components" (such as "basic arithmetic") are mapped to "Labels"
-  - "Bug"/"Enhancement" is mapped to "Labels"
-  - Priority ("major"/"minor"/"critical") is mapped to "Labels"
+  - Trac ticket box attributes are mapped as follows:
+    - "Type" ("defect", "enhancement", "task") is mapped to a "Label"
+    - "Component" ("basic arithmetic", ") are mapped to "Labels"
+    - "Priority" ("major"/"minor"/"critical") is mapped to "Labels"
   - Instead of Cc:, use @
 
-- Instead of pushing a git branch to a Trac ticket:
+- **Instead of pushing a git branch to a Trac ticket**:
 
   - Push the branch to the remote named `github-USERNAME`
   - A git message will provide a URL for opening a Pull Request (PR)
