@@ -16,7 +16,7 @@ See also: https://trac.sagemath.org/ticket/30363
   - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/dimpase/trac_to_gh/issues?q=
   - Trac ticket box attributes are mapped as follows:
     - "Type" ("defect", "enhancement", "task") is mapped to a "Label"
-    - "Component" ("basic arithmetic", ") are mapped to "Labels"
+    - "Component" ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels"
     - "Priority" ("major"/"minor"/"critical") is mapped to "Labels"
     - "Keywords" can be mapped to "Labels"
     - "Cc": use `@USERNAME` either in the Issue description or in any comment
