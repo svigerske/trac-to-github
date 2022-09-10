@@ -5,8 +5,11 @@ See also: https://trac.sagemath.org/ticket/30363
 
 - One time action: Instead of adding a git remote named `trac`:
   
-  - [Create a GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) and copy its URL
-  - Add a remote named `github-USERNAME`
+  - [Create a GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage
+  - Add a remote named `github-USERNAME` for your fork (the URL can be copied from there)
+    ```
+    git remote add github-USERNAME https://github.com/USERNAME/sage.git
+    ```
 
 - Instead of opening a Trac ticket:
 
