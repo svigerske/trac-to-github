@@ -36,6 +36,7 @@ See also: https://trac.sagemath.org/ticket/30363
 
 - For reviewing a change:
   - **instead of looking at the patchbot**, use the [Checks on GitHub Actions](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions), which are already available on Trac since the Sage 9.6 series; the status of the check runs will be clearer on GitHub [than on Trac](https://trac.sagemath.org/ticket/33818) 
+  - **instead of copy-pasting parts the diff to a comment**, use [pull request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews)
 
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
 - Unchanged: To make a beta or stable release, Release Manager merges (fast-forward) his branch into the `develop` branch and creates a tag
