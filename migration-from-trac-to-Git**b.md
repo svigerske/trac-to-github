@@ -21,7 +21,7 @@ See also: https://trac.sagemath.org/ticket/30363
     - "Cc": use `@USERNAME` either in the Issue description or in any comment
     - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
 
-- For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket**:
+- For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
   - Push the branch to the remote named `github-USERNAME`
   - A git message will provide a URL for opening a Pull Request (PR)
   - Open the PR
