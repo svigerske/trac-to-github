@@ -8,6 +8,12 @@ See also: https://trac.sagemath.org/ticket/30363
   - Create a GitHub fork and copy its URL
   - Add a remote named `github-USERNAME`
 
+- Instead of opening a Trac ticket:
+
+  - Open an Issue on GitHub. Preview of Issues (converted from Trac): https://github.com/dimpase/trac_to_gh/issues?q=
+  - Trac "Components" (such as "basic arithmetic") are mapped to "Labels"
+  - Bug/Enhancement is mapped to "Labels"
+
 - Instead of pushing a git branch to a Trac ticket:
 
   - Push the branch to the remote named `github-USERNAME`
@@ -21,6 +27,3 @@ See also: https://trac.sagemath.org/ticket/30363
 - Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `master` branch.
 
 
-# Migration tasks
-
-- Add from https://trac.sagemath.org/admin/ticket/components to https://github.com/sagemath/sage/labels
