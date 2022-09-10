@@ -1,7 +1,7 @@
 See also: https://trac.sagemath.org/ticket/30363
 
 
-# Proposed workflow on GitHub (minimal changes to existing Trac workflow)
+# Proposed workflow on GitHub (with transition guide from Trac)
 
 - One time action: **Instead of adding a git remote named `trac`**:
   
