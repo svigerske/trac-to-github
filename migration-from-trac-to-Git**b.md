@@ -27,7 +27,7 @@ See also: https://trac.sagemath.org/ticket/30363
 - For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
   - Push the branch to the remote named `github-USERNAME`
   - A git message will provide a URL for opening a Pull Request (PR)
-  - Open the PR
+  - [Create the PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
   - If it is not ready for review, [mark the PR as a "Draft"](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)
 
 - For contributing a change that addresses an existing open Issue, **instead of pushing a git branch to a Trac ticket**:
