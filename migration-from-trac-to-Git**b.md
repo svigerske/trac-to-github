@@ -21,12 +21,15 @@ See also: https://trac.sagemath.org/ticket/30363
     - "Cc": use `@USERNAME` either in the Issue description or in any comment
     - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
 
-- **Instead of pushing a git branch to a Trac ticket**:
-
+- For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket**:
   - Push the branch to the remote named `github-USERNAME`
   - A git message will provide a URL for opening a Pull Request (PR)
-  - Open the PR; [use `Fixes #ISSUENUMBER` to link to an existing issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue)
+  - Open the PR
   - If it is not ready for review, [mark the PR as a "Draft"](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)
+
+- For contributing a change that addresses an existing open Issue, **instead of pushing a git branch to a Trac ticket**:
+  - same as above
+  - [use `Fixes #ISSUENUMBER` to link to an existing issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue); this will auto-close the linked Issue when the PR is merged.
 
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
 - Unchanged: To make a beta or stable release, Release Manager merges (fast-forward) his branch into the `develop` branch and creates a tag
