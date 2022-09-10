@@ -20,3 +20,7 @@ See also: https://trac.sagemath.org/ticket/30363
 - Unchanged: To make a beta or stable release, Release Manager merges (fast-forward) his branch into the `develop` branch and creates a tag
 - Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `master` branch.
 
+
+# Migrations tasks
+
+- Add from https://trac.sagemath.org/admin/ticket/components to https://github.com/sagemath/sage/labels
