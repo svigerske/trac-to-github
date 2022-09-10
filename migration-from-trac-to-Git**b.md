@@ -21,6 +21,6 @@ See also: https://trac.sagemath.org/ticket/30363
 - Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `master` branch.
 
 
-# Migrations tasks
+# Migration tasks
 
 - Add from https://trac.sagemath.org/admin/ticket/components to https://github.com/sagemath/sage/labels
