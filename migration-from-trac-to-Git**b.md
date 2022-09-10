@@ -5,7 +5,7 @@ See also: https://trac.sagemath.org/ticket/30363
 
 - One time action: Instead of adding a git remote named `trac`:
   
-  - Create a GitHub fork and copy its URL
+  - [Create a GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) and copy its URL
   - Add a remote named `github-USERNAME`
 
 - Instead of opening a Trac ticket:
