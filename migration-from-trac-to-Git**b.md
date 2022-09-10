@@ -21,6 +21,7 @@ See also: https://trac.sagemath.org/ticket/30363
     - "Keywords" can be mapped to "Labels"
     - "Cc": use `@USERNAME` either in the Issue description or in any comment
     - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
+    - "Report Upstream" is replaced by [automatic cross references between Issues/PRs in different repos](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/autolinked-references-and-urls#issues-and-pull-requests)
 
 - For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
   - Push the branch to the remote named `github-USERNAME`
