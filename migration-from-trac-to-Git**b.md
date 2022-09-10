@@ -10,7 +10,7 @@ See also: https://trac.sagemath.org/ticket/30363
 
 - Instead of opening a Trac ticket:
 
-  - Open an Issue on GitHub. Preview of Issues (converted from Trac): https://github.com/dimpase/trac_to_gh/issues?q=
+  - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/dimpase/trac_to_gh/issues?q=
   - Trac "Components" (such as "basic arithmetic") are mapped to "Labels"
   - "Bug"/"Enhancement" is mapped to "Labels"
   - Priority ("major"/"minor"/"critical") is mapped to "Labels"
