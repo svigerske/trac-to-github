@@ -18,7 +18,8 @@ See also: https://trac.sagemath.org/ticket/30363
     - "Type" ("defect", "enhancement", "task") is mapped to a "Label"
     - "Component" ("basic arithmetic", ") are mapped to "Labels"
     - "Priority" ("major"/"minor"/"critical") is mapped to "Labels"
-  - Instead of Cc:, use @
+    - "Cc": use `@USERNAME` either in the Issue description or in any comment
+    - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
 
 - **Instead of pushing a git branch to a Trac ticket**:
 
