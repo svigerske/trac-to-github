@@ -13,7 +13,7 @@ See also: https://trac.sagemath.org/ticket/30363
   - Push the branch to the remote named `github-USERNAME`
   - A git message will provide a URL for opening a PR
   - Open the PR, possibly marking it as "draft"; use `Fixes #ISSUENUMBER` to link to an existing issue
-  - Instead of Component, use a Label
+  - Instead of Component, use a Label (https://github.com/sagemath/sage/labels)
   - Instead of Cc:, use @
 
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
