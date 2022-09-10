@@ -34,6 +34,9 @@ See also: https://trac.sagemath.org/ticket/30363
   - same as above
   - [use `Fixes #ISSUENUMBER` to link to an existing issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue); this will auto-close the linked Issue when the PR is merged.
 
+- For reviewing a change:
+  - **instead of looking at the patchbot**, use the [Checks on GitHub Actions](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions), which are already available on Trac since the Sage 9.6 series; the status of the check runs will be clearer on GitHub [than on Trac](https://trac.sagemath.org/ticket/33818) 
+
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
 - Unchanged: To make a beta or stable release, Release Manager merges (fast-forward) his branch into the `develop` branch and creates a tag
 - Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `master` branch.
