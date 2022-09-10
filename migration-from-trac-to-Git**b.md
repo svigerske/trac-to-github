@@ -3,7 +3,7 @@ See also: https://trac.sagemath.org/ticket/30363
 
 # Proposed workflow on GitHub (minimal changes to existing Trac workflow)
 
-- One time action: Instead of adding a git remote named `trac`:
+- One time action: **Instead of adding a git remote named `trac`**:
   
   - [Create a GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage
   - Add a remote named `github-USERNAME` for your fork (the URL can be copied from there)
