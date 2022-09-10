@@ -18,6 +18,7 @@ See also: https://trac.sagemath.org/ticket/30363
     - "Type" ("defect", "enhancement", "task") is mapped to a "Label"
     - "Component" ("basic arithmetic", ") are mapped to "Labels"
     - "Priority" ("major"/"minor"/"critical") is mapped to "Labels"
+    - "Keywords" can be mapped to "Labels"
     - "Cc": use `@USERNAME` either in the Issue description or in any comment
     - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
 
