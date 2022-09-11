@@ -54,7 +54,8 @@ See also: https://trac.sagemath.org/ticket/30363
   - for trying the branch of a PR locally, **instead of using `git trac try TICKETNUMBER`**, use [`git fetch origin pull/PULL_REQUEST_ID/head:LOCAL_BRANCH_NAME`](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally)
     
 - For organizing, **instead of using meta-tickets**:
-  - [create a new Project](https://github.com/features/issues)
+  - either open an Issue
+  - or [create a new Project](https://github.com/features/issues)
 
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
   - Once released (currently targeted for Q4 2022), we instead use [Merge Queues](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue).
