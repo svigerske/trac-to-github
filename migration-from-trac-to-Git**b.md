@@ -6,26 +6,37 @@ See also: https://trac.sagemath.org/ticket/30363
 - One time action: **Instead of adding a git remote named `trac`**:
   
   - [Create a GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage
-  - Add a remote named `github-USERNAME` for your fork (the URL can be copied from there)
+  - [Clone the forked repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#cloning-your-forked-repository)
     ```
-    git remote add github-USERNAME https://github.com/USERNAME/sage.git
+    git clone https://github.com/USERNAME/sage.git
     ```
+    This will link the fork as the `origin` remote in the local git.
+    Of course, people that have already obtained the source code don't need to clone again and can directly add their fork as a remote via (the URL can be copied from there)
+    ```
+    git remote add origin https://github.com/USERNAME/sage.git
+    ```
+  - [Configuring Git to sync your fork with the original repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#configuring-git-to-sync-your-fork-with-the-original-repository) 
+    ```
+    git remote add upstream https://github.com/sagemath/sage.git
+    ```
+  - (Of course, devs can give arbitrary names to their git remotes, but `origin` and `upstream` are the established defaults.)
 
 - For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
 
   - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/dimpase/trac_to_gh/issues?q=
   - Trac ticket box attributes are mapped as follows:
-    - "Type" ("defect", "enhancement", "task") is mapped to a "Label"
-    - "Component" ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels"
-    - "Priority" ("major"/"minor"/"critical") is mapped to "Labels"
+    - "Type" ("defect", "enhancement", "task") is mapped to a "Label" with prefix `t:`, e.g., `t: bug`
+    - "Component" ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels" with prefix `c: `
+    - "Priority" ("major"/"minor"/"critical") is mapped to "Labels" with prefix `p: `
     - "Keywords" can be mapped to "Labels"
-    - "Cc": use `@USERNAME` either in the Issue description or in any comment
+    - "Cc": use `@USERNAME` either in the Issue description or in any comment. Regular developers who would like to get notified automatically when a PR touches a particular part of the sage code can add themselves as a [Code Owner](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
     - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
     - "Report Upstream" is replaced by [automatic cross references between Issues/PRs in different repos](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/autolinked-references-and-urls#issues-and-pull-requests)
     - "Milestone = duplicate/invalid/wontfix" is replaced by [marking as duplicate](https://docs.github.com/en/issues/tracking-your-work-with-issues/marking-issues-or-pull-requests-as-a-duplicate) or closing with a comment
 
 - For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
-  - Push the branch to the remote named `github-USERNAME`
+  - Create a new local branch based on `upstream/develop`
+  - Push the branch to the remote named `origin`, i.e to your fork
   - A git message will provide a URL for opening a Pull Request (PR)
   - [Create the PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
   - If it is not ready for review, [mark the PR as a "Draft"](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)
@@ -42,13 +53,18 @@ See also: https://trac.sagemath.org/ticket/30363
   - **instead of copy-pasting parts of the diff of a branch to a comment**, use [pull request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews): You can add comments directly to changed lines
   - for trying the branch of a PR locally, **instead of using `git trac try TICKETNUMBER`**, use [`git fetch origin pull/PULL_REQUEST_ID/head:LOCAL_BRANCH_NAME`](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally)
     
+- For organizing, **instead of using meta-tickets**:
+  - [create a new Project](https://github.com/features/issues)
 
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
+  - Once released (currently targeted for Q4 2022), we instead use [Merge Queues](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue).
 - Unchanged: To make a beta or stable release, Release Manager merges (fast-forward) his branch into the `develop` branch and creates a tag
-- Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `master` branch.
+- Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `main` branch.
+  - Only change is the rename of `master` to `main` due to cultural sensitivity
+  - In the future, we might migrate from this [Gitflow workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) to the [Trunk-based workflow](https://www.atlassian.com/continuous-delivery/continuous-integration/trunk-based-development) where the `develop` branch is no longer needed and changes are directly merged into `main`.
 
 
 # Conversion of Trac tickets and the Trac wiki to GH Actions
 
 - script: https://github.com/dimpase/trac-to-github
-
+- Question: how are permissions for existing branches handled so that people can still update the migrated PR? As an idea, maybe we can create the PR based on the branch in the sagetrac-mirror (and remove the branch protection rule there)
