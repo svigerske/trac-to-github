@@ -63,7 +63,7 @@ See also: https://trac.sagemath.org/ticket/30363
   - Once released (currently targeted for Q4 2022), we instead use [Merge Queues](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue).
 - Unchanged: To make a beta or stable release, Release Manager merges (fast-forward) his branch into the `develop` branch and creates a tag
 - Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `main` branch.
-  - Only change is the rename of `master` to `main` due to cultural sensitivity
+  - Only change is the rename of `master` to `main` due to cultural sensitivity - as proposed in https://trac.sagemath.org/ticket/31287
   - In the future, we might migrate from this [Gitflow workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) to the [Trunk-based workflow](https://www.atlassian.com/continuous-delivery/continuous-integration/trunk-based-development) where the `develop` branch is no longer needed and changes are directly merged into `main`.
 
 
