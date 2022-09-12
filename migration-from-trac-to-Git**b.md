@@ -16,7 +16,7 @@ See also: https://trac.sagemath.org/ticket/30363
       ```
       git remote add upstream https://github.com/sagemath/sage.git
       ```
-    - If you already have a remote named `origin` and it is not your personal fork, rename this remote to something else
+    - If you already have a remote named `origin` and it is not your personal fork, rename this remote to something else using `git remote rename origin MY-OLD-ORIGIN`
     - Finally, add your fork as a remote via (the URL can be copied from there)
       ```
       git remote add origin https://github.com/USERNAME/sage.git
