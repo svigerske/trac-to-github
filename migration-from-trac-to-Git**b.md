@@ -11,9 +11,13 @@ See also: https://trac.sagemath.org/ticket/30363
       ```
       git remote -v
       ```
-    - If you already have the main Sage repository (https://github.com/sagemath/sage) as a remote, and its name is not `upstream`, rename it to `upstream` using `git remote rename`
+    - If you already have the main Sage repository (https://github.com/sagemath/sage) as a remote, and its name is not `upstream`, rename it to `upstream` using `git remote rename OLD-NAME upstream`
+    - Otherwise, add a new remote:
+      ```
+      git remote add upstream https://github.com/sagemath/sage.git
+      ```
     - If you already have a remote named `origin` and it is not your personal fork, rename this remote to something else
-    - Add your fork as a remote via (the URL can be copied from there)
+    - Finally, add your fork as a remote via (the URL can be copied from there)
       ```
       git remote add origin https://github.com/USERNAME/sage.git
       ```
@@ -27,7 +31,7 @@ See also: https://trac.sagemath.org/ticket/30363
       ```
       git remote add upstream https://github.com/sagemath/sage.git
       ```
-  - (Of course, devs can give arbitrary names to their git remotes, but `origin` and `upstream` are the established defaults, which will make it easier to use tools such as the GitHub command-line tools.)
+  - (Of course, you can give arbitrary names to your git remotes, but `origin` and `upstream` are the established defaults, which will make it easier to use tools such as the GitHub command-line tools.)
 
 - For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
 
