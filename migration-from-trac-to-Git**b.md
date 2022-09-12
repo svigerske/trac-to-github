@@ -5,21 +5,29 @@ See also: https://trac.sagemath.org/ticket/30363
 
 - One time action: **Instead of adding a git remote named `trac`**:
   
-  - [Create a GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage
-  - [Clone the forked repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#cloning-your-forked-repository)
-    ```
-    git clone https://github.com/USERNAME/sage.git
-    ```
-    This will link the fork as the `origin` remote in the local git.
-    Of course, people that have already obtained the source code don't need to clone again and can directly add their fork as a remote via (the URL can be copied from there)
-    ```
-    git remote add origin https://github.com/USERNAME/sage.git
-    ```
-  - [Configuring Git to sync your fork with the original repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#configuring-git-to-sync-your-fork-with-the-original-repository) 
-    ```
-    git remote add upstream https://github.com/sagemath/sage.git
-    ```
-  - (Of course, devs can give arbitrary names to their git remotes, but `origin` and `upstream` are the established defaults.)
+  - [Create your personal GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage - this will become a repository in https://github.com/USERNAME
+  - If you already have a clone of a Sage repository on your computer:
+    - Check your current git remote repositories:
+      ```
+      git remote -v
+      ```
+    - If you already have the main Sage repository (https://github.com/sagemath/sage) as a remote, and its name is not `upstream`, rename it to `upstream` using `git remote rename`
+    - If you already have a remote named `origin` and it is not your personal fork, rename this remote to something else
+    - Add your fork as a remote via (the URL can be copied from there)
+      ```
+      git remote add origin https://github.com/USERNAME/sage.git
+      ```
+  - Otherwise (fresh start):
+    - [Clone the forked repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#cloning-your-forked-repository)
+      ```
+      git clone https://github.com/USERNAME/sage.git
+      ```
+      This will link your fork as the `origin` remote in the local git.
+    - [Configure git to sync your fork with the main Sage repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#configuring-git-to-sync-your-fork-with-the-original-repository):
+      ```
+      git remote add upstream https://github.com/sagemath/sage.git
+      ```
+  - (Of course, devs can give arbitrary names to their git remotes, but `origin` and `upstream` are the established defaults, which will make it easier to use tools such as the GitHub command-line tools.)
 
 - For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
 
