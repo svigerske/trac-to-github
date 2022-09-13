@@ -35,7 +35,7 @@ See also: https://trac.sagemath.org/ticket/30363
 
 - For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
 
-  - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/dimpase/trac_to_gh/issues?q=
+  - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/sagemath/trac_to_gh/issues?q=
   - Trac ticket box attributes are mapped as follows:
     - "Type" ("defect", "enhancement", "task") is mapped to a "Label" with prefix `t:`, e.g., `t: bug`
     - "Component" ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels" with prefix `c: `
@@ -81,5 +81,5 @@ See also: https://trac.sagemath.org/ticket/30363
 
 # Conversion of Trac tickets and the Trac wiki to GH Actions
 
-- script: https://github.com/dimpase/trac-to-github
+- script: https://github.com/sagemath/trac-to-github
 - Question: how are permissions for existing branches handled so that people can still update the migrated PR? As an idea, maybe we can create the PR based on the branch in the sagetrac-mirror (and remove the branch protection rule there)
