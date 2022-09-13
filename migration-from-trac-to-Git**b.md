@@ -3,6 +3,12 @@ See also: https://trac.sagemath.org/ticket/30363
 
 # Proposed workflow on GitHub (with transition guide from Trac)
 
+- One time action: **Instead of depositing an SSH public key on Trac**:
+  - No action needed if you have already contributed to any other project on GitHub and set up Git credentials or SSH keys for this.
+  - For new users of GitHub:
+    - Either https://docs.github.com/en/get-started/getting-started-with-git/caching-your-github-credentials-in-git
+    - Or https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+ 
 - One time action: **Instead of adding a git remote named `trac`**:
   
   - [Create your personal GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage - this will become a repository in https://github.com/USERNAME
