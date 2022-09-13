@@ -96,6 +96,10 @@ See also: https://trac.sagemath.org/ticket/30363
   - Only change is the rename of `master` to `main` due to cultural sensitivity - as proposed in https://trac.sagemath.org/ticket/31287
   - In the future, we might migrate from this [Gitflow workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) to the [Trunk-based workflow](https://www.atlassian.com/continuous-delivery/continuous-integration/trunk-based-development) where the `develop` branch is no longer needed and changes are directly merged into `main`.
 
+# Proposed permissions and protections
+
+- Reference: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches
+- Details TBD
 
 # Conversion of Trac tickets and the Trac wiki to GH Actions
 
