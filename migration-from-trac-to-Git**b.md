@@ -13,7 +13,7 @@ See also: https://trac.sagemath.org/ticket/30363
   
   - [Create your personal GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage - this will become a repository in https://github.com/USERNAME
   - (Optional) generate ssh keypair, or use an already existing one, and upload the public key to your GitHub account settings
-  - If you already have a clone of a Sage repository on your computer:
+  - **If you already have a clone of a Sage repository on your computer:**
     - Check your current git remote repositories:
       ```
       git remote -v
@@ -36,7 +36,7 @@ See also: https://trac.sagemath.org/ticket/30363
       ```
       git remote add origin git@github.com:USERNAME/sage.git
       ``` 
-  - Otherwise (fresh start):
+  - **Otherwise (fresh start):**
     - [Clone the forked repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#cloning-your-forked-repository),
       and do one of the following, depending on the access type (https vs ssh)
       ```
