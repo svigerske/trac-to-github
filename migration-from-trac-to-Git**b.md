@@ -31,7 +31,7 @@ See also: https://trac.sagemath.org/ticket/30363
       ```
       git remote add origin https://github.com/USERNAME/sage.git
       ```
-    - Alternatvively, with ssh access (see above):
+    - Alternatively, with ssh access (see above):
       ```
       git remote add origin git@github.com:USERNAME/sage.git
       ``` 
@@ -93,6 +93,7 @@ See also: https://trac.sagemath.org/ticket/30363
     
 - For organizing, **instead of using meta-tickets**:
   - either open an Issue
+    - it can include a checklist of things to do which can be checked off as they are dealt with by various PRs.
   - or [create a new Project](https://github.com/features/issues)
 
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
