@@ -54,15 +54,16 @@ See also: https://trac.sagemath.org/ticket/30363
 - For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
 
   - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/sagemath/trac_to_gh/issues?q=
-  - Trac ticket box attributes are mapped as follows:
-    - "Type" ("defect", "enhancement", "task") is mapped to a "Label" with prefix `t:`, e.g., `t: bug`
-    - "Component" ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels" with prefix `c: `
-    - "Priority" ("major"/"minor"/"critical") is mapped to "Labels" with prefix `p: `
-    - "Keywords" can be mapped to "Labels"
-    - "Cc": use `@USERNAME` either in the Issue description or in any comment. Regular developers who would like to get notified automatically when a PR touches a particular part of the sage code can add themselves as a [Code Owner](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
-    - "Branch"/"Commit"/"Authors"/"Reviewers"/"Work Issues": via Pull Requests (PR), see below
-    - "Report Upstream" is replaced by [automatic cross references between Issues/PRs in different repos](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/autolinked-references-and-urls#issues-and-pull-requests)
-    - "Milestone = duplicate/invalid/wontfix" is replaced by [marking as duplicate](https://docs.github.com/en/issues/tracking-your-work-with-issues/marking-issues-or-pull-requests-as-a-duplicate) or closing with a comment
+  - **Trac ticket box attributes** are mapped as follows:
+    - **Type** ("defect", "enhancement", "task") is mapped to a "Label" with prefix `t:`, e.g., `t: bug`
+    - **Component** ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels" with prefix `c: `
+    - **Priority** ("major"/"minor"/"critical") is mapped to "Labels" with prefix `p: `
+    - **Keywords** can be mapped to "Labels"
+    - **Cc**: use `@USERNAME` either in the Issue description or in any comment. 
+      - Optionally, regular developers who would like to get notified automatically when a PR touches a particular part of the sage code can add themselves as a [Code Owner](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
+    - **Branch**/**Commit**/**Authors**/**Reviewers**/**Work Issues**: via Pull Requests (PR), see below
+    - **Report Upstream** is replaced by [automatic cross references between Issues/PRs in different repos](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/autolinked-references-and-urls#issues-and-pull-requests)
+    - **Milestone = duplicate/invalid/wontfix** is replaced by [marking as duplicate](https://docs.github.com/en/issues/tracking-your-work-with-issues/marking-issues-or-pull-requests-as-a-duplicate) or closing with a comment
 
 - For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
   - Create a new local branch based on `upstream/develop`
