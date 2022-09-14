@@ -108,6 +108,7 @@ See also: https://trac.sagemath.org/ticket/30363
 
 Main repository https://github.com/sagemath/sage:
 - Only 2 named [branches](https://github.com/sagemath/sage/branches), `develop` and `master`
+- everything else goes through PRs
 - Create a new team: https://github.com/orgs/sagemath/teams "Release Manager"
 - Set up [branch protection rule](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches): Only "Release Manager" team can push; no override for users in Admin role; no deletions; no force pushes
 
