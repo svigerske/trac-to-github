@@ -80,6 +80,11 @@ See also: https://trac.sagemath.org/ticket/30363
 - For finding PRs that are waiting for review, **instead of using Trac ticket reports**:
   - [filter PRs by review status](https://docs.github.com/en/issues/tracking-your-work-with-issues/filtering-and-searching-issues-and-pull-requests#filtering-pull-requests-by-review-status)
 
+- **Instead of adding a comment to a ticket**:
+  - Add a comment to the Issue
+  - If a PR is linked to the Issue, you can alternatively comment on the PR. 
+  - Generally everyone has a large enough screen to view both the Issue and the PR on their screen simultaneously
+
 - For reviewing a change:
   - **instead of looking at the patchbot**, use the [Checks on GitHub Actions](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions), which are already available on Trac since the Sage 9.6 series; the status of the check runs will be clearer on GitHub [than on Trac](https://trac.sagemath.org/ticket/33818) 
   - **instead of copy-pasting parts of the diff of a branch to a comment**, use [pull request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews): You can add comments directly to changed lines
