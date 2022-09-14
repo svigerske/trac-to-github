@@ -106,10 +106,15 @@ See also: https://trac.sagemath.org/ticket/30363
 
 # Proposed permissions and protections
 
-- Reference: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches
-- Details TBD
+Main repository https://github.com/sagemath/sage:
+- Only 2 named branches, `develop` and `master`
+- Create a new team: https://github.com/orgs/sagemath/teams "Release Manager"
+- Set up [branch protection rule](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches): Only "Release Manager" team can push; no override for users in Admin role; no deletions; no force pushes
 
-# Conversion of Trac tickets and the Trac wiki to GH Actions
+Set https://github.com/sagemath/sagetrac-mirror to Archived (read only) and keep forever.
+
+- Question: how are permissions for existing branches handled so that people can still update the migrated PR? As an idea, maybe we can create the PR based on the branch in the sagetrac-mirror (and remove the branch protection rule there)
+
+# Conversion of Trac tickets and the Trac wiki to GitHub
 
 - script: https://github.com/sagemath/trac-to-github
-- Question: how are permissions for existing branches handled so that people can still update the migrated PR? As an idea, maybe we can create the PR based on the branch in the sagetrac-mirror (and remove the branch protection rule there)
