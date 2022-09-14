@@ -7,12 +7,11 @@ See also: https://trac.sagemath.org/ticket/30363
   - No action needed if you have already contributed to any other project on GitHub and set up Git credentials or SSH keys for this.
   - For new users of GitHub:
     - Either https://docs.github.com/en/get-started/getting-started-with-git/caching-your-github-credentials-in-git
-    - Or https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+    - Or [generate ssh keypair, or use an already existing one, and upload the public key to your GitHub account settings](https://docs.github.com/en/authentication/connecting-to-github-with-ssh)
  
 - One time action: **Instead of adding a git remote named `trac`**:
   
   - [Create your personal GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage - this will become a repository in https://github.com/USERNAME
-  - (Optional) generate ssh keypair, or use an already existing one, and upload the public key to your GitHub account settings
   - **If you already have a clone of a Sage repository on your computer:**
     - Check your current git remote repositories:
       ```
