@@ -111,7 +111,10 @@ Main repository https://github.com/sagemath/sage:
 - Create a new team: https://github.com/orgs/sagemath/teams "Release Manager"
 - Set up [branch protection rule](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches): Only "Release Manager" team can push; no override for users in Admin role; no deletions; no force pushes
 - Review/update https://github.com/orgs/sagemath/teams/core/members
-- Create a new team for other developers, [give repo access to team](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-teams-and-people-with-access-to-your-repository#inviting-a-team-or-person), add people to team
+- Create a new team for other developers, [give Write access to team in repo](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-teams-and-people-with-access-to-your-repository#inviting-a-team-or-person), add people to team
+  - the Write access does not allow pushing to `develop` or `master`
+  - the Write access allows members of the team to push commits to branches of PRs ([unless the PR owner has disabled this for this PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork))
+  
 
 Set https://github.com/sagemath/sagetrac-mirror to Archived (read only) and keep forever.
 
