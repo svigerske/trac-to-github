@@ -90,7 +90,7 @@ See also: https://trac.sagemath.org/ticket/30363
   - **instead of copy-pasting parts of the diff of a branch to a comment**, use [pull request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews): You can add comments directly to changed lines
   - **instead of changing the status of the ticket** (i.e. "positive review" or "needs work"), choose the [correct type of your pull request review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/reviewing-proposed-changes-in-a-pull-request#submitting-your-review) (i.e. "approve" vs "request changes")
   - for trying the branch of a PR locally, **instead of using `git trac checkout TICKETNUMBER` or `git trac try TICKETNUMBER`**, use [`git fetch origin pull/PULL_REQUEST_ID/head:LOCAL_BRANCH_NAME`](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally)
-    - alternatively, with the [GitHub command-line interface](https://trac.sagemath.org/ticket/34523), use [`gh pr checkout`](https://cli.github.com/manual/gh_pr_checkout)
+    - alternatively, with the [GitHub command-line interface](https://trac.sagemath.org/ticket/34523), use [`gh pr checkout PULL_REQUEST_ID`](https://cli.github.com/manual/gh_pr_checkout)
     
 - For organizing, **instead of using meta-tickets**:
   - either open an Issue
