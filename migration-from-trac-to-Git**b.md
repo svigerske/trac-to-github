@@ -61,6 +61,7 @@ See also: https://trac.sagemath.org/ticket/30363
     - **Keywords** can be mapped to "Labels"
     - **Cc**: use `@USERNAME` either in the Issue description or in any comment. 
       - Optionally, regular developers who would like to get notified automatically when a PR touches a particular part of the sage code can add themselves as a [Code Owner](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
+    - **Description** becomes just the first comment on the Issue
     - **Branch**/**Commit**/**Authors**/**Reviewers**/**Work Issues**: via Pull Requests (PR), see below
     - **Report Upstream** is replaced by [automatic cross references between Issues/PRs in different repos](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/autolinked-references-and-urls#issues-and-pull-requests)
     - **Milestone = duplicate/invalid/wontfix** is replaced by [marking as duplicate](https://docs.github.com/en/issues/tracking-your-work-with-issues/marking-issues-or-pull-requests-as-a-duplicate) or closing with a comment
