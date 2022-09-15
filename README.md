@@ -1,7 +1,7 @@
 What
 =====
 
-This script migrates milestones, issues, and wiki pages from Trac to GitHub.
+This script migrates milestones, issues/tickets, and wiki pages from Trac to GitHub.
 
 The script has its origin at https://github.com/moimael/trac-to-gitlab,
 which then has been [extended to suite a specific use case of SVN+Trac to GitLab migration](https://www.gams.com/~stefan/svn2git/).
