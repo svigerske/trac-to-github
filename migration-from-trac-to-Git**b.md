@@ -82,6 +82,10 @@ See also: https://trac.sagemath.org/ticket/30363
 - **Instead of adding a comment to a ticket**:
   - Add a comment to the Issue
   - If a PR is linked to the Issue, you can alternatively comment on the PR. 
+  - Where should a comment go?
+    - To say that the reported issue is not a bug but a feature, the comment should go on the Issue
+    - To point out typos in the changes, the comment should go on the PR
+    - ... (add your examples)
   - Generally everyone has a large enough screen to view both the Issue and the PR on their screen simultaneously
 
 - For reviewing a change:
