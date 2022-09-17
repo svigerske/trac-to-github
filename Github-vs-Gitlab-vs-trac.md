@@ -20,6 +20,7 @@ This page compares [Github](https://github.com/), [Gitlab](https://about.gitlab.
 * It is possible in github to make small changes via the web interface, which lowers the barrier for fixing typos.
 * Github supports two-factor authentication, reducing the chance of someone sneaking malicious code into Sage.
 * Various Sage dependencies have migrated to github already, making automatic cross repository links helpful when reporting bugs upstream.
+* Since the early 2010s, Sage core developers have been signaling to Sage users/developers that their specialized code would be better off in self-maintained user packages rather than in the Sage library. [The vast majority of these Sage user packages are being maintained on GitHub.](https://trac.sagemath.org/ticket/31164)
 * Due to its popularity, many IDEs provide plugins for Github. For example, it is possible to do the complete fork-clone-branch-pr workflow and review PRs completely from within [VS Code](https://code.visualstudio.com/docs/editor/github) without using Github's web interface.
 
 ## In favor of trac
