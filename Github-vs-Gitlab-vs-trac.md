@@ -44,6 +44,7 @@ https://resources.github.com/devops/tools/compare/
 ## In favor of Github
 
 * We are heavily invested in using Github Actions, having spent a lot of time incorporating them into our [current workflow](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions).
+* [The vast majority of Sage user packages are being maintained on GitHub.](https://trac.sagemath.org/ticket/31164)
 
 ## In favor of Gitlab
 
