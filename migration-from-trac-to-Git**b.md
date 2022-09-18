@@ -137,3 +137,4 @@ Set https://github.com/sagemath/sagetrac-mirror to Archived (read only) and keep
 
 Particularly, anything extracting/archiving discussions should probably look at [Issues API](https://docs.github.com/en/rest/issues/issues), because "Pull requests are just issues with code", although there is a separate [Pull request review comments API](https://docs.github.com/en/rest/pulls/comments). Special care may need to be taken to preserve cross-references when archiving.
 
+3 minute video demoing importing github repos to gitlab, which emphasizes answers to a lot of natural frequent questions (involving users, issue comments, labels, etc.): https://www.youtube.com/watch?v=VYOXuOg9tQI
