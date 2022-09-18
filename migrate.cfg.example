@@ -12,7 +12,7 @@ url: https://example.com/xmlrpc
 # optional path to trac instance used to convert some attachments
 path: /path/to/trac/instance
 
-# mapping file from git hashes to subversion revisions and branche names ("hash revision @branch" in each line)
+# mapping file from git hashes to subversion revisions and branch names ("hash revision @branch" in each line)
 svngitmap: /path/to/git_svn.map
 
 
@@ -23,9 +23,6 @@ usernames = {
     'trac1': 'git1',
     'trac2': 'git2'
     }
-
-# project's path
-project_name: foo/bar
 
 # URL of the GitHub web API (default: https://api.github.com)
 # url: https://api.github.com
