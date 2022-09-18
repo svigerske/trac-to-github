@@ -133,5 +133,5 @@ Set https://github.com/sagemath/sagetrac-mirror to Archived (read only) and keep
 
 # Retrieving data from GitHub
 
-[[https://docs.github.com/en/rest|GitHub REST API]]
+[GitHub REST API](https://docs.github.com/en/rest)
 
