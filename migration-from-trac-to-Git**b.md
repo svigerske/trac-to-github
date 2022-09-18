@@ -130,3 +130,8 @@ Set https://github.com/sagemath/sagetrac-mirror to Archived (read only) and keep
 # Conversion of Trac tickets and the Trac wiki to GitHub
 
 - script: https://github.com/sagemath/trac-to-github ; issues there are various technical discussions on the topic; note that https://github.com/sagemath/trac_to_gh/issues was generated using it.
+
+# Retrieving data from GitHub
+
+[[https://docs.github.com/en/rest|GitHub REST API]]
+
