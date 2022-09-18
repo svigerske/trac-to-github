@@ -51,4 +51,4 @@ https://resources.github.com/devops/tools/compare/
 
 ## In favor of Gitlab
 
-* Since Gitlab's core software is open source, it is easier to switch to self hosting if we become unhappy with gitlab.com.
+* A [large portion of the software driving GitLab.com is either free (open source) software or non-free "source available" software](https://about.gitlab.com/solutions/open-source/), which enables users to self-host GitLab instances without license fees. So if we were to use GitLab.com, we would be able to switch to self-hosting a GitLab instance instead without incurring license fees.
