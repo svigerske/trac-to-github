@@ -763,13 +763,16 @@ def convert_wiki(source, dest):
                 converted += ' * [' + name + '](' + url + ')\n'
 
         # TODO we could use the GitHub API to write into the Wiki repository of the GitHub project
+        outfile = os.path.join(wiki_export_dir, pagename + '.md')
+        # For wiki page names with slashes
+        os.makedirs(os.path.dirname(outfile), exist_ok=True)
         try :
-            open(os.path.join(wiki_export_dir, pagename + '.md'), 'w').write(converted)
+            open(outfile, 'w').write(converted)
         except UnicodeEncodeError as e :
             print ('EXCEPTION:', e)
             print ('  Context:', e.object[e.start-20:e.end+20])
             print ('  Retrying with UTF-8 encoding')
-            codecs.open(os.path.join(wiki_export_dir, pagename + '.md'), 'w', 'utf-8').write(converted)
+            codecs.open(outfile, 'w', 'utf-8').write(converted)
 
 
 if __name__ == "__main__":
