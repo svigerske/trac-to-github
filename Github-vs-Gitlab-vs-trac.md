@@ -42,7 +42,7 @@ Some in the Sage community have advocated in the past for using [Gitlab](https:/
 * We are heavily invested in using Github Actions, having spent a lot of time incorporating them into our [current workflow](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions).
 * While many of the arguments in favor of Github over Trac also apply to Gitlab, the network effect is more pronounced for Github since it is larger.
 * Gitlab has had some site reliability concerns (see this [ycombinator thread](https://news.ycombinator.com/item?id=20995289), which is mostly pro-Gitlab but acknowledges issues).
-* Some Sage developers have [struggled](https://groups.google.com/g/sage-devel/c/ayOL8_bzOfk/m/0G7xIf8sFwAJ) trying to maintain CI setups on Gitlab.
+* Some Sage developers have [struggled](https://groups.google.com/g/sage-devel/c/ayOL8_bzOfk/m/OjSdhEbhFgAJ) trying to set up and maintain mirroring and CI setups on Gitlab.
 * [The vast majority of Sage user packages are being maintained on GitHub.](https://trac.sagemath.org/ticket/31164)
 * Python recently switched from Roundup to Github; the [PEP](https://peps.python.org/pep-0512/) describes their reasoning for choosing Github over Gitlab.
 
@@ -53,7 +53,7 @@ Some in the Sage community have advocated in the past for using [Gitlab](https:/
 
 ## Mirroring
 
-Some have suggested [mirroring](https://docs.gitlab.com/ee/user/project/import/github.html#mirror-a-repository-and-share-pipeline-status) Sage on Gitlab as well as Github.  Mirroring is not part of this proposal, but could be set up in the future if desired by the community.
+Some have [suggested](https://groups.google.com/g/sage-devel/c/ayOL8_bzOfk/m/iM6AymFDFwAJ) [mirroring](https://docs.gitlab.com/ee/user/project/import/github.html#mirror-a-repository-and-share-pipeline-status) Sage on Gitlab as well as Github.  Mirroring is not part of this proposal, but could be set up in the future if desired by the community.
 
 ## Other references
 
