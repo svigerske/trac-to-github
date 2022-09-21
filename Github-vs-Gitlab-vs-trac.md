@@ -1,4 +1,4 @@
-This page compares [Github](https://github.com/), [Gitlab](https://about.gitlab.com/) and [Trac](https://trac.sagemath.org/), focusing on the specific differences that are important to the Sage community.
+This page compares [Github](https://github.com/) and [Trac](https://trac.sagemath.org/), focusing on the specific differences that are important to the Sage community.
 
 # Github vs trac
 
@@ -12,7 +12,8 @@ This page compares [Github](https://github.com/), [Gitlab](https://about.gitlab.
   - [Project planning](https://github.com/features/issues)
   - [Fine-grained notifications](https://docs.github.com/en/account-and-profile/managing-subscriptions-and-notifications-on-github/setting-up-notifications/about-notifications) about activities in issues, pull-requests or new releases
   - [Reactions](https://github.blog/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) on issues/pull-requests and comments, which help with prioritizing issues and reducing noise
-  - [Navigating code in the web interface](https://docs.github.com/en/repositories/working-with-files/using-files/navigating-code-on-github)
+  - [Navigating code in the web interface](https://docs.github.com/en/repositories/working-with-files/using-files/navigating-code-on-github).
+  - [Making commits in the web interface](https://docs.github.com/en/codespaces/the-githubdev-web-based-editor), which lowers the barrier for fixing typos.
   - [Link to and inline-display a code snippet](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-a-permanent-link-to-a-code-snippet), which makes it easier to clearly communicate with other developers.
   - Extensive API that allows to automate many aspects. We can pick from a wide variety of community-provided apps/bots that help with organizing routine task, e.g. [display test coverage](https://about.codecov.io/product/feature/pull-request-comments/) or [close stale issues](https://github.com/marketplace/stale).
   - the search built into GitHub is at least 10x (or maybe 100x?) faster than our Trac search, e.g., try searching
@@ -20,7 +21,6 @@ https://trac.sagemath.org/search versus https://github.com/python/cpython/issues
 advanced search capabilities are useful (in terms of sorting, refining queries, querying by label, etc.).
 * We've already added some [continuous integration checks](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions) to [trac](https://trac.sagemath.org/ticket/33818); these will be [clearer](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks) when using Github.
 * Github is actively developed with a very large user base, and new features are being [added regularly](https://github.blog/); trac is far less active (18 posts in 6 threads on their [mailing list](https://groups.google.com/g/trac-dev) since the beginning of 2022, all upcoming releases are [over a year overdue](https://trac.edgewall.org/roadmap) and mainly seem concerned with updating dependencies rather than implementing new features, their [list of users](https://trac.edgewall.org/wiki/TracUsers) includes many dead links and some that have migrated to other systems like gitlab).  With trac becoming less and less maintained we're likely to face further security issues and compatibility issues with other software going forward.
-* It is possible in github to make small changes via the web interface, which lowers the barrier for fixing typos.
 * Github supports two-factor authentication, reducing the chance of someone sneaking malicious code into Sage.
 * Various Sage dependencies have migrated to github already, making automatic cross repository links helpful when reporting bugs upstream.
 * Since the early 2010s, Sage core developers have been signaling to Sage users/developers that their specialized code would be better off in self-maintained user packages rather than in the Sage library. [The vast majority of these Sage user packages are being maintained on GitHub.](https://trac.sagemath.org/ticket/31164)
@@ -35,20 +35,33 @@ advanced search capabilities are useful (in terms of sorting, refining queries, 
 
 # Github vs Gitlab
 
-This section is still in progress.  Here are some links to help flesh it out:
-
-* https://kinsta.com/blog/gitlab-vs-github/#gitlab-vs-github-key-differences
-* https://www.zdnet.com/article/github-vs-gitlab-the-key-differences/
-https://www.incredibuild.com/blog/gitlab-vs-github-comparison (Flow and CI sections)
-https://radixweb.com/blog/github-vs-gitlab#difference
-https://about.gitlab.com/devops-tools/github-vs-gitlab/
-https://resources.github.com/devops/tools/compare/
+Some in the Sage community have advocated in the past for using [Gitlab](https://about.gitlab.com/) rather than Github, including the ability to [create merge requests](https://trac.sagemath.org/wiki/GitLab) on Gitlab that are mirrored on trac.  We chose to make the vote a two-way comparison of Trac and Github for simplicity, choosing Github for reasons described in this section.  Note that it is [much easier](https://docs.gitlab.com/ee/user/project/import/github.html) to move between Github and Gitlab than from Trac to either, so we can switch more easily if desired in the future (one of the more difficult aspects, as with the switch from Trac, is associating accounts on the two platforms).
 
 ## In favor of Github
 
 * We are heavily invested in using Github Actions, having spent a lot of time incorporating them into our [current workflow](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions).
+* While many of the arguments in favor of Github over Trac also apply to Gitlab, the network effect is more pronounced for Github since it is larger.
+* Gitlab has had some site reliability concerns (see this [ycombinator thread](https://news.ycombinator.com/item?id=20995289), which is mostly pro-Gitlab but acknowledges issues).
+* Some Sage developers have [struggled](https://groups.google.com/g/sage-devel/c/ayOL8_bzOfk/m/0G7xIf8sFwAJ) trying to maintain CI setups on Gitlab.
 * [The vast majority of Sage user packages are being maintained on GitHub.](https://trac.sagemath.org/ticket/31164)
+* Python recently switched from Roundup to Github; the [PEP](https://peps.python.org/pep-0512/) describes their reasoning for choosing Github over Gitlab.
 
 ## In favor of Gitlab
 
 * A [large portion of the software driving GitLab.com is either free (open source) software or non-free "source available" software](https://about.gitlab.com/solutions/open-source/), which enables users to self-host GitLab instances without license fees. So if we were to use GitLab.com, we would be able to switch to self-hosting a GitLab instance instead without incurring license fees.
+* See this [ycombinator thread](https://news.ycombinator.com/item?id=20995289) for reasons that people prefer Gitlab.
+
+## Mirroring
+
+Some have suggested [mirroring](https://docs.gitlab.com/ee/user/project/import/github.html#mirror-a-repository-and-share-pipeline-status) Sage on Gitlab as well as Github.  Mirroring is not part of this proposal, but could be set up in the future if desired by the community.
+
+## Other references
+
+There are many references online about the differences between Github and Gitlab, including the slightly different workflows they use.  Here is a sampling.
+
+* https://kinsta.com/blog/gitlab-vs-github/#gitlab-vs-github-key-differences
+* https://www.zdnet.com/article/github-vs-gitlab-the-key-differences/
+* https://www.incredibuild.com/blog/gitlab-vs-github-comparison (Flow and CI sections)
+* https://radixweb.com/blog/github-vs-gitlab#difference
+* https://about.gitlab.com/devops-tools/github-vs-gitlab/
+* https://resources.github.com/devops/tools/compare/
