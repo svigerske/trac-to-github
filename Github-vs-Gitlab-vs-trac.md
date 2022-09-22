@@ -6,7 +6,7 @@ This page compares [Github](https://github.com/) and [Trac](https://trac.sagemat
 
 * We are struggling with various aspects of self hosting.  Several Sage developers have spent a lot of time over the last months working to upgrade trac and the underlying virtual machine.  Hosting on Github means that someone else with more experience and economies of scale is providing this service for us.  Moreover, we are currently paying money for trac's servers, while Github would be free.
 * Github is [the largest source code host](https://en.wikipedia.org/wiki/GitHub#:~:text=It%20is%20commonly%20used%20to,host%20as%20of%20November%202021.), making it far more likely to be familiar to new developers than trac.  We are losing many potential developers by having a workflow that is unfamiliar to them (though it is hard to measure this effect due to selection bias).  Conversely, the use of github is a more transferrable skill, which may [help draw in younger developers](https://groups.google.com/g/sage-devel/c/ayOL8_bzOfk/m/Zj5W1T1gBwAJ) who may want to build a resume, or [donors to Sage](https://groups.google.com/d/msgid/sage-devel/173df162-58d0-4cad-b4c1-7be8e5d9133bn%40googlegroups.com).
-* Github provides many features that trac doesn't (or that are superior to the corresponding trac feature). For example:
+* Github provides these features such as:
   - [Request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/requesting-a-pull-request-review) from specific people or teams
   - Github's [pull request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews) allow you to add in-line comments and [suggestions](https://egghead.io/lessons/github-add-suggestions-in-a-github-pr-review) to a PR, and generally offer a much smoother reviewing experience than trac's.
   - [Project planning](https://github.com/features/issues)
@@ -29,8 +29,15 @@ advanced search capabilities are useful (in terms of sorting, refining queries, 
 ## In favor of trac
 
 * While git and Trac are entirely open source, the GitHub software as a whole is closed source (although GitHub has published [many of its components](https://github.com/orgs/github/repositories?type=all) as open source)
+* The Sage development community has long term experience working with trac.
+* Trac has many features:
+ - Requesting reviewers through cc, which are explicitly tied to a ticket.
+ - Project planning through meta tickets.
+ - Navigating code through a web interface (which can be accessed by clicking on the branch).
+ - Displaying code snippets.
 * We don't have control of Github's policies, procedures and prices.  Github's prices for [providing hosting](https://docs.github.com/en/get-started/learning-about-github/faq-about-changes-to-githubs-plans) and [continuous integration](https://docs.github.com/en/actions/learn-github-actions/usage-limits-billing-and-administration) services may increase (they're currently free).  Copyright laws can have [unfortunate consequences](https://www.asmeurer.com/blog/posts/the-sympy-hackerrank-dmca-incident/) causing downtime and possible legal costs.  As a large company, Github has to be more cautious about [obeying US export control laws](https://docs.github.com/en/site-policy/other-site-policies/github-and-trade-controls) and has thus [blocked access](https://techcrunch.com/2019/07/29/github-ban-sanctioned-countries/) in various countries (though it has since [restored access in Iran](https://github.blog/2021-01-05-advancing-developer-freedom-github-is-fully-available-in-iran/)).
 * [Backing up or migrating](https://rewind.com/blog/three-ways-to-backup-your-github-issues/) issues and wiki pages off of github takes some work, making it harder to switch away from github if they raise prices or make changes that we don't like.
+* We control when we upgrade trac and are not affected by changes that could be arbitrarily imposed by a 3rd party that could affect our workflow.
 * Various aspects of the github workflow will be different (the separation of tickets into Issues and PRs for example, switching from [git-trac](https://github.com/sagemath/git-trac-command) to [Github's CLI](https://cli.github.com/)), requiring current Sage developers to devote time and effort into learning new systems.  Many Sage developers like the customized workflow we have developed (new -> needs review -> needs work/need info -> needs review -> positive review -> closed) and like the fact that tickets concentrate comments in one place rather than split into an issue and a PR.
 
 # Github vs Gitlab
