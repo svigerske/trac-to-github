@@ -31,10 +31,10 @@ advanced search capabilities are useful (in terms of sorting, refining queries, 
 * While git and Trac are entirely open source, the GitHub software as a whole is closed source (although GitHub has published [many of its components](https://github.com/orgs/github/repositories?type=all) as open source)
 * The Sage development community has long term experience working with trac.
 * Trac has many features:
- - Requesting reviewers through cc, which are explicitly tied to a ticket.
- - Project planning through meta tickets.
- - Navigating code through a web interface (which can be accessed by clicking on the branch).
- - Displaying code snippets.
+  - Requesting reviewers through cc, which are explicitly tied to a ticket.
+  - Project planning through meta tickets.
+  - Navigating code through a web interface (which can be accessed by clicking on the branch).
+  - Displaying code snippets.
 * We don't have control of Github's policies, procedures and prices.  Github's prices for [providing hosting](https://docs.github.com/en/get-started/learning-about-github/faq-about-changes-to-githubs-plans) and [continuous integration](https://docs.github.com/en/actions/learn-github-actions/usage-limits-billing-and-administration) services may increase (they're currently free).  Copyright laws can have [unfortunate consequences](https://www.asmeurer.com/blog/posts/the-sympy-hackerrank-dmca-incident/) causing downtime and possible legal costs.  As a large company, Github has to be more cautious about [obeying US export control laws](https://docs.github.com/en/site-policy/other-site-policies/github-and-trade-controls) and has thus [blocked access](https://techcrunch.com/2019/07/29/github-ban-sanctioned-countries/) in various countries (though it has since [restored access in Iran](https://github.blog/2021-01-05-advancing-developer-freedom-github-is-fully-available-in-iran/)).
 * [Backing up or migrating](https://rewind.com/blog/three-ways-to-backup-your-github-issues/) issues and wiki pages off of github takes some work, making it harder to switch away from github if they raise prices or make changes that we don't like.
 * We control when we upgrade trac and are not affected by changes that could be arbitrarily imposed by a 3rd party that could affect our workflow.
