@@ -763,25 +763,31 @@ def convert_wiki(source, dest):
                 converted += ' * [' + name + '](' + url + ')\n'
 
         # TODO we could use the GitHub API to write into the Wiki repository of the GitHub project
+        outfile = os.path.join(wiki_export_dir, pagename + '.md')
+        # For wiki page names with slashes
+        os.makedirs(os.path.dirname(outfile), exist_ok=True)
         try :
-            open(os.path.join(wiki_export_dir, pagename + '.md'), 'w').write(converted)
+            open(outfile, 'w').write(converted)
         except UnicodeEncodeError as e :
             print ('EXCEPTION:', e)
             print ('  Context:', e.object[e.start-20:e.end+20])
             print ('  Retrying with UTF-8 encoding')
-            codecs.open(os.path.join(wiki_export_dir, pagename + '.md'), 'w', 'utf-8').write(converted)
+            codecs.open(outfile, 'w', 'utf-8').write(converted)
 
 
 if __name__ == "__main__":
     source = client.ServerProxy(trac_url)
 
     dest = None
-    if github_token is not None :
-        github = Github(github_token, base_url=github_api_url)
-    else :
-        github = Github(github_username, github_password, base_url=github_api_url)
-    dest = github.get_repo(github_project)
-    gh_user = github.get_user()
+    gh_user = None
+
+    if must_convert_issues:
+        if github_token is not None :
+            github = Github(github_token, base_url=github_api_url)
+        else :
+            github = Github(github_username, github_password, base_url=github_api_url)
+        dest = github.get_repo(github_project)
+        gh_user = github.get_user()
 
     if dest is not None :
         for l in dest.get_labels() :

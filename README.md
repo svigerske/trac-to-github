@@ -36,7 +36,7 @@ Migrating a Trac project to GitHub is a relatively complex process involving fou
  * Migrate issues and milestones
  * Migrate wiki pages
 
-This script takes care of the third bullet point.
+This script takes care of the third and fourth bullet points.
 
 Usage:
 
@@ -53,5 +53,6 @@ LGPL license version 3.0.
 Requirements
 ==============
 
- * Python 2 with xmlrpclib, requests, [PyGithub](https://github.com/PyGithub/PyGithub)
+ * Python 2 with xmlrpclib or Python 3; requests, [PyGithub](https://github.com/PyGithub/PyGithub),
+   see ```requirements.txt```
  * Trac with [XML-RPC plugin](http://trac-hacks.org/wiki/XmlRpcPlugin) enabled
