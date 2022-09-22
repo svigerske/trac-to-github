@@ -2,6 +2,30 @@ This page compares [Github](https://github.com/) and [Trac](https://trac.sagemat
 
 # Github vs trac
 
+A quick overview is given in the table below, a more detailed discussion of these points can be found further below.
+ 
+|                        | Github                                             | Trac                                                |
+|------------------------|----------------------------------------------------|-----------------------------------------------------|
+| Costs                  | Free                                               | 1500 Euro / Month ?                                 |
+| Hosting                | Managed                                            | Self-hosted                                         |
+| Synergy effects        | Largest code host, related projects are also on GH | None                                                |
+| Source availability    | Closed source                                      | Open source                                         |
+| CI                     | Free, managed                                      | Self-hosted and self-developed (PatchBots)          |
+| Activity               | Actively developed                                 | Essentially in maintenance mode                     |
+| CLI                    | Officially provided                                | Self-developed                                      |
+| IDE integration        | Provided, e.g. for VSCode                          | None                                                |
+| Familiarity: Newcomers | Newcomers are likely familiar with GH              | Newcomers have likely no prior experience with trac |
+| Familiarity: Existing  | Most sage developers have a GH account             | All sage developers are familiar with trac          |
+|                        |                                                    |                                                     |                                                                                               
+
+Moreover, Github and Trac differ in the provided features. Again, a detailed discussion can be found below.
+
+|                     | Github                                                                        | Trac                                                                                             |
+|---------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| Project Planning    | Metatickets and Projects                                                      | Metatickets                                                                                      |
+| 2-Factor Auth       | Yes                                                                           | No                                                                                               |
+|       tbd           |                                                                               |                                                                                                  |
+
 ## In favor of github
 
 * We are struggling with various aspects of self hosting.  Several Sage developers have spent a lot of time over the last months working to upgrade trac and the underlying virtual machine.  Hosting on Github means that someone else with more experience and economies of scale is providing this service for us.  Moreover, we are currently paying money for trac's servers, while Github is currently free.
