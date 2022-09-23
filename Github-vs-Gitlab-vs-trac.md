@@ -22,8 +22,9 @@ Moreover, Github and Trac differ in the provided features. Again, a detailed dis
 
 |                     | Github                                                                        | Trac                                                                                             |
 |---------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
-| Project Planning    | Metatickets and Projects                                                      | Metatickets                                                                                      |
+| Project Planning    | Metaticket Issues and Projects                                                | Metatickets                                                                                      |
 | 2-Factor Auth       | Yes                                                                           | No                                                                                               |
+| Code snippets       | [Yes](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks): ` ``` ... ``` ` | Yes: `{{{ ... }}}`  
 |       tbd           |                                                                               |                                                                                                  |
 
 ## In favor of github
