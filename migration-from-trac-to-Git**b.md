@@ -129,7 +129,19 @@ Set https://github.com/sagemath/sagetrac-mirror to Archived (read only) and keep
 
 # Conversion of Trac tickets and the Trac wiki to GitHub
 
-- script: https://github.com/sagemath/trac-to-github ; issues there are various technical discussions on the topic; note that https://github.com/sagemath/trac_to_gh/issues was generated using it.
+Conversion script: https://github.com/sagemath/trac-to-github
+-  [issues there](https://github.com/sagemath/trac-to-github/issues) are various technical discussions on the topic 
+
+Preview of the converted issues:
+- https://github.com/sagemath/trac_to_gh/issues
+
+Switchover day (date to be determined):
+1. We take Trac offline, reconfigure it to be read-only, bring it online.
+2. Convert all tickets to Issues in a new repo. (This preserves the ticket numbers as Issue numbers.)
+3. Final check that the new repo is OK.
+4. Replace sagemath/sage by the new repo.
+5. Announce that sagemath/sage is now open for Issues and PRs.
+
 
 # Retrieving data from GitHub
 
