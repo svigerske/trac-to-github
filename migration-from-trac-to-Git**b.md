@@ -123,10 +123,6 @@ Main repository https://github.com/sagemath/sage:
   - the Write access allows members of the team to push commits to branches of PRs ([unless the PR owner has disabled this for this PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork))
   
 
-Set https://github.com/sagemath/sagetrac-mirror to Archived (read only) and keep forever.
-
-- Question: how are permissions for existing branches handled so that people can still update the migrated PR? As an idea, maybe we can create the PR based on the branch in the sagetrac-mirror (and remove the branch protection rule there)
-
 # Conversion of Trac tickets and the Trac wiki to GitHub
 
 Conversion script: https://github.com/sagemath/trac-to-github
@@ -145,7 +141,7 @@ Switchover day (date to be determined):
 2. Convert all tickets to Issues in a new repo. (This preserves the ticket numbers as Issue numbers.)
 3. Open PRs from [sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to the new repo for all open tickets with attached branches.
 4. Final check that the new repo is OK.
-5. [Archive](https://docs.github.com/en/repositories/archiving-a-github-repository) https://github.com/sagemath/sagetrac-mirror
+5. [Archive](https://docs.github.com/en/repositories/archiving-a-github-repository) https://github.com/sagemath/sagetrac-mirror (= set to read-only)
 6. Replace sagemath/sage by the new repo.
 7. Announce that sagemath/sage is now open for Issues and PRs.
 
