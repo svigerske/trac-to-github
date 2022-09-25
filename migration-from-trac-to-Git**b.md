@@ -22,7 +22,7 @@ See also: https://trac.sagemath.org/ticket/30363
       ```
       git remote add upstream https://github.com/sagemath/sage.git
       ```
-    - Alternatively, use ssh access with your ssh keypair - see (Optional) above:
+      Alternatively, use ssh access with your ssh keypair - see (Optional) above:
       ```
       git remote add upstream git@github.com:sagemath/sage.git
       ```
@@ -31,7 +31,7 @@ See also: https://trac.sagemath.org/ticket/30363
       ```
       git remote add origin https://github.com/USERNAME/sage.git
       ```
-    - Alternatively, with ssh access (see above):
+      Alternatively, with ssh access (see above):
       ```
       git remote add origin git@github.com:USERNAME/sage.git
       ``` 
