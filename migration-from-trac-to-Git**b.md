@@ -136,11 +136,18 @@ Preview of the converted issues:
 - https://github.com/sagemath/trac_to_gh/issues
 
 Switchover day (date to be determined):
-1. We take Trac offline, reconfigure it to be read-only, bring it online.
+1. Make Trac read-only:
+   - Take Trac offline, 
+   - Reconfigure Trac ticket system, Trac wiki to be read-only
+   - Make sure Trac git repo is fully synced to https://github.com/sagemath/sagetrac-mirror
+   - Make Trac git repo read-only
+   - Bring Trac online.
 2. Convert all tickets to Issues in a new repo. (This preserves the ticket numbers as Issue numbers.)
-3. Final check that the new repo is OK.
-4. Replace sagemath/sage by the new repo.
-5. Announce that sagemath/sage is now open for Issues and PRs.
+3. Open PRs from [sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to the new repo for all open tickets with attached branches.
+4. Final check that the new repo is OK.
+5. [Archive](https://docs.github.com/en/repositories/archiving-a-github-repository) https://github.com/sagemath/sagetrac-mirror
+6. Replace sagemath/sage by the new repo.
+7. Announce that sagemath/sage is now open for Issues and PRs.
 
 
 # Retrieving data from GitHub
