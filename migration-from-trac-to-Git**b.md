@@ -146,7 +146,7 @@ Switchover day (date to be determined):
 3. Open PRs from [sagemath/sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to the new repo for all open tickets with attached branches.
 4. Final check that the new repo is OK.
 5. [Archive](https://docs.github.com/en/repositories/archiving-a-github-repository) https://github.com/sagemath/sagetrac-mirror (= set to read-only)
-6. Rename sagemath/sage](https://github.com/sagemath/sage) to sagemath/sage-old.
+6. Rename [sagemath/sage](https://github.com/sagemath/sage) to sagemath/sage-old.
 7. Rename the new repo to sagemath/sage.
 8. Announce that sagemath/sage is now open for Issues and PRs.
 
