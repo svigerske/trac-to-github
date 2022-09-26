@@ -128,8 +128,12 @@ Main repository https://github.com/sagemath/sage:
 Conversion script: https://github.com/sagemath/trac-to-github
 -  [issues there](https://github.com/sagemath/trac-to-github/issues) are various technical discussions on the topic 
 
-Preview of the converted issues:
+Preview of the converted issues (iteration 0):
 - https://github.com/sagemath/trac_to_gh/issues
+
+To be done: Several iterations of:
+- Convert all Trac tickets and Trac wiki to a temporary repo.
+- Inspect the result and refine the conversion script.
 
 Switchover day (date to be determined):
 1. Make Trac read-only:
