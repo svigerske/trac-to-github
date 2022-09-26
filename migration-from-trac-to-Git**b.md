@@ -135,7 +135,7 @@ To be done: Several iterations of:
 - Convert all Trac tickets and Trac wiki to a temporary repo.
 - Inspect the result and refine the conversion script.
 
-Switchover day (date to be determined):
+Switchover day (date to be determined; proposed: Nov 1):
 1. Make Trac read-only:
    - Take Trac offline, 
    - Reconfigure Trac ticket system, Trac wiki to be read-only
