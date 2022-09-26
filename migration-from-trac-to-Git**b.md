@@ -53,7 +53,7 @@ See also: https://trac.sagemath.org/ticket/30363
 - For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
 
   - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/sagemath/trac_to_gh/issues
-  - **Trac ticket box attributes** are mapped as follows:
+  - **Trac ticket box attributes** are mapped as follows (see https://github.com/sagemath/trac-to-github/issues/8):
     - **Type** ("defect", "enhancement", "task") is mapped to a "Label" with prefix `t:`, e.g., `t: bug`
     - **Component** ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels" with prefix `c: `
     - **Priority** ("major"/"minor"/"critical") is mapped to "Labels" with prefix `p: `
