@@ -144,13 +144,12 @@ Switchover day (date to be determined; proposed: Nov 1):
    - Bring Trac online.
 2. Convert all tickets to Issues in a new repo sagemath/sage-temp. (This preserves the ticket numbers as Issue numbers.)
 3. Rename sagemath/sagetrac-mirror to sagemath/sagetrac-archive and [archive](https://docs.github.com/en/repositories/archiving-a-github-repository) it (= set it to readonly).
-4. Create a single-branch fork of sagemath/sage-temp called sagemath/sagetrac-mirror and push all branches (or all branches of open tickets) from sagemath/sagetrac-archive to it.
-5. Open PRs from [sagemath/sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to sagemath/sage-temp for all open tickets with attached branches.
-6. Final check that the new repo sagemath/sage-temp is OK.
-7. [Rename](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) [sagemath/sage](https://github.com/sagemath/sage) to sagemath/sage-old.
-8. Rename the new repo sagemath/sage-temp to sagemath/sage. ([Yes, this will work and will break the redirect](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) sagemath/sage -> sagemath/sage-old.)
-9. [Transfer](https://docs.github.com/en/issues/tracking-your-work-with-issues/transferring-an-issue-to-another-repository) the existing (few) issues from sagemath/sage-old to sagemath/sage.
-10. Announce that sagemath/sage is now open for Issues and PRs.
+4. (Optional:) Create a single-branch fork of sagemath/sage-temp called sagemath/sagetrac-mirror and push all branches (or all branches of open tickets) from sagemath/sagetrac-archive to it. Open PRs from [sagemath/sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to sagemath/sage-temp for all open tickets with attached branches.
+5. Final check that the new repo sagemath/sage-temp is OK.
+6. [Rename](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) [sagemath/sage](https://github.com/sagemath/sage) to sagemath/sage-old.
+7. Rename the new repo sagemath/sage-temp to sagemath/sage. ([Yes, this will work and will break the redirect](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) sagemath/sage -> sagemath/sage-old.)
+8. [Transfer](https://docs.github.com/en/issues/tracking-your-work-with-issues/transferring-an-issue-to-another-repository) the existing (few) issues from sagemath/sage-old to sagemath/sage.
+9. Announce that sagemath/sage is now open for Issues and PRs.
 
 
 # Retrieving data from GitHub
