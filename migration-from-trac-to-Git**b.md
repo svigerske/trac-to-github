@@ -143,9 +143,9 @@ Switchover day (date to be determined; proposed: Nov 1):
    - Make Trac git repo read-only
    - Bring Trac online.
 2. Convert all tickets to Issues in a new repo. (This preserves the ticket numbers as Issue numbers.)
-3. Open PRs from [sagemath/sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to the new repo for all open tickets with attached branches.
-4. Final check that the new repo is OK.
-5. [Archive](https://docs.github.com/en/repositories/archiving-a-github-repository) https://github.com/sagemath/sagetrac-mirror (= set to read-only)
+3. Make a fork of sagemath/sagetrac-mirror called sagemath/sagetrac-archive and [archive](https://docs.github.com/en/repositories/archiving-a-github-repository) it (= set it to readonly).
+4. Open PRs from [sagemath/sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to the new repo for all open tickets with attached branches.
+5. Final check that the new repo is OK.
 6. [Rename](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) [sagemath/sage](https://github.com/sagemath/sage) to sagemath/sage-old.
 7. Rename the new repo to sagemath/sage. ([Yes, this will work and will break the redirect](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) sagemath/sage -> sagemath/sage-old.)
 8. [Transfer](https://docs.github.com/en/issues/tracking-your-work-with-issues/transferring-an-issue-to-another-repository) the existing (few) issues from sagemath/sage-old to sagemath/sage.
