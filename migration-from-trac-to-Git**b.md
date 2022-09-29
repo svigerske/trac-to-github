@@ -102,6 +102,8 @@ See also: https://trac.sagemath.org/ticket/30363
     - it can include a checklist of things to do which can be checked off as they are dealt with by various PRs.
   - or [create a new Project](https://github.com/features/issues)
 
+# Release Manager's workflow
+
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
   - The release manager uses [a filter to identify the pull requests that a reviewer has approved](https://docs.github.com/en/issues/tracking-your-work-with-issues/filtering-and-searching-issues-and-pull-requests#filtering-pull-requests-by-review-status)
   - Once released (currently targeted for Q4 2022), we instead use [Merge Queues](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue).
