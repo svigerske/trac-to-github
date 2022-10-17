@@ -30,6 +30,16 @@ for c in ack.getElementsByTagName("contributors")[0].childNodes:
     usernames.update(t.strip() for t in trac.split(',') if t.strip())
 
 changelog_contributors = http.request('GET', 'https://raw.githubusercontent.com/sagemath/sage-changelogs/master/merger/contributors/9.7').data.decode('utf-8')
-for n in changelog_contributors.split('\n'):
-    if n not in names and n not in usernames:
-        print(n)
+
+def last_name(n):
+    parts = n.split()
+    if parts:
+        return parts[-1]
+    return ""
+
+missing_names = [n
+                 for n in changelog_contributors.split('\n')
+                 if n and n not in names and n not in usernames]
+missing_names.sort(key=last_name)
+for n in missing_names:
+    print(f'<contributor\n name="{n}"/>')
