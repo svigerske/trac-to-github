@@ -343,10 +343,16 @@ def gh_update_issue_property(dest, issue, key, val) :
 
     sleep(sleep_after_request)
 
+unmapped_users = set()
+
 def gh_username(dest, origname) :
-    if origname in users_map :
-        return '@' + users_map[origname]
+    if origname.startswith('gh-'):
+        return '@' + origname[3:]
+    gh_name = users_map.get(origname, None)
+    if gh_name:
+        return '@' + gh_name
     assert not origname.startswith('@')
+    unmapped_users.add(origname)
     return origname;
 
 def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
@@ -815,3 +821,5 @@ if __name__ == "__main__":
 
     if must_convert_wiki:
         convert_wiki(source, dest)
+
+    print(f'Unmapped users: {sorted(unmapped_users)}')
