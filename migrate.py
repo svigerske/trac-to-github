@@ -784,16 +784,20 @@ def convert_wiki(source, dest):
 if __name__ == "__main__":
     source = client.ServerProxy(trac_url)
 
+    github = None
     dest = None
     gh_user = None
 
     if must_convert_issues:
-        if github_token is not None :
+        if github_token is not None:
             github = Github(github_token, base_url=github_api_url)
-        else :
+        elif github_username is not None:
             github = Github(github_username, github_password, base_url=github_api_url)
-        dest = github.get_repo(github_project)
-        gh_user = github.get_user()
+        if github:
+            dest = github.get_repo(github_project)
+            gh_user = github.get_user()
+        else:
+            sleep_after_request = 0
 
     if dest is not None :
         for l in dest.get_labels() :
