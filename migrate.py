@@ -36,6 +36,10 @@ from time import sleep
 #from re import MULTILINE
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
+from github.Repository import Repository
+from github.GithubException import IncompletableObject
+
+from migration_archive_writer import MigrationArchiveWritingRequester
 
 import markdown
 from markdown.extensions.tables import TableExtension
@@ -103,9 +107,11 @@ github_api_url = config.get('target', 'url')
 github_token = None
 if config.has_option('target', 'token') :
     github_token = config.get('target', 'token')
-else :
+elif config.has_option('target', 'username'):
     github_username = config.get('target', 'username')
     github_password = config.get('target', 'password')
+else:
+    github_username = None
 github_project = config.get('target', 'project_name')
 
 users_map = ast.literal_eval(config.get('target', 'usernames'))
@@ -568,9 +574,9 @@ def gh_update_issue_property(dest, issue, key, val) :
         labels = [gh_labels[label.lower()] for label in val]
         issue.set_labels(*labels)
     elif key == 'assignee' :
-        if issue.assignee == val :
+        if issue.assignee == val:
             return
-        if len(issue.assignees) > 0 :
+        if issue.assignees:
             issue.remove_from_assignees(issue.assignee)
         if val is not None and val is not GithubObject.NotSet and val != '' :
             issue.add_to_assignees(val)
@@ -1157,13 +1163,15 @@ if __name__ == "__main__":
         if github:
             dest = github.get_repo(github_project)
             gh_user = github.get_user()
+            for l in dest.get_labels() :
+                gh_labels[l.name.lower()] = l
+            #print 'Existing labels:', gh_labels.keys()
         else:
+            requester = MigrationArchiveWritingRequester()
+            dest = Repository(requester, None, dict(name="sagetest",
+                                                    url="https://github.com/sagemath/sagetest"), None)
+            print(dest.url)
             sleep_after_request = 0
-
-    if dest is not None :
-        for l in dest.get_labels() :
-            gh_labels[l.name.lower()] = l
-        #print 'Existing labels:', gh_labels.keys()
 
     if svngit_mapfile is not None :
         svngit_map = dict()

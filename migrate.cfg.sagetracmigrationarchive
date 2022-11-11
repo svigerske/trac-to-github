@@ -1,0 +1,76 @@
+# Sample configuration file, update to meet your needs
+
+[source]
+
+# URL of the XML-RPC trac endpoint
+# unauthenticated works for globally readable trac instances
+url: https://trac.sagemath.org/xmlrpc
+
+# authentication broken with python3.8 or later, due to
+# https://github.com/python/cpython/issues/82219
+# url: http://username:password@example.com/trac/login/xmlrpc
+
+# optional path to trac instance used to convert some attachments
+# path: /path/to/trac/instance
+
+# mapping file from git hashes to subversion revisions and branch names ("hash revision @branch" in each line)
+#svngitmap: /path/to/git_svn.map
+
+[target]
+
+# Trac to GitLab user mappings
+usernames = {
+    'trac1': 'git1',
+    'trac2': 'git2'
+    }
+
+# URL of the GitHub web API (default: https://api.github.com)
+# url: https://api.github.com
+
+# project's path
+project_name: username/projectname
+
+# GitHub access token
+#token : 2190valkrl123c
+
+# GitHub username (if no token specified)
+#username: johndoe
+
+# GitHub password (if no token specified)
+#password: secret
+
+
+[issues]
+
+# Should we migrate the issues (default = yes)
+migrate: yes
+
+# If defined, import only these issues
+# only_issues: [ 30000, 30001 ]
+
+# If defined, do not import these issues
+# blacklist_issues: [ 268, 843 ]
+
+# If defined, then this is added to the ticket query string to trac
+filter_issues: max=5&order=id&desc=False
+#filter_issues: max=2796&order=id&page=2
+
+# Add a label to all migrated issues
+# add_label: Websites
+
+# Migrate keywords to labels, or add to issue description
+# keywords_to_labels: no
+
+# Migrate milestones
+migrate_milestones: no
+
+[attachments]
+
+# Export attachement as files to the local filesystem or try to upload them as Gist?
+# Gist only allows text files, so binary attachments will be lost
+# Gists are associated with the GitHub user, not the project
+export : no
+
+[wiki]
+
+migrate : no
