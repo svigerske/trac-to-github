@@ -91,6 +91,10 @@ trac_path = None
 if config.has_option('source', 'path') :
     trac_path = config.get('source', 'path')
 
+trac_ticket_url = None
+if config.has_option('source', 'ticket_url') :
+    trac_ticket_url = config.get('source', 'ticket_url')
+
 github_api_url = config.get('target', 'url')
 github_token = None
 if config.has_option('target', 'token') :
@@ -169,7 +173,7 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
-def trac2markdown(text, base_path, multilines = True) :
+def trac2markdown(text, base_path, multilines = True, trac_ticket_url=None) :
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
@@ -217,6 +221,9 @@ def trac2markdown(text, base_path, multilines = True) :
             line = re.sub(r'\[\[Image\(([^(]+)\)\]\]', r'![](\1)', line)
             line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
             line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
+            if trac_ticket_url:
+                # as long as the ticket themselfs have not been migrated they should reference to the original place
+                line = re.sub(r'\#([1-9]\d{0,4})', r'[#\1](%s/\1)' % trac_ticket_url, line)
             if line.startswith('||'):
                 if not is_table:
                     sep = re.sub(r'[^|]', r'-', line)
@@ -727,7 +734,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             sleep(sleep_after_10tickets)
 
 
-def convert_wiki(source, dest):
+def convert_wiki(source, dest, trac_ticket_url):
     exclude_authors = ['trac']
 
     if not os.path.isdir(wiki_export_dir) :
@@ -743,7 +750,7 @@ def convert_wiki(source, dest):
         print ("Migrate Wikipage", pagename)
         if pagename == 'WikiStart' :
             pagename = 'Home'
-        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename))
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename), trac_ticket_url=trac_ticket_url)
 
         attachments = []
         for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart') :
@@ -824,6 +831,6 @@ if __name__ == "__main__":
         convert_issues(source, dest, only_issues = only_issues, blacklist_issues = blacklist_issues)
 
     if must_convert_wiki:
-        convert_wiki(source, dest)
+        convert_wiki(source, dest, trac_ticket_url)
 
     print(f'Unmapped users: {sorted(unmapped_users)}')
