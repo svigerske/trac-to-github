@@ -226,9 +226,13 @@ def trac2markdown(text, base_path, multilines = True, trac_ticket_url=None) :
                 line = re.sub(r'\#([1-9]\d{0,4})', r'[#\1](%s/\1)' % trac_ticket_url, line)
             if line.startswith('||'):
                 if not is_table:
-                    sep = re.sub(r'[^|]', r'-', line)
+                    sep = re.sub(r'\|\|=', r'||:', line) # take care of left align
+                    sep = re.sub(r'=\|\|', r':||', sep)  # take care of right align
+                    sep = re.sub(r'[^|,^:]', r'-', sep)
                     line = line + '\n' + sep
                     is_table = True
+                line = re.sub(r'\|\|=', r'||', line) # ignore cellwise align instructions
+                line = re.sub(r'=\|\|', r'||', line) # ignore cellwise align instructions
                 line = re.sub(r'\|\|', r'|', line)
             else:
                 is_table = False
