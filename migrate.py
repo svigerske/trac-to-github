@@ -231,6 +231,9 @@ def trac2markdown(text, base_path, multilines = True, trac_ticket_url=None) :
                     sep = re.sub(r'[^|,^:]', r'-', sep)
                     line = line + '\n' + sep
                     is_table = True
+                # The wiki markup allows the alignment directives to be specified on a cell-by-cell
+                # basis. This is used in many examples. AFAIK this can't be properly translated into
+                # the GitHub markdown as it only allows to align statements column by column.
                 line = re.sub(r'\|\|=', r'||', line) # ignore cellwise align instructions
                 line = re.sub(r'=\|\|', r'||', line) # ignore cellwise align instructions
                 line = re.sub(r'\|\|', r'|', line)
