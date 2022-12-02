@@ -193,12 +193,22 @@ def trac2markdown(text, base_path, multilines = True, trac_ticket_url=None) :
     if multilines:
         text = re.sub(r'^\S[^\n]+([^=-_|])\n([^\s`*0-9#=->-_|])', r'\1 \2', text)
 
-    text = re.sub(r'(?m)^======\s+(.*?)\s+======$', r'\n###### \1', text)
-    text = re.sub(r'(?m)^=====\s+(.*?)\s+=====$', r'\n##### \1', text)
-    text = re.sub(r'(?m)^====\s+(.*?)\s+====$', r'\n#### \1', text)
-    text = re.sub(r'(?m)^===\s+(.*?)\s+===$', r'\n### \1', text)
-    text = re.sub(r'(?m)^==\s+(.*?)\s+==$', r'\n## \1', text)
-    text = re.sub(r'(?m)^=\s+(.*?)\s+=$', r'\n# \1', text)
+    def convert_headding(level, text):
+        """
+        Return the given text with converted headdings
+        """
+        def replace(match):
+            """
+            Return the replacement for the headding
+            """
+            headding = match.groups()[0]
+            return '%s %s\n' % (('#'*level), headding)
+
+        return re.sub(r'(?m)^%s\s+(.*?)\s+%s\s*([^\n]\s*[\#][\w-]*)?$' % ('='*level, '='*level), replace, text)
+
+    for level in [6, 5, 4, 3, 2, 1]:
+        text = convert_headding(level, text)
+
     text = re.sub(r'^             * ', r'****', text)
     text = re.sub(r'^         * ', r'***', text)
     text = re.sub(r'^     * ', r'**', text)
