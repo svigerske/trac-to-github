@@ -91,9 +91,10 @@ trac_path = None
 if config.has_option('source', 'path') :
     trac_path = config.get('source', 'path')
 
-trac_ticket_url = None
-if config.has_option('source', 'ticket_url') :
-    trac_ticket_url = config.get('source', 'ticket_url')
+trac_url_dir = os.path.dirname(trac_url)
+trac_url_ticket = os.path.join(trac_url_dir, 'ticket')
+trac_url_wiki = os.path.join(trac_url_dir, 'wiki')
+trac_url_query = os.path.join(trac_url_dir, 'query')
 
 github_api_url = config.get('target', 'url')
 github_token = None
@@ -209,7 +210,7 @@ def trac2markdown(text, base_path, conv_help, multilines = True) :
     is_table = False
     for line in text.split('\n'):
         if not line.startswith('    '):
-            line = re.sub(r'\[query:\?', r'[http://trac.sagemath.org/query?', line) # preconversion to URL format
+            line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
             line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
             line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\]\]', r'[\1](\1)', line) # link without display text
             line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
@@ -230,6 +231,7 @@ def trac2markdown(text, base_path, conv_help, multilines = True) :
             line = re.sub(r'\[\[([^\s\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference without display text
             line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
             line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
+            line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
             line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
             if line.startswith('||'):
                 if not is_table:
@@ -823,16 +825,18 @@ class ConversionHelper:
 
         self._pagenames_splitted = pagenames_splitted
         self._pagenames_not_splitted = pagenames_not_splitted
-        self._trac_ticket_url = trac_ticket_url
+        self._keep_trac_ticket_references = False
+        if config.has_option('source', 'keep_trac_ticket_references') :
+            self._keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
 
     def ticket_link(self, match):
         """
         Return a formatted string that replaces the match object found by re.
         """
         ticket = match.groups()[0]
-        if self._trac_ticket_url:
+        if self._keep_trac_ticket_references:
             # as long as the ticket themselfs have not been migrated they should reference to the original place
-            return r'[#%s](%s/%s)' % (ticket, trac_ticket_url, ticket)
+            return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
         else:
             # leave them as is
             return r'#%s' % ticket
@@ -874,7 +878,7 @@ class ConversionHelper:
             if len(macro_split) > 1:
                 args =  macro_split[1]
             display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
-            link = 'https://trac.sagemath.org/wiki/WikiMacros#%s-macro' % macro
+            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
                 return r'[%s](%s) called with arguments (%s' % (display, link, args)
         return r'[%s](%s)' % (display, link)
