@@ -91,9 +91,10 @@ trac_path = None
 if config.has_option('source', 'path') :
     trac_path = config.get('source', 'path')
 
-trac_ticket_url = None
-if config.has_option('source', 'ticket_url') :
-    trac_ticket_url = config.get('source', 'ticket_url')
+trac_url_dir = os.path.dirname(trac_url)
+trac_url_ticket = os.path.join(trac_url_dir, 'ticket')
+trac_url_wiki = os.path.join(trac_url_dir, 'wiki')
+trac_url_query = os.path.join(trac_url_dir, 'query')
 
 github_api_url = config.get('target', 'url')
 github_token = None
@@ -173,7 +174,7 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
-def trac2markdown(text, base_path, multilines = True, trac_ticket_url=None) :
+def trac2markdown(text, base_path, conv_help, multilines = True) :
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
@@ -219,24 +220,29 @@ def trac2markdown(text, base_path, multilines = True, trac_ticket_url=None) :
     is_table = False
     for line in text.split('\n'):
         if not line.startswith('    '):
+            line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
             line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
             line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\]\]', r'[\1](\1)', line) # link without display text
             line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
             line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
-            line = re.sub(r'\[wiki:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1.md)' % os.path.relpath('/wiki/', base_path), line)
-            line = re.sub(r'\[wiki:([^\s\[\]]+)\]', r'[\1](%s/\1.md)' % os.path.relpath('/wiki/', base_path), line) # link without display text
-            line = re.sub(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1.md)' % os.path.relpath('/wiki/', base_path), line)
+            line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
+            line = re.sub(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.wiki_link, line)
+            line = re.sub(r'\[wiki:([^\s\[\]]+)\]', conv_help.wiki_link, line) # link without display text
+            line = re.sub(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]', conv_help.wiki_link, line)
             line = re.sub(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
             line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
             line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
             line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
             line = re.sub(r'\[\[Image\(([^(]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
             line = re.sub(r'\[\[Image\(([^(]+)\)\]\]', r'![](\1)', line)
+            line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
+            line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
+            line = re.sub(r'\[\[([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference
+            line = re.sub(r'\[\[([^\s\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference without display text
             line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
             line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
-            if trac_ticket_url:
-                # as long as the ticket themselfs have not been migrated they should reference to the original place
-                line = re.sub(r'\#([1-9]\d{0,4})', r'[#\1](%s/\1)' % trac_ticket_url, line)
+            line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
+            line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
             if line.startswith('||'):
                 if not is_table:
                     sep = re.sub(r'\|\|=', r'||:', line) # take care of left align
@@ -385,12 +391,14 @@ def gh_username(dest, origname) :
 def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
     milestone_map = {}
 
+    conv_help = ConversionHelper(source)
+
     if migrate_milestones:
         for milestone_name in source.ticket.milestone.getAll():
             milestone = source.ticket.milestone.get(milestone_name)
             print("Creating milestone " + milestone['name'])
             new_milestone = {
-                'description' : trac2markdown(milestone['description'], '/milestones/', False),
+                'description' : trac2markdown(milestone['description'], '/milestones/', conv_help, False),
                 'title' : milestone['name'],
                 'state' : 'open' if str(milestone['completed']) == '0'  else 'closed'
             }
@@ -564,7 +572,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if keywords != '' and not keywords_to_labels :
             description_pre += 'Keywords: ' + keywords + '\n\n'
 
-        description = description_pre + trac2markdown(description, '/issues/', False)
+        description = description_pre + trac2markdown(description, '/issues/', conv_help, False)
         #assert description.find('/wiki/') < 0, description
 
         # collect all parameters
@@ -613,7 +621,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     # empty description and not description of attachment
                     continue
                 note = {
-                    'note' : trac2markdown(desc, '/issues/', False)
+                    'note' : trac2markdown(desc, '/issues/', conv_help, False)
                 }
                 if attachment is not None :
                     note['attachment_name'] = attachment[4]  # name of attachment
@@ -702,7 +710,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_comment_issue(dest, issue, { 'note' : 'Changing type from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
-                issue_data['description'] = description_pre + trac2markdown(change[4], '/issues/', False) + '\n\n(changed by ' + author + ' at ' + change_time + ')'
+                issue_data['description'] = description_pre + trac2markdown(change[4], '/issues/', conv_help, False) + '\n\n(changed by ' + author + ' at ' + change_time + ')'
                 gh_update_issue_property(dest, issue, 'description', issue_data['description'])
             elif change_type == "summary" :
                 issue_data['title'] = change[4]
@@ -754,13 +762,15 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             sleep(sleep_after_10tickets)
 
 
-def convert_wiki(source, dest, trac_ticket_url):
+def convert_wiki(source, dest):
     exclude_authors = ['trac']
 
     if not os.path.isdir(wiki_export_dir) :
         os.makedirs(wiki_export_dir)
 
     client.MultiCall(source)
+    conv_help = ConversionHelper(source)
+
     for pagename in source.wiki.getAllPages() :
         info = source.wiki.getPageInfo(pagename)
         if info['author'] in exclude_authors :
@@ -770,7 +780,7 @@ def convert_wiki(source, dest, trac_ticket_url):
         print ("Migrate Wikipage", pagename)
         if pagename == 'WikiStart' :
             pagename = 'Home'
-        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename), trac_ticket_url=trac_ticket_url)
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename), conv_help)
 
         attachments = []
         for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart') :
@@ -806,6 +816,82 @@ def convert_wiki(source, dest, trac_ticket_url):
             print ('  Context:', e.object[e.start-20:e.end+20])
             print ('  Retrying with UTF-8 encoding')
             codecs.open(outfile, 'w', 'utf-8').write(converted)
+
+
+class ConversionHelper:
+    """
+    A class that provides conversion methods that depend on information collected
+    at startup, such as Wiki page names and configuration flags.
+    """
+    def __init__(self, source):
+        """
+        The Python constructor collects all the necessary information.
+        """
+        pagenames = source.wiki.getAllPages()
+        pagenames_splitted = []
+        for p in pagenames:
+            pagenames_splitted += p.split('/')
+        pagenames_not_splitted = [p for p in pagenames if not p in pagenames_splitted]
+
+        self._pagenames_splitted = pagenames_splitted
+        self._pagenames_not_splitted = pagenames_not_splitted
+        self._keep_trac_ticket_references = False
+        if config.has_option('source', 'keep_trac_ticket_references') :
+            self._keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
+
+    def ticket_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re.
+        """
+        ticket = match.groups()[0]
+        if self._keep_trac_ticket_references:
+            # as long as the ticket themselfs have not been migrated they should reference to the original place
+            return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
+        else:
+            # leave them as is
+            return r'#%s' % ticket
+
+    def wiki_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re.
+        """
+        mg = match.groups()
+        pagename = mg[0]
+        if len(mg) > 1:
+            display = mg[1]
+            if not display:
+                display = pagename
+        else:
+            display = pagename
+
+        # take care of section references
+        pagename_sect = pagename.split('#')
+        pagename_ori = pagename
+        if len(pagename_sect) > 1:
+            pagename = pagename_sect[0]
+            if not display:
+                display = pagename_sect[1]
+
+        if pagename.startswith('http'):
+            link = pagename_ori
+        elif pagename in self._pagenames_splitted:
+            link = pagename_ori
+        elif pagename in self._pagenames_not_splitted:
+            p_split = pagename_ori.split('/')
+            link = p_split[len(p_split) - 1]
+        else:
+            # we asume that this must be a Trac macro like PageOutline
+            # first lets extract arguments
+            macro_split = pagename.split('(')
+            macro = macro_split[0]
+            args = None
+            if len(macro_split) > 1:
+                args =  macro_split[1]
+            display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
+            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
+            if args:
+                return r'[%s](%s) called with arguments (%s' % (display, link, args)
+        return r'[%s](%s)' % (display, link)
 
 
 if __name__ == "__main__":
@@ -851,6 +937,6 @@ if __name__ == "__main__":
         convert_issues(source, dest, only_issues = only_issues, blacklist_issues = blacklist_issues)
 
     if must_convert_wiki:
-        convert_wiki(source, dest, trac_ticket_url)
+        convert_wiki(source, dest)
 
     print(f'Unmapped users: {sorted(unmapped_users)}')
