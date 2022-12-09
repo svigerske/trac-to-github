@@ -7,8 +7,8 @@
 # unauthenticated works for globally readable trac instances
 url: https://trac.sagemath.org/xmlrpc
 
-# Optional ticket_url if links to the Trac tickets should be set in md-documents
-ticket_url: https://trac.sagemath.org/ticket
+# Should references to tickets still point to Trac?
+keep_trac_ticket_references: yes
 
 # authentication broken with python3.8 or later, due to
 # https://github.com/python/cpython/issues/82219
