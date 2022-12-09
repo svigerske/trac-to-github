@@ -194,12 +194,27 @@ def trac2markdown(text, base_path, conv_help, multilines = True) :
     if multilines:
         text = re.sub(r'^\S[^\n]+([^=-_|])\n([^\s`*0-9#=->-_|])', r'\1 \2', text)
 
-    text = re.sub(r'(?m)^======\s+(.*?)\s+======$', r'\n###### \1', text)
-    text = re.sub(r'(?m)^=====\s+(.*?)\s+=====$', r'\n##### \1', text)
-    text = re.sub(r'(?m)^====\s+(.*?)\s+====$', r'\n#### \1', text)
-    text = re.sub(r'(?m)^===\s+(.*?)\s+===$', r'\n### \1', text)
-    text = re.sub(r'(?m)^==\s+(.*?)\s+==$', r'\n## \1', text)
-    text = re.sub(r'(?m)^=\s+(.*?)\s+=$', r'\n# \1', text)
+    def convert_heading(level, text):
+        """
+        Return the given text with converted headdings
+        """
+        def replace(match):
+            """
+            Return the replacement for the headding
+            """
+            heading = match.groups()[0]
+            # There might be a second item if an anchor is set.
+            # We ignore this anchor since it is automatically
+            # set it GitHub Markdown.
+            return '%s %s' % (('#'*level), heading)
+
+        text = re.sub(r'(?m)^%s\s+([^=]+)[^\n=]*([\#][\w-]*)?$' % ('='*level), replace, text)
+        text = re.sub(r'(?m)^%s\s+(.*?)\s+%s[^\n]*([\#][\w-]*)?$' % ('='*level, '='*level), replace, text)
+        return text
+
+    for level in [6, 5, 4, 3, 2, 1]:
+        text = convert_heading(level, text)
+
     text = re.sub(r'^             * ', r'****', text)
     text = re.sub(r'^         * ', r'***', text)
     text = re.sub(r'^     * ', r'**', text)
