@@ -87,14 +87,14 @@ else :
     config.read('migrate.cfg')
 
 trac_url = config.get('source', 'url')
-trac_path = None
-if config.has_option('source', 'path') :
-    trac_path = config.get('source', 'path')
-
 trac_url_dir = os.path.dirname(trac_url)
 trac_url_ticket = os.path.join(trac_url_dir, 'ticket')
 trac_url_wiki = os.path.join(trac_url_dir, 'wiki')
 trac_url_query = os.path.join(trac_url_dir, 'query')
+
+trac_path = None
+if config.has_option('source', 'path') :
+    trac_path = config.get('source', 'path')
 
 github_api_url = config.get('target', 'url')
 github_token = None
@@ -138,6 +138,21 @@ must_convert_wiki = config.getboolean('wiki', 'migrate')
 if must_convert_wiki :
     wiki_export_dir = config.get('wiki', 'export_dir')
 
+default_multilines = False
+if config.has_option('source', 'default_multilines') :
+    # set this boolean in the source section of the configuration file
+    # to change the default of the multilines flag in the function
+    # trac2markdown
+    default_multilines = config.getboolean('source', 'default_multilines')
+
+skip_line_with_leading_whitespaces = 0
+if config.has_option('source', 'skip_line_with_leading_whitespaces') :
+    # set this integer in the source section of the configuration file
+    # to the number of leading whitespaces that a line must have to
+    # be skipped in the function trac2markdown. Zero means that no
+    # line is skipped.
+    skip_line_with_leading_whitespaces = config.getint('source', 'skip_line_with_leading_whitespaces')
+
 #pattern_changeset = r'(?sm)In \[changeset:"([^"/]+?)(?:/[^"]+)?"\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
 pattern_changeset = r'(?sm)In \[changeset:"[0-9]+" ([0-9]+)\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
 matcher_changeset = re.compile(pattern_changeset)
@@ -174,7 +189,7 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
-def trac2markdown(text, base_path, conv_help, multilines = True) :
+def trac2markdown(text, base_path, conv_help, multilines = default_multilines) :
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
@@ -224,49 +239,51 @@ def trac2markdown(text, base_path, conv_help, multilines = True) :
     a = []
     is_table = False
     for line in text.split('\n'):
-        if not line.startswith('    '):
-            line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-            line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
-            line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\]\]', r'[\1](\1)', line) # link without display text
-            line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
-            line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
-            line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
-            line = re.sub(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.wiki_link, line)
-            line = re.sub(r'\[wiki:([^\s\[\]]+)\]', conv_help.wiki_link, line) # link without display text
-            line = re.sub(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]', conv_help.wiki_link, line)
-            line = re.sub(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-            line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-            line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
-            line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-            line = re.sub(r'\[\[Image\(([^(]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
-            line = re.sub(r'\[\[Image\(([^(]+)\)\]\]', r'![](\1)', line)
-            line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
-            line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
-            line = re.sub(r'\[\[([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference
-            line = re.sub(r'\[\[([^\s\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference without display text
-            line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
-            line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
-            line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
-            line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
-            if line.startswith('||'):
-                if not is_table:
-                    sep = re.sub(r'\|\|=', r'||:', line) # take care of left align
-                    sep = re.sub(r'=\|\|', r':||', sep)  # take care of right align
-                    sep = re.sub(r'[^|,^:]', r'-', sep)
-                    line = line + '\n' + sep
-                    is_table = True
-                # The wiki markup allows the alignment directives to be specified on a cell-by-cell
-                # basis. This is used in many examples. AFAIK this can't be properly translated into
-                # the GitHub markdown as it only allows to align statements column by column.
-                line = re.sub(r'\|\|=', r'||', line) # ignore cellwise align instructions
-                line = re.sub(r'=\|\|', r'||', line) # ignore cellwise align instructions
-                line = re.sub(r'\|\|', r'|', line)
-            else:
+        if skip_line_with_leading_whitespaces:
+            if line.startswith(' '*skip_line_with_leading_whitespaces):
                 is_table = False
+                continue
+
+        line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
+        line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
+        line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\]\]', r'[\1](\1)', line) # link without display text
+        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
+        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
+        line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
+        line = re.sub(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[wiki:([^\s\[\]]+)\]', conv_help.wiki_link, line) # link without display text
+        line = re.sub(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
+        line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
+        line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
+        line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
+        line = re.sub(r'\[\[Image\(([^(]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
+        line = re.sub(r'\[\[Image\(([^(]+)\)\]\]', r'![](\1)', line)
+        line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
+        line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
+        line = re.sub(r'\[\[([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference
+        line = re.sub(r'\[\[([^\s\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference without display text
+        line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
+        line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
+        line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
+        line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
+        if line.startswith('||'):
+            if not is_table:
+                sep = re.sub(r'\|\|=', r'||:', line) # take care of left align
+                sep = re.sub(r'=\|\|', r':||', sep)  # take care of right align
+                sep = re.sub(r'[^|,^:]', r'-', sep)
+                line = line + '\n' + sep
+                is_table = True
+            # The wiki markup allows the alignment directives to be specified on a cell-by-cell
+            # basis. This is used in many examples. AFAIK this can't be properly translated into
+            # the GitHub markdown as it only allows to align statements column by column.
+            line = re.sub(r'\|\|=', r'||', line) # ignore cellwise align instructions
+            line = re.sub(r'=\|\|', r'||', line) # ignore cellwise align instructions
+            line = re.sub(r'\|\|', r'|', line)
         else:
             is_table = False
         a.append(line)
-    text = '\n'.join(a)
+        text = '\n'.join(a)
     return text
 
 
