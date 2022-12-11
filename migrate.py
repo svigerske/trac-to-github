@@ -803,22 +803,26 @@ def convert_wiki(source, dest):
 
         page = source.wiki.getPage(pagename)
         print ("Migrate Wikipage", pagename)
+
+        # Github wiki does not have folder structure
+        gh_pagename = ' '.join(pagename.split('/'))
+
         if pagename == 'WikiStart' :
-            pagename = 'Home'
-        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename), conv_help, attachment_path=pagename)
+            gh_pagename = 'Home'
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help, attachment_path=gh_pagename)
 
         attachments = []
-        for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart') :
+        for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart'):
             print ("  Attachment", attachment)
             attachmentname = os.path.basename(attachment)
             attachmentdata = source.wiki.getAttachment(attachment).data
 
-            dirname = os.path.join(wiki_export_dir, pagename)
-            if not os.path.isdir(dirname) :
+            dirname = os.path.join(wiki_export_dir, gh_pagename)
+            if not os.path.isdir(dirname):
                 os.makedirs(dirname)
             # write attachment data to binary file
             open(os.path.join(dirname, attachmentname), 'wb').write(attachmentdata)
-            attachmenturl = pagename + '/' + attachmentname
+            attachmenturl = gh_pagename + '/' + attachmentname
 
             converted = re.sub(r'\[attachment:%s\s([^\[\]]+)\]' % re.escape(attachmentname), r'[\1](%s)' % attachmenturl, converted)
 
@@ -831,7 +835,7 @@ def convert_wiki(source, dest):
                 converted += ' * [' + name + '](' + url + ')\n'
 
         # TODO we could use the GitHub API to write into the Wiki repository of the GitHub project
-        outfile = os.path.join(wiki_export_dir, pagename + '.md')
+        outfile = os.path.join(wiki_export_dir, gh_pagename + '.md')
         # For wiki page names with slashes
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
         try :
