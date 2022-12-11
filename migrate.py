@@ -189,7 +189,7 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
-def trac2markdown(text, base_path, conv_help, multilines = default_multilines) :
+def trac2markdown(text, base_path, conv_help, multilines=default_multilines, attachment_path=None):
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
@@ -257,8 +257,9 @@ def trac2markdown(text, base_path, conv_help, multilines = default_multilines) :
         line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
         line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\[\[Image\(([^(]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
-        line = re.sub(r'\[\[Image\(([^(]+)\)\]\]', r'![](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'!OPENING_DOUBLE_BRACKETS!%s/\1!CLOSING_DOUBLE_BRACKETS!' % attachment_path, line)
         line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
         line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
         line = re.sub(r'\[\[([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference
@@ -282,6 +283,8 @@ def trac2markdown(text, base_path, conv_help, multilines = default_multilines) :
             line = re.sub(r'\|\|', r'|', line)
         else:
             is_table = False
+        line = re.sub('!OPENING_DOUBLE_BRACKETS!', '[[', line)
+        line = re.sub('!CLOSING_DOUBLE_BRACKETS!', ']]', line)
         a.append(line)
         text = '\n'.join(a)
     return text
@@ -802,7 +805,7 @@ def convert_wiki(source, dest):
         print ("Migrate Wikipage", pagename)
         if pagename == 'WikiStart' :
             pagename = 'Home'
-        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename), conv_help)
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename), conv_help, attachment_path=pagename)
 
         attachments = []
         for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart') :
