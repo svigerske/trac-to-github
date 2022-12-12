@@ -189,7 +189,7 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
-def trac2markdown(text, base_path, conv_help, multilines = default_multilines) :
+def trac2markdown(text, base_path, conv_help, multilines=default_multilines, attachment_path=None):
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
@@ -257,8 +257,9 @@ def trac2markdown(text, base_path, conv_help, multilines = default_multilines) :
         line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
         line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\[\[Image\(([^(]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
-        line = re.sub(r'\[\[Image\(([^(]+)\)\]\]', r'![](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'!OPENING_DOUBLE_BRACKETS!%s/\1!CLOSING_DOUBLE_BRACKETS!' % attachment_path, line)
         line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
         line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
         line = re.sub(r'\[\[([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference
@@ -282,6 +283,8 @@ def trac2markdown(text, base_path, conv_help, multilines = default_multilines) :
             line = re.sub(r'\|\|', r'|', line)
         else:
             is_table = False
+        line = re.sub('!OPENING_DOUBLE_BRACKETS!', '[[', line)
+        line = re.sub('!CLOSING_DOUBLE_BRACKETS!', ']]', line)
         a.append(line)
         text = '\n'.join(a)
     return text
@@ -800,22 +803,26 @@ def convert_wiki(source, dest):
 
         page = source.wiki.getPage(pagename)
         print ("Migrate Wikipage", pagename)
+
+        # Github wiki does not have folder structure
+        gh_pagename = ' '.join(pagename.split('/'))
+
         if pagename == 'WikiStart' :
-            pagename = 'Home'
-        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % pagename), conv_help)
+            gh_pagename = 'Home'
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help, attachment_path=gh_pagename)
 
         attachments = []
-        for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart') :
+        for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart'):
             print ("  Attachment", attachment)
             attachmentname = os.path.basename(attachment)
             attachmentdata = source.wiki.getAttachment(attachment).data
 
-            dirname = os.path.join(wiki_export_dir, pagename)
-            if not os.path.isdir(dirname) :
+            dirname = os.path.join(wiki_export_dir, gh_pagename)
+            if not os.path.isdir(dirname):
                 os.makedirs(dirname)
             # write attachment data to binary file
             open(os.path.join(dirname, attachmentname), 'wb').write(attachmentdata)
-            attachmenturl = pagename + '/' + attachmentname
+            attachmenturl = gh_pagename + '/' + attachmentname
 
             converted = re.sub(r'\[attachment:%s\s([^\[\]]+)\]' % re.escape(attachmentname), r'[\1](%s)' % attachmenturl, converted)
 
@@ -828,7 +835,7 @@ def convert_wiki(source, dest):
                 converted += ' * [' + name + '](' + url + ')\n'
 
         # TODO we could use the GitHub API to write into the Wiki repository of the GitHub project
-        outfile = os.path.join(wiki_export_dir, pagename + '.md')
+        outfile = os.path.join(wiki_export_dir, gh_pagename + '.md')
         # For wiki page names with slashes
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
         try :
