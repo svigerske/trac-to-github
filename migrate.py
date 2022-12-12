@@ -245,8 +245,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
                 continue
 
         line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-        line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
-        line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\]\]', r'[\1](\1)', line) # link without display text
+        line = re.sub(r'\[\[(https?://[^\]|]+)\s*[\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
+        line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'[\1](\1)', line)  # link without display text
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
         line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
@@ -260,11 +260,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
         line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'!OPENING_DOUBLE_BRACKETS!%s/\1!CLOSING_DOUBLE_BRACKETS!' % attachment_path, line)
-        line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
-        line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
-        line = re.sub(r'\[\[([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference
-        line = re.sub(r'\[\[([^\s\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference without display text
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'OPENING__DOUBLE__BRACKETS%s/\1|width=\2CLOSING__DOUBLE__BRACKETS' % attachment_path, line)
+        line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
         line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
         line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
         line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
@@ -284,8 +283,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             line = re.sub(r'\|\|', r'|', line)
         else:
             is_table = False
-        line = re.sub('!OPENING_DOUBLE_BRACKETS!', '[[', line)
-        line = re.sub('!CLOSING_DOUBLE_BRACKETS!', ']]', line)
+        line = re.sub('OPENING__DOUBLE__BRACKETS', '[[', line)
+        line = re.sub('CLOSING__DOUBLE__BRACKETS', ']]', line)
         a.append(line)
         text = '\n'.join(a)
     return text
@@ -791,15 +790,15 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 def convert_wiki(source, dest):
     exclude_authors = ['trac']
 
-    if not os.path.isdir(wiki_export_dir) :
+    if not os.path.isdir(wiki_export_dir):
         os.makedirs(wiki_export_dir)
 
     client.MultiCall(source)
     conv_help = ConversionHelper(source)
 
-    for pagename in source.wiki.getAllPages() :
+    for pagename in source.wiki.getAllPages():
         info = source.wiki.getPageInfo(pagename)
-        if info['author'] in exclude_authors :
+        if info['author'] in exclude_authors:
             continue
 
         page = source.wiki.getPage(pagename)
@@ -904,13 +903,16 @@ class ConversionHelper:
 
         if pagename.startswith('http'):
             link = pagename_ori
+            return r'[%s](%s)' % (display, link)
         elif pagename in self._pagenames_splitted:
-            link = pagename_ori
+            link = pagename_ori.replace(' ', '-')
+            return r'OPENING__DOUBLE__BRACKETS%s|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
         elif pagename in self._pagenames_not_splitted:
             p_split = pagename_ori.split('/')
-            link = p_split[len(p_split) - 1]
+            link = p_split[-1].replace(' ', '-')
+            return r'OPENING__DOUBLE__BRACKETS!%s|%s!CLOSING__DOUBLE__BRACKETS!' % (display, link)
         else:
-            # we asume that this must be a Trac macro like PageOutline
+            # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
             macro_split = pagename.split('(')
             macro = macro_split[0]
@@ -921,7 +923,7 @@ class ConversionHelper:
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
                 return r'[%s](%s) called with arguments (%s' % (display, link, args)
-        return r'[%s](%s)' % (display, link)
+            return r'[%s](%s)' % (display, link)
 
 
 if __name__ == "__main__":
