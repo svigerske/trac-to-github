@@ -906,10 +906,13 @@ class ConversionHelper:
             return r'[%s](%s)' % (display, link)
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
-            return r'OPENING__DOUBLE__BRACKETS%s|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+            # \| instead of | for wiki links in a table
+            return r'OPENING__DOUBLE__BRACKETS%s\|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
         elif pagename in self._pagenames_not_splitted:
+            # Use normalized wiki pagename
             link = pagename_ori.replace('/', ' ').replace(' ', '-')
-            return r'OPENING__DOUBLE__BRACKETS%s|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+             # \| instead of | for wiki links in a table
+            return r'OPENING__DOUBLE__BRACKETS%s\|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
         else:
             # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
