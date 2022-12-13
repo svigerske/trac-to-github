@@ -910,7 +910,7 @@ class ConversionHelper:
         elif pagename in self._pagenames_not_splitted:
             p_split = pagename_ori.split('/')
             link = p_split[-1].replace(' ', '-')
-            return r'OPENING__DOUBLE__BRACKETS!%s|%s!CLOSING__DOUBLE__BRACKETS!' % (display, link)
+            return r'OPENING__DOUBLE__BRACKETS%s|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
         else:
             # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
