@@ -236,6 +236,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
     text = re.sub(r'^ * ', r'*', text)
     text = re.sub(r'^ \d+. ', r'1.', text)
 
+    def camelcase_wiki_link(match):
+        if match.group(1) in conv_help._pagenames_splitted:
+            return conv_help.wiki_link(match)
+        return match.group(0)
+
     a = []
     is_table = False
     for line in text.split('\n'):
@@ -244,8 +249,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
                 is_table = False
                 continue
 
+        line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s.])', camelcase_wiki_link, line)  # CamelCase wiki link
         line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-        line = re.sub(r'\[\[(https?://[^\]|]+)\s*[\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
+        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
         line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'[\1](\1)', line)  # link without display text
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
@@ -255,7 +261,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]', conv_help.wiki_link, line)
         line = re.sub(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
+        line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)  # no CamelCase wiki link because of leading "!"
         line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
@@ -902,7 +908,7 @@ class ConversionHelper:
                 display = pagename_sect[1]
 
         if pagename.startswith('http'):
-            link = pagename_ori
+            link = pagename_ori.strip()
             return r'[%s](%s)' % (display, link)
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
