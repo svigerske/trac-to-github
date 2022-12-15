@@ -37,6 +37,9 @@ from time import sleep
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
 
+import markdown
+from markdown.extensions.tables import TableExtension
+
 #import github as gh
 #gh.enable_console_debug_logging()
 
@@ -195,12 +198,45 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
 
     text = re.sub('\r\n', '\n', text)
     text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
-    text = re.sub(r'(?sm){{{(\n?#![^\n]+)?\n(.*?)\n}}}', r'```\n\2\n```', text)
+    text = re.sub(r'(?sm){{{\n#!', r'{{{#!', text)
 
     text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
     text = text.replace('[[BR]]', '\n')
     text = text.replace('[[br]]', '\n')
-    text = text.replace("@", "`@`")
+
+    # Deal with trac processors
+    a = []
+    level = 0
+    in_td = False
+    in_code = False
+    for line in text.split('\n'):
+        if line.startswith('{{{') and in_code:
+            level += 1
+        elif line == '{{{':
+            in_code = True
+            in_code_level = level
+            line =  re.sub(r'{{{', r'OPENING__PROCESSOR__CODE', line)
+            level += 1
+        elif line.startswith('{{{#!td'):
+            in_td = True
+            in_td_level = level
+            line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
+            level += 1
+        elif line.startswith('{{{#!'):
+            in_code = True
+            in_code_level = level
+            line =  re.sub(r'{{{#!([a-zA-Z]+)', r'OPENING__PROCESSOR__CODE\1', line)
+            level += 1
+        elif line == '}}}':
+            level -= 1
+            if in_td and in_td_level == level:
+                in_td = False
+                line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__TD', line)
+            elif in_code and in_code_level == level:
+                in_code = False
+                line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
+        a.append(line)
+    text = '\n'.join(a)
 
     if svngit_map is not None :
         text = matcher_svnrev1.sub(handle_svnrev_reference, text)
@@ -243,11 +279,15 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
 
     a = []
     is_table = False
+    previous_line = ''
     for line in text.split('\n'):
         if skip_line_with_leading_whitespaces:
             if line.startswith(' '*skip_line_with_leading_whitespaces):
                 is_table = False
                 continue
+        if previous_line:
+            line = previous_line + line
+            previous_line = ''
 
         line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s.])', camelcase_wiki_link, line)  # CamelCase wiki link
         line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
@@ -266,7 +306,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
         line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'OPENING__DOUBLE__BRACKETS%s/\1|width=\2CLOSING__DOUBLE__BRACKETS' % attachment_path, line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]',
+                      r'OPENING__DOUBLE__BRACKETS%s/\1SEPARATOR__BETWEEN__BRACKETSwidth=\2CLOSING__DOUBLE__BRACKETS' % attachment_path,
+                      line)
         line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
@@ -274,12 +316,37 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
         line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
         line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
+
+        # Convert a trac table to a github table
         if line.startswith('||'):
-            if not is_table:
-                sep = re.sub(r'\|\|=', r'||:', line) # take care of left align
-                sep = re.sub(r'=\|\|', r':||', sep)  # take care of right align
-                sep = re.sub(r'[^|,^:]', r'-', sep)
-                line = line + '\n' + sep
+            if not is_table:  # header row
+                if line.endswith('||\\'):
+                    previous_line = line[:-3]
+                    continue
+                elif line.endswith('|| \\'):
+                    previous_line = line[:-4]
+                    continue
+                # construct header separator
+                parts = line.split('||')
+                sep = []
+                for part in parts:
+                    if part.startswith('='):
+                        part = part[1:]
+                        start = ':'
+                    else:
+                        start = ''
+                    if part.endswith('='):
+                        part = part[:-1]
+                        end = ':'
+                    else:
+                        end = ''
+                    sep.append(start + '-'*len(part) + end)
+                sep = '||'.join(sep)
+                if ':' in sep:
+                    line = line + '\n' + sep
+                else:  # perhaps a table without header; github table needs header
+                    header = re.sub(r'[^|]', ' ', sep)
+                    line = header + '\n' + sep + '\n' + line
                 is_table = True
             # The wiki markup allows the alignment directives to be specified on a cell-by-cell
             # basis. This is used in many examples. AFAIK this can't be properly translated into
@@ -289,10 +356,78 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             line = re.sub(r'\|\|', r'|', line)
         else:
             is_table = False
-        line = re.sub('OPENING__DOUBLE__BRACKETS', '[[', line)
-        line = re.sub('CLOSING__DOUBLE__BRACKETS', ']]', line)
         a.append(line)
-        text = '\n'.join(a)
+
+    # Deal with a github table if the corresponding trac table contains td processors
+    b = []
+    table = []
+    in_table = False
+    in_block = False
+    in_td = False
+    previous_line = ''
+    for line in a:
+        if previous_line:
+            line = previous_line + line
+            previous_line = ''
+        if line == '|\\' or line == '| \\':  #  ||\ or || \ in trac
+            in_block = True
+            block = []
+        elif line.startswith('|'):
+            if in_block:  # terminate a block
+                table.append('|' + 'NEW__LINE'.join(block) +'|')
+                in_block = False
+            else:
+                if line.endswith('|\\'):
+                    line = line[:-2]
+                    previous_line = line
+                elif line.endswith('| \\'):
+                    line = line[:-3]
+                    previous_line = line
+                else:
+                    table.append(line)
+            in_table = True
+        elif line:
+            if in_block:
+                if line.startswith('OPENING__PROCESSOR__TD'):
+                    in_td = True
+                    if len(block) > 1:
+                        block.append('|')
+                elif line.startswith('CLOSING__PROCESSOR__TD'):
+                    in_td = False
+                block.append(line)
+            else:
+                line = re.sub('@', r'`@`', line)
+                line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
+                b.append(line)
+        else:
+            if in_block and in_td:
+                block.append(line)
+            elif in_table:  # terminate a table
+                if in_block:  # terminate a block
+                    table.append(' | ' + 'NEW__LINE'.join(block) +'|')
+                    in_block = False
+
+                table_text = '\n'.join(table)
+                if 'OPENING__PROCESSOR__TD' in table_text:
+                    html = markdown.markdown(table_text, extensions=[TableExtension(use_align_attribute=True)])
+                    html = re.sub('OPENING__PROCESSOR__TD', r'<div align="left">', html)
+                    html = re.sub('CLOSING__PROCESSOR__TD', r'</div>', html)
+                else:
+                    html = table_text
+                html = re.sub('NEW__LINE', '\n', html)
+                html = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'\|', html)
+                b += html.split('\n')  # process table
+                table = []
+                in_table = False
+            else:
+                line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
+                b.append(line)
+    text = '\n'.join(b)
+    text= re.sub('OPENING__DOUBLE__BRACKETS', '[[', text)
+    text = re.sub('CLOSING__DOUBLE__BRACKETS', ']]', text)
+    text = re.sub('OPENING__PROCESSOR__CODE', '\n```', text)
+    text = re.sub('CLOSING__PROCESSOR__CODE', '```\n', text)
+
     return text
 
 
@@ -913,12 +1048,12 @@ class ConversionHelper:
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
             # \| instead of | for wiki links in a table
-            return r'OPENING__DOUBLE__BRACKETS%s\|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+            return r'OPENING__DOUBLE__BRACKETS%sSEPARATOR__BETWEEN__BRACKETS%sCLOSING__DOUBLE__BRACKETS' % (display, link)
         elif pagename in self._pagenames_not_splitted:
             # Use normalized wiki pagename
             link = pagename_ori.replace('/', ' ').replace(' ', '-')
              # \| instead of | for wiki links in a table
-            return r'OPENING__DOUBLE__BRACKETS%s\|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+            return r'OPENING__DOUBLE__BRACKETS%sSEPARATOR__BETWEEN__BRACKETS%sCLOSING__DOUBLE__BRACKETS' % (display, link)
         else:
             # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
