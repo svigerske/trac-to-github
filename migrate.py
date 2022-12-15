@@ -189,7 +189,7 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
-def trac2markdown(text, base_path, conv_help, multilines=default_multilines, attachment_path=None):
+def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
@@ -236,11 +236,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
     text = re.sub(r'^ * ', r'*', text)
     text = re.sub(r'^ \d+. ', r'1.', text)
 
-    def camelcase_wiki_link(match):
-        if match.group(1) in conv_help._pagenames_splitted:
-            return conv_help.wiki_link(match)
-        return match.group(0)
-
     a = []
     is_table = False
     for line in text.split('\n'):
@@ -249,11 +244,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
                 is_table = False
                 continue
 
-        line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s.])', camelcase_wiki_link, line)  # CamelCase wiki link
+        line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])', conv_help.camelcase_wiki_link, line)  # CamelCase wiki link
+        line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$', conv_help.camelcase_wiki_link, line)  # CamelCase wiki link at EOL
         line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
+        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*([^\[\]]+)\]\]', conv_help.url_link, line)
         line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'[\1](\1)', line)  # link without display text
-        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
+        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.url_link, line)
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
         line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
         line = re.sub(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.wiki_link, line)
@@ -266,7 +262,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
         line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'OPENING__DOUBLE__BRACKETS%s/\1|width=\2CLOSING__DOUBLE__BRACKETS' % attachment_path, line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', conv_help.wiki_image, line)
         line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
@@ -289,8 +285,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             line = re.sub(r'\|\|', r'|', line)
         else:
             is_table = False
-        line = re.sub('OPENING__DOUBLE__BRACKETS', '[[', line)
-        line = re.sub('CLOSING__DOUBLE__BRACKETS', ']]', line)
+        line = conv_help.replace_wiki_link_tags(line)
         a.append(line)
         text = '\n'.join(a)
     return text
@@ -815,7 +810,8 @@ def convert_wiki(source, dest):
 
         if pagename == 'WikiStart' :
             gh_pagename = 'Home'
-        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help, attachment_path=gh_pagename)
+        conv_help.set_attachment_path(gh_pagename)
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help)
 
         attachments = []
         for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart'):
@@ -871,12 +867,55 @@ class ConversionHelper:
         self._pagenames_splitted = pagenames_splitted
         self._pagenames_not_splitted = pagenames_not_splitted
         self._keep_trac_ticket_references = False
+        self._attachment_path = ''
+        self._wiki_link_open = 'OPENING__DOUBLE__BRACKETS'
+        self._wiki_link_close = 'CLOSING__DOUBLE__BRACKETS'
+        self._wiki_link_sep = 'SEPARATOR__DOUBLE__BRACKETS'
         if config.has_option('source', 'keep_trac_ticket_references') :
             self._keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
 
+    def set_attachment_path(self, attachment_path):
+        """
+        Set the attachment_path for the wiki_image method.
+        """
+        self._attachment_path = attachment_path
+
+    def protect_wiki_link(self, display, link):
+        """
+        Return the given string encapsuled with protection tags. These will
+        be replaced at the end of conversion of a line by the double brackets
+        according to the Media-Wiki syntax (see method `replace_wiki_link_tags`),
+        This is needed to avoid a mixture with Trac wiki syntax.
+        """
+        if not display or display == link:
+            return r'%s%s%s' % (self._wiki_link_open, link, self._wiki_link_close)
+        return r'%s%s%s%s%s' % (self._wiki_link_open, display, self._wiki_link_sep, link, self._wiki_link_close)
+
+    def replace_wiki_link_tags(self, line):
+        """
+        Return the given string with protection tags replaced by the Media-Wiki brackets.
+        See also `protect_wiki_link`.
+        """
+        line = re.sub(self._wiki_link_open, r'[[', line)
+        line = re.sub(self._wiki_link_sep, r'\|', line) # \| instead of | for wiki links in a table
+        line = re.sub(self._wiki_link_close, r']]', line)
+        return line
+
+    def erase_wiki_link_tags(self, string):
+        """
+        Return the given string with protection tags for Media-Wiki brackets
+        removed again. This is needed to clean tagged CamelCase strings in
+        wiki link arguments or display-text of URL links.
+        """
+        if string:
+            string = re.sub(self._wiki_link_open, r'', string)
+            string = re.sub(self._wiki_link_close, r'', string)
+        return string
+
     def ticket_link(self, match):
         """
-        Return a formatted string that replaces the match object found by re.
+        Return a formatted string that replaces the match object found by re
+        in the case of a Trac ticket link.
         """
         ticket = match.groups()[0]
         if self._keep_trac_ticket_references:
@@ -886,14 +925,41 @@ class ConversionHelper:
             # leave them as is
             return r'#%s' % ticket
 
-    def wiki_link(self, match):
+    def url_link(self, match):
         """
-        Return a formatted string that replaces the match object found by re.
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to an URL with display-text.
         """
         mg = match.groups()
-        pagename = mg[0]
+        url = mg[0]
+        display = self.erase_wiki_link_tags(mg[1])
+        return r'[%s](%s)' % (display, url)
+
+    def wiki_image(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a wiki link to an attached image.
+        """
+        mg = match.groups()
+        filen = self.erase_wiki_link_tags(mg[0])
+        path = self._attachment_path
+        filename = os.path.join(path, filen)
         if len(mg) > 1:
-            display = mg[1]
+            options = self.erase_wiki_link_tags(mg[1])
+            cmd = '%s|width=%s' % (filename, options)
+        else:
+            cmd = filename
+        return r'%s' % self.protect_wiki_link(None, cmd)
+
+    def wiki_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to a wiki page.
+        """
+        mg = match.groups()
+        pagename = self.erase_wiki_link_tags(mg[0])
+        if len(mg) > 1:
+            display = self.erase_wiki_link_tags(mg[1])
             if not display:
                 display = pagename
         else:
@@ -912,13 +978,11 @@ class ConversionHelper:
             return r'[%s](%s)' % (display, link)
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
-            # \| instead of | for wiki links in a table
-            return r'OPENING__DOUBLE__BRACKETS%s\|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+            return self.protect_wiki_link(display, link)
         elif pagename in self._pagenames_not_splitted:
             # Use normalized wiki pagename
             link = pagename_ori.replace('/', ' ').replace(' ', '-')
-             # \| instead of | for wiki links in a table
-            return r'OPENING__DOUBLE__BRACKETS%s\|%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+            return self.protect_wiki_link(display, link)
         else:
             # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
@@ -932,6 +996,15 @@ class ConversionHelper:
             if args:
                 return r'[%s](%s) called with arguments (%s' % (display, link, args)
             return r'[%s](%s)' % (display, link)
+
+    def camelcase_wiki_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to a wiki page recognized from CamelCase.
+        """
+        if match.group(1) in self._pagenames_splitted:
+            return self.wiki_link(match)
+        return match.group(0)
 
 
 if __name__ == "__main__":
