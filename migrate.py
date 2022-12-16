@@ -208,6 +208,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
     text = text.replace('[[BR]]', '\n')
     text = text.replace('[[br]]', '\n')
 
+    def camelcase_wiki_link(match):
+        if match.group(1) in conv_help._pagenames_splitted:
+            return conv_help.wiki_link(match)
+        return match.group(0)
+
     # Deal with trac processors
     a = []
     level = 0
@@ -248,6 +253,31 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             elif in_code and in_code_level == level:
                 in_code = False
                 line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
+
+        # Deal with CamelCase wiki link
+        if not (in_code or in_html or in_td):
+            new_line = ''
+            level = 0
+            start = 0
+            end = 0
+            l = len(line)
+            for i in range(l + 1):
+                if i == l:
+                    end = i
+                elif line[i] == '[':
+                    if level == 0:
+                        end = i
+                    level += 1
+                elif line[i] == ']':
+                    level -= 1
+                    if level == 0:
+                        start = i + 1
+                        new_line += line[end:start]
+                if end > start:
+                    new_line += re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s.])', camelcase_wiki_link, line[start:end])
+                    start = end
+            line = new_line
+
         a.append(line)
     text = '\n'.join(a)
 
@@ -285,11 +315,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
     text = re.sub(r'^ * ', r'*', text)
     text = re.sub(r'^ \d+. ', r'1.', text)
 
-    def camelcase_wiki_link(match):
-        if match.group(1) in conv_help._pagenames_splitted:
-            return conv_help.wiki_link(match)
-        return match.group(0)
-
     a = []
     is_table = False
     previous_line = ''
@@ -302,10 +327,17 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             line = previous_line + line
             previous_line = ''
 
-        line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s.])', camelcase_wiki_link, line)  # CamelCase wiki link
-        line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
+        line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
+        line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
+        line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'<img src="%s/\1" width=\2>' % attachment_path, line)
+        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]', r'[\2](\1)', line)
         line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'[\1](\1)', line)  # link without display text
+        line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
+        line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
         line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
@@ -315,18 +347,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)  # no CamelCase wiki link because of leading "!"
-        line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
-        line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'<img src="%s/\1" width=\2>' % attachment_path, line)
-        line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
-        line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
-        line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
         line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
         line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
         line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
         line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
+
 
         # Convert a trac table to a github table
         if line.startswith('||'):
