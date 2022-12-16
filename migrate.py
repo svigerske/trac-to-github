@@ -319,9 +319,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
         line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]',
-                      r'OPENING__DOUBLE__BRACKETS%s/\1SEPARATOR__BETWEEN__BRACKETSwidth=\2CLOSING__DOUBLE__BRACKETS' % attachment_path,
-                      line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'<img src="%s/\1" width=\2>' % attachment_path, line)
         line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
@@ -436,8 +434,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
                 line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
                 b.append(line)
     text = '\n'.join(b)
-    text= re.sub('OPENING__DOUBLE__BRACKETS', '[[', text)
-    text = re.sub('CLOSING__DOUBLE__BRACKETS', ']]', text)
     text = re.sub('OPENING__PROCESSOR__CODE', '\n```', text)
     text = re.sub('CLOSING__PROCESSOR__CODE', '```\n', text)
 
@@ -964,12 +960,10 @@ def convert_wiki(source, dest):
         # Github wiki does not have folder structure
         gh_pagename = ' '.join(pagename.split('/'))
 
-        if pagename == 'WikiStart' :
-            gh_pagename = 'Home'
         converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help, attachment_path=gh_pagename)
 
         attachments = []
-        for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart'):
+        for attachment in source.wiki.listAttachments(pagename):
             print ("  Attachment", attachment)
             attachmentname = os.path.basename(attachment)
             attachmentdata = source.wiki.getAttachment(attachment).data
@@ -1064,12 +1058,12 @@ class ConversionHelper:
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
             # \| instead of | for wiki links in a table
-            return r'OPENING__DOUBLE__BRACKETS%sSEPARATOR__BETWEEN__BRACKETS%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+            return r'[%s](%s)' % (display, link)
         elif pagename in self._pagenames_not_splitted:
             # Use normalized wiki pagename
             link = pagename_ori.replace('/', ' ').replace(' ', '-')
              # \| instead of | for wiki links in a table
-            return r'OPENING__DOUBLE__BRACKETS%sSEPARATOR__BETWEEN__BRACKETS%sCLOSING__DOUBLE__BRACKETS' % (display, link)
+            return r'[%s](%s)' % (display, link)
         else:
             # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
