@@ -196,9 +196,13 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
+    # some normalization
     text = re.sub('\r\n', '\n', text)
-    text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
     text = re.sub(r'(?sm){{{\n#!', r'{{{#!', text)
+    text = re.sub(r'wiki:([a-zA-Z]+)', r'wiki: [wiki:\1]', text)
+
+    # inline code snippets
+    text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
 
     text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
     text = text.replace('[[BR]]', '\n')
@@ -209,6 +213,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
     level = 0
     in_td = False
     in_code = False
+    in_html = False
     for line in text.split('\n'):
         if line.startswith('{{{') and in_code:
             level += 1
@@ -222,7 +227,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             in_td_level = level
             line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
             level += 1
-        elif line.startswith('{{{#!'):
+        elif line.startswith('{{{#!html'):
+            in_html = True
+            in_html_level = level
+            line =  re.sub(r'{{{#!html', r'', line)
+            level += 1
+        elif line.startswith('{{{#!'):  # code: python, diff, ...
             in_code = True
             in_code_level = level
             line =  re.sub(r'{{{#!([a-zA-Z]+)', r'OPENING__PROCESSOR__CODE\1', line)
@@ -232,6 +242,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             if in_td and in_td_level == level:
                 in_td = False
                 line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__TD', line)
+            elif in_html and in_html_level == level:
+                in_html = False
+                line =  re.sub(r'}}}', r'', line)
             elif in_code and in_code_level == level:
                 in_code = False
                 line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
