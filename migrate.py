@@ -441,6 +441,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
     text = re.sub('OPENING__PROCESSOR__CODE', '\n```', text)
     text = re.sub('CLOSING__PROCESSOR__CODE', '```\n', text)
 
+    # some ad-hoc edits
+    text = re.sub(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>', r'$\\textcolor{\1}{\\text{\2}}$', text)
+
     return text
 
 
