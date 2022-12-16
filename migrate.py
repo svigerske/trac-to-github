@@ -208,12 +208,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = text.replace('[[BR]]', '\n')
     text = text.replace('[[br]]', '\n')
 
-    def camelcase_wiki_link(match):
-        if match.group(1) in conv_help._pagenames_splitted:
-            return conv_help.wiki_link(match)
-        return match.group(0)
-
-    # Deal with trac processors
+    # trac processors
     a = []
     level = 0
     in_td = False
@@ -254,7 +249,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 in_code = False
                 line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
 
-        # Deal with CamelCase wiki link
+        # CamelCase wiki link
         if not (in_code or in_html or in_td):
             new_line = ''
             level = 0
@@ -274,9 +269,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                         start = i + 1
                         new_line += line[end:start]
                 if end > start:
-                    new_line += re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s.])', camelcase_wiki_link, line[start:end])
-#        line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])', conv_help.camelcase_wiki_link, line)  # CamelCase wiki link
-#        line = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$', conv_help.camelcase_wiki_link, line)  # CamelCase wiki link at EOL
+                    converted_part = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])', conv_help.camelcase_wiki_link, line[start:end])
+                    converted_part = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$', conv_help.camelcase_wiki_link, converted_part)  # CamelCase wiki link at end
+                    new_line += converted_part
 
                     start = end
             line = new_line
@@ -334,16 +329,14 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
         line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'<img src="%s/\1" width=\2>' % attachment_path, line)
-        #line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', conv_help.wiki_image, line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', conv_help.wiki_image, line)  # \2 is the image width
         line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]', r'[\2](\1)', line)
         line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'[\1](\1)', line)  # link without display text
         line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
         line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-        #line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
-        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.url_link, line)
+        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
         line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
         line = re.sub(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.wiki_link, line)
@@ -356,7 +349,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
         line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
         line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
-
 
         # Convert a trac table to a github table
         if line.startswith('||'):
@@ -1071,31 +1063,17 @@ class ConversionHelper:
             # leave them as is
             return r'#%s' % ticket
 
-    def url_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a link to an URL with display-text.
-        """
-        mg = match.groups()
-        url = mg[0]
-        display = self.erase_wiki_link_tags(mg[1])
-        return r'[%s](%s)' % (display, url)
-
     def wiki_image(self, match):
         """
         Return a formatted string that replaces the match object found by re
         in the case of a wiki link to an attached image.
         """
         mg = match.groups()
-        filen = self.erase_wiki_link_tags(mg[0])
-        path = self._attachment_path
-        filename = os.path.join(path, filen)
+        filename = os.path.join(self._attachment_path, mg[0])
         if len(mg) > 1:
-            options = self.erase_wiki_link_tags(mg[1])
-            cmd = '%s|width=%s' % (filename, options)
+            return r'<img src="%s" width=%s>' % (filename, mg[1])
         else:
-            cmd = filename
-        return r'%s' % self.protect_wiki_link(None, cmd)
+            return r'<img src="%s">' % filename
 
     def wiki_link(self, match):
         """
