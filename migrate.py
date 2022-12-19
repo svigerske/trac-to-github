@@ -37,6 +37,9 @@ from time import sleep
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
 
+import markdown
+from markdown.extensions.tables import TableExtension
+
 #import github as gh
 #gh.enable_console_debug_logging()
 
@@ -189,18 +192,92 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
-def trac2markdown(text, base_path, conv_help, multilines=default_multilines, attachment_path=None):
+def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
 
+    # some normalization
     text = re.sub('\r\n', '\n', text)
+    text = re.sub(r'(?sm){{{\n#!', r'{{{#!', text)
+    text = re.sub(r'\swiki:([a-zA-Z]+)', r' wiki: [wiki:\1]', text)
+
+    # inline code snippets
     text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
-    text = re.sub(r'(?sm){{{(\n?#![^\n]+)?\n(.*?)\n}}}', r'```\n\2\n```', text)
 
     text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
     text = text.replace('[[BR]]', '\n')
     text = text.replace('[[br]]', '\n')
-    text = text.replace("@", "`@`")
+
+    # trac processors
+    a = []
+    level = 0
+    in_td = False
+    in_code = False
+    in_html = False
+    for line in text.split('\n'):
+        if line.startswith('{{{') and in_code:
+            level += 1
+        elif line == '{{{':
+            in_code = True
+            in_code_level = level
+            line =  re.sub(r'{{{', r'OPENING__PROCESSOR__CODE', line)
+            level += 1
+        elif line.startswith('{{{#!td'):
+            in_td = True
+            in_td_level = level
+            line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
+            level += 1
+        elif line.startswith('{{{#!html'):
+            in_html = True
+            in_html_level = level
+            line =  re.sub(r'{{{#!html', r'', line)
+            level += 1
+        elif line.startswith('{{{#!'):  # code: python, diff, ...
+            in_code = True
+            in_code_level = level
+            line =  re.sub(r'{{{#!([a-zA-Z]+)', r'OPENING__PROCESSOR__CODE\1', line)
+            level += 1
+        elif line == '}}}':
+            level -= 1
+            if in_td and in_td_level == level:
+                in_td = False
+                line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__TD', line)
+            elif in_html and in_html_level == level:
+                in_html = False
+                line =  re.sub(r'}}}', r'', line)
+            elif in_code and in_code_level == level:
+                in_code = False
+                line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
+
+        # CamelCase wiki link
+        if not (in_code or in_html or in_td):
+            new_line = ''
+            level = 0
+            start = 0
+            end = 0
+            l = len(line)
+            for i in range(l + 1):
+                if i == l:
+                    end = i
+                elif line[i] == '[':
+                    if level == 0:
+                        end = i
+                    level += 1
+                elif line[i] == ']':
+                    level -= 1
+                    if level == 0:
+                        start = i + 1
+                        new_line += line[end:start]
+                if end > start:
+                    converted_part = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])', conv_help.camelcase_wiki_link, line[start:end])
+                    converted_part = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$', conv_help.camelcase_wiki_link, converted_part)  # CamelCase wiki link at end
+                    new_line += converted_part
+
+                    start = end
+            line = new_line
+
+        a.append(line)
+    text = '\n'.join(a)
 
     if svngit_map is not None :
         text = matcher_svnrev1.sub(handle_svnrev_reference, text)
@@ -238,15 +315,27 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
 
     a = []
     is_table = False
+    previous_line = ''
     for line in text.split('\n'):
         if skip_line_with_leading_whitespaces:
             if line.startswith(' '*skip_line_with_leading_whitespaces):
                 is_table = False
                 continue
+        if previous_line:
+            line = previous_line + line
+            previous_line = ''
 
+        line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
+        line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
+        line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
+        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', conv_help.wiki_image, line)  # \2 is the image width
+        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]', r'[\2](\1)', line)
+        line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'[\1](\1)', line)  # link without display text
+        line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
+        line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
         line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-        line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', r'[\2](\1)', line)
-        line = re.sub(r'\[\[(https?://[^\s\[\]\|]+)\]\]', r'[\1](\1)', line) # link without display text
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
         line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
         line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
@@ -255,26 +344,42 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]', conv_help.wiki_link, line)
         line = re.sub(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)
-        line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
-        line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'!OPENING_DOUBLE_BRACKETS!%s/\1!CLOSING_DOUBLE_BRACKETS!' % attachment_path, line)
-        line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
-        line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
-        line = re.sub(r'\[\[([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference
-        line = re.sub(r'\[\[([^\s\[\]]+)\]\]', conv_help.wiki_link, line) # alternative wiki page reference without display text
+        line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)  # no CamelCase wiki link because of leading "!"
         line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
         line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
         line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
         line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
+
+        # Convert a trac table to a github table
         if line.startswith('||'):
-            if not is_table:
-                sep = re.sub(r'\|\|=', r'||:', line) # take care of left align
-                sep = re.sub(r'=\|\|', r':||', sep)  # take care of right align
-                sep = re.sub(r'[^|,^:]', r'-', sep)
-                line = line + '\n' + sep
+            if not is_table:  # header row
+                if line.endswith('||\\'):
+                    previous_line = line[:-3]
+                    continue
+                elif line.endswith('|| \\'):
+                    previous_line = line[:-4]
+                    continue
+                # construct header separator
+                parts = line.split('||')
+                sep = []
+                for part in parts:
+                    if part.startswith('='):
+                        part = part[1:]
+                        start = ':'
+                    else:
+                        start = ''
+                    if part.endswith('='):
+                        part = part[:-1]
+                        end = ':'
+                    else:
+                        end = ''
+                    sep.append(start + '-'*len(part) + end)
+                sep = '||'.join(sep)
+                if ':' in sep:
+                    line = line + '\n' + sep
+                else:  # perhaps a table without header; github table needs header
+                    header = re.sub(r'[^|]', ' ', sep)
+                    line = header + '\n' + sep + '\n' + line
                 is_table = True
             # The wiki markup allows the alignment directives to be specified on a cell-by-cell
             # basis. This is used in many examples. AFAIK this can't be properly translated into
@@ -284,10 +389,80 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
             line = re.sub(r'\|\|', r'|', line)
         else:
             is_table = False
-        line = re.sub('!OPENING_DOUBLE_BRACKETS!', '[[', line)
-        line = re.sub('!CLOSING_DOUBLE_BRACKETS!', ']]', line)
+        #line = conv_help.replace_wiki_link_tags(line)
         a.append(line)
-        text = '\n'.join(a)
+
+    # Deal with a github table if the corresponding trac table contains td processors
+    b = []
+    table = []
+    in_table = False
+    in_block = False
+    in_td = False
+    previous_line = ''
+    for line in a:
+        if previous_line:
+            line = previous_line + line
+            previous_line = ''
+        if line == '|\\' or line == '| \\':  #  ||\ or || \ in trac
+            in_block = True
+            block = []
+        elif line.startswith('|'):
+            if in_block:  # terminate a block
+                table.append('|' + 'NEW__LINE'.join(block) +'|')
+                in_block = False
+            else:
+                if line.endswith('|\\'):
+                    line = line[:-2]
+                    previous_line = line
+                elif line.endswith('| \\'):
+                    line = line[:-3]
+                    previous_line = line
+                else:
+                    table.append(line)
+            in_table = True
+        elif line:
+            if in_block:
+                if line.startswith('OPENING__PROCESSOR__TD'):
+                    in_td = True
+                    if len(block) > 1:
+                        block.append('|')
+                elif line.startswith('CLOSING__PROCESSOR__TD'):
+                    in_td = False
+                block.append(line)
+            else:
+                line = re.sub('@', r'`@`', line)
+                line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
+                b.append(line)
+        else:
+            if in_block and in_td:
+                block.append(line)
+            elif in_table:  # terminate a table
+                if in_block:  # terminate a block
+                    table.append(' | ' + 'NEW__LINE'.join(block) +'|')
+                    in_block = False
+
+                table_text = '\n'.join(table)
+                if 'OPENING__PROCESSOR__TD' in table_text:
+                    html = markdown.markdown(table_text, extensions=[TableExtension(use_align_attribute=True)])
+                    html = re.sub('OPENING__PROCESSOR__TD', r'<div align="left">', html)
+                    html = re.sub('CLOSING__PROCESSOR__TD', r'</div>', html)
+                else:
+                    html = table_text
+                html = re.sub('NEW__LINE', '\n', html)
+                html = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'\|', html)
+                b += html.split('\n')  # process table
+                table = []
+                in_table = False
+            else:
+                line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
+                b.append(line)
+    text = '\n'.join(b)
+    text = re.sub('OPENING__PROCESSOR__CODE', '\n```', text)
+    text = re.sub('CLOSING__PROCESSOR__CODE', '```\n', text)
+
+    # some ad-hoc edits
+    text = re.sub(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>', r'$\\textcolor{\1}{\\text{\2}}$', text)
+
     return text
 
 
@@ -791,15 +966,15 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 def convert_wiki(source, dest):
     exclude_authors = ['trac']
 
-    if not os.path.isdir(wiki_export_dir) :
+    if not os.path.isdir(wiki_export_dir):
         os.makedirs(wiki_export_dir)
 
     client.MultiCall(source)
     conv_help = ConversionHelper(source)
 
-    for pagename in source.wiki.getAllPages() :
+    for pagename in source.wiki.getAllPages():
         info = source.wiki.getPageInfo(pagename)
-        if info['author'] in exclude_authors :
+        if info['author'] in exclude_authors:
             continue
 
         page = source.wiki.getPage(pagename)
@@ -808,12 +983,11 @@ def convert_wiki(source, dest):
         # Github wiki does not have folder structure
         gh_pagename = ' '.join(pagename.split('/'))
 
-        if pagename == 'WikiStart' :
-            gh_pagename = 'Home'
-        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help, attachment_path=gh_pagename)
+        conv_help.set_attachment_path(gh_pagename)
+        converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help)
 
         attachments = []
-        for attachment in source.wiki.listAttachments(pagename if pagename != 'Home' else 'WikiStart'):
+        for attachment in source.wiki.listAttachments(pagename):
             print ("  Attachment", attachment)
             attachmentname = os.path.basename(attachment)
             attachmentdata = source.wiki.getAttachment(attachment).data
@@ -866,12 +1040,20 @@ class ConversionHelper:
         self._pagenames_splitted = pagenames_splitted
         self._pagenames_not_splitted = pagenames_not_splitted
         self._keep_trac_ticket_references = False
+        self._attachment_path = ''
         if config.has_option('source', 'keep_trac_ticket_references') :
             self._keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
 
+    def set_attachment_path(self, attachment_path):
+        """
+        Set the attachment_path for the wiki_image method.
+        """
+        self._attachment_path = attachment_path
+
     def ticket_link(self, match):
         """
-        Return a formatted string that replaces the match object found by re.
+        Return a formatted string that replaces the match object found by re
+        in the case of a Trac ticket link.
         """
         ticket = match.groups()[0]
         if self._keep_trac_ticket_references:
@@ -881,9 +1063,22 @@ class ConversionHelper:
             # leave them as is
             return r'#%s' % ticket
 
+    def wiki_image(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a wiki link to an attached image.
+        """
+        mg = match.groups()
+        filename = os.path.join(self._attachment_path, mg[0])
+        if len(mg) > 1:
+            return r'<img src="%s" width=%s>' % (filename, mg[1])
+        else:
+            return r'<img src="%s">' % filename
+
     def wiki_link(self, match):
         """
-        Return a formatted string that replaces the match object found by re.
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to a wiki page.
         """
         mg = match.groups()
         pagename = mg[0]
@@ -903,14 +1098,18 @@ class ConversionHelper:
                 display = pagename_sect[1]
 
         if pagename.startswith('http'):
-            link = pagename_ori
+            link = pagename_ori.strip()
+            return r'[%s](%s)' % (display, link)
         elif pagename in self._pagenames_splitted:
-            link = pagename_ori
+            link = pagename_ori.replace(' ', '-')
+            return r'[%s](%s)' % (display, link)
         elif pagename in self._pagenames_not_splitted:
-            p_split = pagename_ori.split('/')
-            link = p_split[len(p_split) - 1]
+            # Use normalized wiki pagename
+            link = pagename_ori.replace('/', ' ').replace(' ', '-')
+             # \| instead of | for wiki links in a table
+            return r'[%s](%s)' % (display, link)
         else:
-            # we asume that this must be a Trac macro like PageOutline
+            # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
             macro_split = pagename.split('(')
             macro = macro_split[0]
@@ -921,7 +1120,16 @@ class ConversionHelper:
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
                 return r'[%s](%s) called with arguments (%s' % (display, link, args)
-        return r'[%s](%s)' % (display, link)
+            return r'[%s](%s)' % (display, link)
+
+    def camelcase_wiki_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to a wiki page recognized from CamelCase.
+        """
+        if match.group(1) in self._pagenames_splitted:
+            return self.wiki_link(match)
+        return match.group(0)
 
 
 if __name__ == "__main__":
