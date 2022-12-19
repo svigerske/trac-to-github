@@ -259,6 +259,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines, att
         line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
         line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
+        line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
         line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', r'!OPENING_DOUBLE_BRACKETS!%s/\1!CLOSING_DOUBLE_BRACKETS!' % attachment_path, line)
         line = re.sub(r'\[\["([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line) # alternative wiki page reference for pagenames containing whitespaces
         line = re.sub(r'\[\[([^\[\]\|]+)[\|]+\s*([^\[\]\|]+)?\]\]', conv_help.wiki_link, line) # alternative wiki page reference 2 for pagenames containing whitespaces
