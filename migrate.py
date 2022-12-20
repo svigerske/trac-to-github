@@ -330,8 +330,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
         line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
         line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', conv_help.wiki_image, line)  # \2 is the image width
-        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]', r'[\2](\1)', line)
-        line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'[\1](\1)', line)  # link without display text
+        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]', r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
+        line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'OPENING__LEFT__BRACKET\1CLOSING__RIGHT__BRACKET(\1)', line)  # link without display text
         line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
         line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
@@ -459,6 +459,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = '\n'.join(b)
     text = re.sub('OPENING__PROCESSOR__CODE', '\n```', text)
     text = re.sub('CLOSING__PROCESSOR__CODE', '```\n', text)
+
+    # clean artifacts
+    text = re.sub('OPENING__LEFT__BRACKET', '[', text)
+    text = re.sub('CLOSING__RIGHT__BRACKET', ']', text)
 
     # some ad-hoc edits
     text = re.sub(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>', r'$\\textcolor{\1}{\\text{\2}}$', text)
@@ -1099,15 +1103,15 @@ class ConversionHelper:
 
         if pagename.startswith('http'):
             link = pagename_ori.strip()
-            return r'[%s](%s)' % (display, link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
-            return r'[%s](%s)' % (display, link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
         elif pagename in self._pagenames_not_splitted:
             # Use normalized wiki pagename
             link = pagename_ori.replace('/', ' ').replace(' ', '-')
              # \| instead of | for wiki links in a table
-            return r'[%s](%s)' % (display, link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
         else:
             # we assume that this must be a Trac macro like PageOutline
             # first lets extract arguments
@@ -1120,7 +1124,7 @@ class ConversionHelper:
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
                 return r'[%s](%s) called with arguments (%s' % (display, link, args)
-            return r'[%s](%s)' % (display, link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
 
     def camelcase_wiki_link(self, match):
         """
