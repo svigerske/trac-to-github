@@ -199,7 +199,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     # some normalization
     text = re.sub('\r\n', '\n', text)
     text = re.sub(r'(?sm){{{\n#!', r'{{{#!', text)
-    text = re.sub(r'\swiki:([a-zA-Z]+)', r' wiki: [wiki:\1]', text)
+    text = re.sub(r'\swiki:([a-zA-Z]+)', r' [wiki:\1]', text)
 
     # inline code snippets
     text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
