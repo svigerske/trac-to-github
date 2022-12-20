@@ -276,6 +276,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     start = end
             line = new_line
 
+        # superscript ^abc^ and subscript ,,abc,,
+        if not (in_code or in_html):
+            line = re.sub(r'\^([^\s]+?)\^', r'<sup>\1</sup>', line)
+            line = re.sub(r',,([^\s]+?),,', r'<sub>\1</sub>', line)
+
         a.append(line)
     text = '\n'.join(a)
 
