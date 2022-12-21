@@ -1251,10 +1251,11 @@ if __name__ == "__main__":
                 continue
             svngit_map[svnrev] = [githash, svnbranch]
 
-    if must_convert_issues:
-        convert_issues(source, dest, only_issues = only_issues, blacklist_issues = blacklist_issues)
+    try:
+        if must_convert_issues:
+            convert_issues(source, dest, only_issues = only_issues, blacklist_issues = blacklist_issues)
 
-    if must_convert_wiki:
-        convert_wiki(source, dest)
-
-    print(f'Unmapped users: {sorted(unmapped_users)}')
+        if must_convert_wiki:
+            convert_wiki(source, dest)
+    finally:
+        print(f'Unmapped users: {sorted(unmapped_users)}')
