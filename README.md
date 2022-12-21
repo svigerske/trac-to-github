@@ -53,6 +53,6 @@ LGPL license version 3.0.
 Requirements
 ==============
 
- * Python 2 with xmlrpclib or Python 3; requests, [PyGithub](https://github.com/PyGithub/PyGithub),
+ * Python 3; requests, [PyGithub](https://github.com/PyGithub/PyGithub),
    see ```requirements.txt```
  * Trac with [XML-RPC plugin](http://trac-hacks.org/wiki/XmlRpcPlugin) enabled
