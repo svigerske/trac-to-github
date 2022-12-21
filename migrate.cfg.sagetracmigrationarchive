@@ -49,7 +49,7 @@ migrate: yes
 
 # If defined, import only these issues
 # only_issues: [ 30000, 30001 ]
-only_issues: [39,]
+#only_issues: [39,]
 
 # If defined, do not import these issues
 # blacklist_issues: [ 268, 843 ]
