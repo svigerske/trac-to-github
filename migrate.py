@@ -951,11 +951,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 else :
                     gh_comment_issue(dest, issue, { 'note' : 'Remove assignee ' + gh_username(dest, oldvalue) + '.', 'created_at' : change_time, 'author' : author })
 
-                if newvalue != oldvalue :
-                    assignee = gh_username(dest, newvalue)
-                    if not assignee.startswith('@') :
-                        assignee = GithubObject.NotSet
-                    gh_update_issue_property(dest, issue, 'assignee', assignee)
+                # if newvalue != oldvalue :
+                #     assignee = gh_username(dest, newvalue)
+                #     if not assignee.startswith('@') :
+                #         assignee = GithubObject.NotSet
+                #     gh_update_issue_property(dest, issue, 'assignee', assignee)
             elif change_type == "version" :
                 if oldvalue != '' :
                     desc = "Version changed from %s to %s" % (oldvalue, newvalue)
