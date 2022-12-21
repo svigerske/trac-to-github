@@ -24,12 +24,17 @@ def pluralize(t):
 
 class MigrationArchiveWritingRequester:
 
-    def __init__(self, migration_archive=None):
+    def __init__(self, migration_archive=None, wiki=None):
         if migration_archive is None:
             self._migration_archive = None
         else:
             self._migration_archive = pathlib.Path(migration_archive)
             self._migration_archive.mkdir(parents=True, exist_ok=True)
+        if wiki is None:
+            self._wiki = None
+        else:
+            self._wiki = pathlib.Path(wiki)
+            self._wiki.mkdir(parents=True, exist_ok=True)
         self._num_issues = 0
         self._num_issue_comments = 0
         self._num_json_by_type = defaultdict(lambda: 0)
@@ -43,7 +48,7 @@ class MigrationArchiveWritingRequester:
                                parse_result.netloc,
                                '/'.join(parse_result.path.split('/')[:3]) + '/',
                                None, None, None])
-        print(f'{base_url=} {endpoint=}')
+        # print(f'{base_url=} {endpoint=}')
         responseHeaders = None
         output = copy(input)
         match verb, endpoint:
@@ -54,8 +59,15 @@ class MigrationArchiveWritingRequester:
                 # Create a new issue
                 output['type'] = 'issue'
                 self._num_issues += 1
-                id = self._num_issues
-                url = urljoin(base_url, f'issues/{id}')
+                issue = self._num_issues
+                url = urljoin(base_url, f'issues/{issue}')
+                if self._wiki:
+                    wiki_file = self._wiki / f'Issue {issue}.md'
+                    with open(wiki_file, 'w') as f:
+                        title = output['title']
+                        f.write(f'# Issue {issue}: {title}\n\n')
+                        f.write(output['body'])
+                        f.write('\n')
             case 'POST', ['issues', issue, 'comments']:
                 # Create an issue comment
                 output['type'] = 'issue_comment'
@@ -63,6 +75,12 @@ class MigrationArchiveWritingRequester:
                 self._num_issue_comments += 1
                 id = self._num_issue_comments
                 url = urljoin(base_url, f'issues/{issue}#issuecomment-{id}')
+                if self._wiki:
+                    wiki_file = self._wiki / f'Issue {issue}.md'
+                    with open(wiki_file, 'a') as f:
+                        f.write('\n\n---\n\n')
+                        f.write(output['body'])
+                        f.write('\n')
         if isinstance(output, dict):
             output['url'] = url
             dump = json.dumps(output, sort_keys=True, indent=4)

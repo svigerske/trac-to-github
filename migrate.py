@@ -147,7 +147,8 @@ if attachment_export :
         attachment_export_url += '/'
 
 must_convert_wiki = config.getboolean('wiki', 'migrate')
-if must_convert_wiki :
+wiki_export_dir = None
+if must_convert_wiki or config.has_option('wiki', 'export_dir'):
     wiki_export_dir = config.get('wiki', 'export_dir')
 
 default_multilines = False
@@ -544,9 +545,8 @@ def gh_comment_issue(dest, issue, comment) :
             # write attachment data to binary file
             open(os.path.join(dirname, filename), 'wb').write(comment['attachment'])
             note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(issuenumber) + '/' + filename, comment['author'], comment['created_at'])
-        else :
+        elif gh_user is not None:
             if dest is None : return
-            assert gh_user is not None
             gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
             filecontent = InputFileContent(comment['attachment'])
             try :
@@ -556,8 +556,10 @@ def gh_comment_issue(dest, issue, comment) :
                 note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
             except UnicodeDecodeError :
                 note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
-                print ('  LOOSING ATTACHMENT', filename, 'in issue', issue.number)
+                print ('  LOSING ATTACHMENT', filename, 'in issue', issue.number)
             sleep(sleep_after_attachment)
+        else:
+            note = 'Attachment'
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
     else :
@@ -1170,7 +1172,7 @@ if __name__ == "__main__":
                 gh_labels[l.name.lower()] = l
             #print 'Existing labels:', gh_labels.keys()
         else:
-            requester = MigrationArchiveWritingRequester(migration_archive)
+            requester = MigrationArchiveWritingRequester(migration_archive, wiki_export_dir)
             dest = Repository(requester, None, dict(name="sagetest",
                                                     url="https://github.com/sagemath/sagetest"), None)
             print(dest.url)

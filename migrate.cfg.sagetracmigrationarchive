@@ -54,7 +54,7 @@ migrate: yes
 # blacklist_issues: [ 268, 843 ]
 
 # If defined, then this is added to the ticket query string to trac
-filter_issues: max=5&order=id&desc=False
+filter_issues: max=200&order=id&desc=False
 #filter_issues: max=2796&order=id&page=2
 
 # Add a label to all migrated issues
@@ -76,3 +76,5 @@ export : no
 [wiki]
 
 migrate : no
+
+export_dir: wiki
