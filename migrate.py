@@ -825,7 +825,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             time, author, change_type, oldvalue, newvalue, permanent = change
             change_time = str(convert_xmlrpc_datetime(time))
             print(change)
-            print(("  %s by %s (%s -> %s)" % (change_type, author, oldvalue[:40].replace("\n", " "), newvalue[:40].replace("\n", " "))).encode("ascii", "replace"))
+            print(("  %s by %s (%s -> %s)" % (change_type, author, str(oldvalue)[:40].replace("\n", " "), str(newvalue)[:40].replace("\n", " "))).encode("ascii", "replace"))
             #assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
             if author in ['anonymous', 'Draftmen888'] :
                 print ("  SKIPPING CHANGE BY", author)
