@@ -85,9 +85,10 @@ labelcolor = {
   'keyword' : 'eeeeee'
 }
 
-sleep_after_request = 2.0;
-sleep_after_attachment = 60.0;
-sleep_after_10tickets = 0.0;  # TODO maybe this can be reduced due to the longer sleep after attaching something
+sleep_after_request = 2.0
+sleep_after_attachment = 60.0
+sleep_after_10tickets = 0.0  # TODO maybe this can be reduced due to the longer sleep after attaching something
+sleep_before_xmlrpc_retry = 30.0
 
 config = configparser.ConfigParser(default_config)
 if len(sys.argv) > 1 :
@@ -676,9 +677,18 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         # src_ticket_data.keys(): ['status', 'changetime', 'description', 'reporter', 'cc', 'type', 'milestone', '_ts',
         # 'component', 'owner', 'summary', 'platform', 'version', 'time', 'keywords', 'resolution']
 
-        changelog = source.ticket.changeLog(src_ticket_id)
+        while True:
+            try:
+                changelog = source.ticket.changeLog(src_ticket_id)
+            except Exception as e:
+                print(e)
+                print('Sleeping')
+                sleep(sleep_before_xmlrpc_retry)
+                print('Retrying')
+            else:
+                break
 
-        print(("Migrate ticket #%s (%d changes): %s" % (src_ticket_id, len(changelog), src_ticket_data['summary'][:30])).encode("ascii", "replace"));
+        print("\n\n## Migrate ticket #%s (%d changes): %s" % (src_ticket_id, len(changelog), src_ticket_data['summary'][:30]))
 
         # get original component, owner
         # src_ticket_data['component'] is the component after all changes, but for creating the issue we want the component
