@@ -481,8 +481,13 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = re.sub('OPENING__LEFT__BRACKET', '[', text)
     text = re.sub('CLOSING__RIGHT__BRACKET', ']', text)
 
-    # some ad-hoc edits
-    text = re.sub(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>', r'$\\textcolor{\1}{\\text{\2}}$', text)
+    # final rewriting
+    text = re.sub(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>',
+                  r'$\\textcolor{\1}{\\text{\2}}$', text)
+    text = re.sub(r'https?://git.sagemath.org/sage.git/tree/src',
+                  r'https://github.com/sagemath/sagetrac-mirror/blob/master/src', text)
+    text = re.sub(r'\[report:([0-9]+)\s*(.*?)\]',
+                  r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
 
     return text
 
@@ -1132,7 +1137,7 @@ class ConversionHelper:
              # \| instead of | for wiki links in a table
             return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
         else:
-            # we assume that this must be a Trac macro like PageOutline
+            # we assume that this must be a Trac macro like TicketQuery
             # first lets extract arguments
             macro_split = pagename.split('(')
             macro = macro_split[0]
@@ -1142,7 +1147,7 @@ class ConversionHelper:
             display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
-                return r'[%s](%s) called with arguments (%s' % (display, link, args)
+                return r'OPENING__LEFT__BRACKET%s called with arguments (%s)CLOSING__RIGHT__BRACKET(%s)' % (display, args, link)
             return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
 
     def camelcase_wiki_link(self, match):
