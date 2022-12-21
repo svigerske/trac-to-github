@@ -205,6 +205,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
 
     text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
+    text = re.sub(r'(?m)\[\[PageOutline\]\]\s*\n', '', text)
     text = text.replace('[[BR]]', '\n')
     text = text.replace('[[br]]', '\n')
 
