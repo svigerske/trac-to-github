@@ -31,6 +31,7 @@ import sys
 import configparser
 import ast
 import codecs
+import warnings
 from datetime import datetime
 from time import sleep
 #from re import MULTILINE
@@ -813,20 +814,21 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         issue = gh_create_issue(dest, issue_data)
 
         # handle status
-        if status in ['new', 'assigned', 'analyzed', 'reopened'] :
+        if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_work'] :
             issue_state = 'open'
         elif status in ['closed'] :
             # sometimes a ticket is already closed at creation, so close issue
             issue_state = 'closed'
             gh_update_issue_property(dest, issue, 'state', 'closed')
-        else :
-            raise ValueError("  unknown ticket status: " + status)
+        else:
+            issue_state = 'open'
+            warnings.warn("unknown ticket status: " + status)
 
         attachment = None
         for change in changelog:
             time, author, change_type, oldvalue, newvalue, permanent = change
             change_time = str(convert_xmlrpc_datetime(time))
-            print(change)
+            #print(change)
             print(("  %s by %s (%s -> %s)" % (change_type, author, str(oldvalue)[:40].replace("\n", " "), str(newvalue)[:40].replace("\n", " "))).encode("ascii", "replace"))
             #assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
             if author in ['anonymous', 'Draftmen888'] :
@@ -859,7 +861,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 pass
             elif change_type == "status" :
                 # we map here the various statuses we have in trac to just 2 statuses in gitlab (open or close), so lose some information
-                if newvalue in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'needs_info', 'positive_review'] :
+                if newvalue in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'needs_info', 'needs_info_new', 'positive_review'] :
                     newstate = 'open'
                     # should not need an extra comment if closing ticket
                     gh_comment_issue(dest, issue, {'note' : 'Changing status from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author})
@@ -972,11 +974,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_update_issue_property(dest, issue, 'labels', labels)
                 else :
                     gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".', 'created_at' : change_time, 'author' : author })
-            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author", "changetime"] :
+            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author", "changetime", "reporter"] :
                 print("TODO Change type: ", change_type)
-            else :
-                raise BaseException("Unknown change type " + change_type)
-        assert attachment is None
+            else:
+                warnings.warn("Unknown change type " + change_type)
+        #assert attachment is None
 
         ticketcount = ticketcount + 1
         if ticketcount % 10 == 0 and sleep_after_10tickets > 0 :
