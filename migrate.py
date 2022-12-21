@@ -856,8 +856,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # we will forget about these old versions and only keep the latest one
                 pass
             elif change_type == "status" :
-                # we map here the various statii we have in trac to just 2 statii in gitlab (open or close), so loose some information
-                if newvalue in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'positive_review'] :
+                # we map here the various statuses we have in trac to just 2 statuses in gitlab (open or close), so lose some information
+                if newvalue in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'needs_info', 'positive_review'] :
                     newstate = 'open'
                     # should not need an extra comment if closing ticket
                     gh_comment_issue(dest, issue, {'note' : 'Changing status from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author})
@@ -970,7 +970,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_update_issue_property(dest, issue, 'labels', labels)
                 else :
                     gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".', 'created_at' : change_time, 'author' : author })
-            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author"] :
+            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author", "changetime"] :
                 print("TODO Change type: ", change_type)
             else :
                 raise BaseException("Unknown change type " + change_type)
