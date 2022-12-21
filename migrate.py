@@ -229,11 +229,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     for line in text.split('\n'):
         if line.startswith('{{{') and in_code:
             level += 1
-        elif line == '{{{':
-            in_code = True
-            in_code_level = level
-            line =  re.sub(r'{{{', r'OPENING__PROCESSOR__CODE', line)
-            level += 1
         elif line.startswith('{{{#!td'):
             in_td = True
             in_td_level = level
@@ -247,7 +242,15 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         elif line.startswith('{{{#!'):  # code: python, diff, ...
             in_code = True
             in_code_level = level
-            line =  re.sub(r'{{{#!([a-zA-Z]+)', r'OPENING__PROCESSOR__CODE\1', line)
+            line =  re.sub(r'{{{#!([^\s]+)', r'OPENING__PROCESSOR__CODE\1', line)
+            level += 1
+        elif line.startswith('{{{') and not (in_code or in_html):
+            in_code = True
+            in_code_level = level
+            if line.rstrip() == '{{{':
+                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE', 1)
+            else:
+                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE\n', 1)
             level += 1
         elif line == '}}}':
             level -= 1

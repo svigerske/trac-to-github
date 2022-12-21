@@ -49,12 +49,13 @@ migrate: yes
 
 # If defined, import only these issues
 # only_issues: [ 30000, 30001 ]
+#only_issues: [39,]
 
 # If defined, do not import these issues
 # blacklist_issues: [ 268, 843 ]
 
 # If defined, then this is added to the ticket query string to trac
-filter_issues: max=200&order=id&desc=False
+filter_issues: max=50&order=id&page=1&desc=False
 #filter_issues: max=2796&order=id&page=2
 
 # Add a label to all migrated issues
