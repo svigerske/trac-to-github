@@ -29,6 +29,7 @@ import re
 import os
 import sys
 import configparser
+import contextlib
 import ast
 import codecs
 import warnings
@@ -895,7 +896,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_comment_issue(dest, issue, note)
             elif change_type == "component" :
                 if oldvalue != '' :
-                    labels.remove(oldvalue)
+                    with contextlib.suppress(ValueError):
+                        labels.remove(oldvalue)
                 labels.append(newvalue)
                 gh_ensure_label(dest, newvalue, labelcolor['component'])
                 gh_comment_issue(dest, issue, { 'note' : 'Changing component from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author })
@@ -935,7 +937,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "type" :
                 if oldvalue != '' :
                     oldtype = maptickettype(oldvalue)
-                    labels.remove(oldtype)
+                    with contextlib.suppress(ValueError):
+                        labels.remove(oldtype)
                 newtype = maptickettype(newvalue)
                 labels.append(newtype)
                 gh_ensure_label(dest, newtype, labelcolor['type'])
@@ -949,7 +952,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'title', issue_data['title'])
             elif change_type == "priority" :
                 if oldvalue != '' and oldvalue != 'normal' :
-                    labels.remove(oldvalue)
+                    with contextlib.suppress(ValueError):
+                        labels.remove(oldvalue)
                 if newvalue != '' and newvalue != 'normal' :
                     labels.append(newvalue)
                     gh_ensure_label(dest, newvalue, labelcolor['priority'])
@@ -957,7 +961,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "severity" :
                 if oldvalue != '' and oldvalue != 'normal' :
-                    labels.remove(oldvalue)
+                    with contextlib.suppress(ValueError):
+                        labels.remove(oldvalue)
                 if newvalue != '' and newvalue != 'normal' :
                     labels.append(newvalue)
                     gh_ensure_label(dest, newvalue, labelcolor['severity'])
@@ -970,7 +975,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     for keyword in oldkeywords :
                         keyword = keyword.strip()
                         if keyword != ''  :
-                            labels.remove(keyword)
+                            with contextlib.suppress(ValueError):
+                                labels.remove(keyword)
                     for keyword in newkeywords :
                         keyword = keyword.strip()
                         if keyword != '' :

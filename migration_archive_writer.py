@@ -42,7 +42,7 @@ class MigrationArchiveWritingRequester:
     def requestJsonAndCheck(self, verb, url, parameters=None, headers=None, input=None):
         print(f'# {verb=} {url=} {parameters=} {headers=} {input=}')
         parse_result = urlparse(url)
-        print(parse_result.path)
+        # print(parse_result.path)
         endpoint = parse_result.path.split('/')[3:]
         base_url = urlunparse([parse_result.scheme,
                                parse_result.netloc,
