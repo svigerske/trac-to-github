@@ -39,6 +39,8 @@ project_name: username/projectname
 # GitHub password (if no token specified)
 #password: secret
 
+# Where to write a migration archive
+migration_archive: archive
 
 [issues]
 

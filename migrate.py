@@ -113,6 +113,9 @@ elif config.has_option('target', 'username'):
 else:
     github_username = None
 github_project = config.get('target', 'project_name')
+migration_archive = None
+if config.has_option('target', 'migration_archive'):
+    migration_archive = config.get('target', 'migration_archive')
 
 users_map = ast.literal_eval(config.get('target', 'usernames'))
 must_convert_issues = config.getboolean('issues', 'migrate')
@@ -1167,7 +1170,7 @@ if __name__ == "__main__":
                 gh_labels[l.name.lower()] = l
             #print 'Existing labels:', gh_labels.keys()
         else:
-            requester = MigrationArchiveWritingRequester()
+            requester = MigrationArchiveWritingRequester(migration_archive)
             dest = Repository(requester, None, dict(name="sagetest",
                                                     url="https://github.com/sagemath/sagetest"), None)
             print(dest.url)
