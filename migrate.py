@@ -31,11 +31,16 @@ import sys
 import configparser
 import ast
 import codecs
+import warnings
 from datetime import datetime
 from time import sleep
 #from re import MULTILINE
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
+from github.Repository import Repository
+from github.GithubException import IncompletableObject
+
+from migration_archive_writer import MigrationArchiveWritingRequester
 
 import markdown
 from markdown.extensions.tables import TableExtension
@@ -103,10 +108,15 @@ github_api_url = config.get('target', 'url')
 github_token = None
 if config.has_option('target', 'token') :
     github_token = config.get('target', 'token')
-else :
+elif config.has_option('target', 'username'):
     github_username = config.get('target', 'username')
     github_password = config.get('target', 'password')
+else:
+    github_username = None
 github_project = config.get('target', 'project_name')
+migration_archive = None
+if config.has_option('target', 'migration_archive'):
+    migration_archive = config.get('target', 'migration_archive')
 
 users_map = ast.literal_eval(config.get('target', 'usernames'))
 must_convert_issues = config.getboolean('issues', 'migrate')
@@ -138,7 +148,8 @@ if attachment_export :
         attachment_export_url += '/'
 
 must_convert_wiki = config.getboolean('wiki', 'migrate')
-if must_convert_wiki :
+wiki_export_dir = None
+if must_convert_wiki or config.has_option('wiki', 'export_dir'):
     wiki_export_dir = config.get('wiki', 'export_dir')
 
 default_multilines = False
@@ -535,9 +546,8 @@ def gh_comment_issue(dest, issue, comment) :
             # write attachment data to binary file
             open(os.path.join(dirname, filename), 'wb').write(comment['attachment'])
             note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(issuenumber) + '/' + filename, comment['author'], comment['created_at'])
-        else :
+        elif gh_user is not None:
             if dest is None : return
-            assert gh_user is not None
             gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
             filecontent = InputFileContent(comment['attachment'])
             try :
@@ -547,8 +557,10 @@ def gh_comment_issue(dest, issue, comment) :
                 note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
             except UnicodeDecodeError :
                 note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
-                print ('  LOOSING ATTACHMENT', filename, 'in issue', issue.number)
+                print ('  LOSING ATTACHMENT', filename, 'in issue', issue.number)
             sleep(sleep_after_attachment)
+        else:
+            note = 'Attachment'
         if 'note' in comment and comment['note'] != '' :
             note += '\n\n' + comment['note']
     else :
@@ -568,9 +580,9 @@ def gh_update_issue_property(dest, issue, key, val) :
         labels = [gh_labels[label.lower()] for label in val]
         issue.set_labels(*labels)
     elif key == 'assignee' :
-        if issue.assignee == val :
+        if issue.assignee == val:
             return
-        if len(issue.assignees) > 0 :
+        if issue.assignees:
             issue.remove_from_assignees(issue.assignee)
         if val is not None and val is not GithubObject.NotSet and val != '' :
             issue.add_to_assignees(val)
@@ -802,32 +814,33 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         issue = gh_create_issue(dest, issue_data)
 
         # handle status
-        if status in ['new', 'assigned', 'analyzed', 'reopened'] :
+        if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_work'] :
             issue_state = 'open'
         elif status in ['closed'] :
             # sometimes a ticket is already closed at creation, so close issue
             issue_state = 'closed'
             gh_update_issue_property(dest, issue, 'state', 'closed')
-        else :
-            raise ValueError("  unknown ticket status: " + status)
+        else:
+            issue_state = 'open'
+            warnings.warn("unknown ticket status: " + status)
 
         attachment = None
         for change in changelog:
-            #change is tuple (time, author, field, oldvalue, newvalue, permanent)
-            change_time = str(convert_xmlrpc_datetime(change[0]))
-            change_type = change[2]
-            print(("  %s by %s (%s -> %s)" % (change_type, change[1], change[3][:40].replace("\n", " "), change[4][:40].replace("\n", " "))).encode("ascii", "replace"))
-            assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
-            if change[1] in ['anonymous', 'Draftmen888'] :
-                print ("  SKIPPING CHANGE BY", change[1])
+            time, author, change_type, oldvalue, newvalue, permanent = change
+            change_time = str(convert_xmlrpc_datetime(time))
+            #print(change)
+            print(("  %s by %s (%s -> %s)" % (change_type, author, str(oldvalue)[:40].replace("\n", " "), str(newvalue)[:40].replace("\n", " "))).encode("ascii", "replace"))
+            #assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
+            if author in ['anonymous', 'Draftmen888'] :
+                print ("  SKIPPING CHANGE BY", author)
                 continue
-            author = gh_username(dest, change[1])
+            author = gh_username(dest, author)
             if change_type == "attachment":
                 # The attachment will be described in the next change!
                 attachment = change
             elif change_type == "comment":
-                # change[3] is here either x or y.x, where x is the number of this comment and y is the number of the comment that is replied to
-                desc = change[4].strip();
+                # oldvalue is here either x or y.x, where x is the number of this comment and y is the number of the comment that is replied to
+                desc = newvalue.strip();
                 if desc == '' and attachment is None :
                     # empty description and not description of attachment
                     continue
@@ -847,25 +860,25 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # we will forget about these old versions and only keep the latest one
                 pass
             elif change_type == "status" :
-                # we map here the various statii we have in trac to just 2 statii in gitlab (open or close), so loose some information
-                if change[4] in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'positive_review'] :
+                # we map here the various statuses we have in trac to just 2 statuses in gitlab (open or close), so lose some information
+                if newvalue in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'needs_info', 'needs_info_new', 'positive_review'] :
                     newstate = 'open'
                     # should not need an extra comment if closing ticket
-                    gh_comment_issue(dest, issue, {'note' : 'Changing status from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author})
-                elif change[4] in ['closed'] :
+                    gh_comment_issue(dest, issue, {'note' : 'Changing status from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author})
+                elif newvalue in ['closed'] :
                     newstate = 'closed'
                 else :
-                    raise ValueError("  unknown ticket status: " + change[4])
+                    raise ValueError("  unknown ticket status: " + newvalue)
 
                 if issue_state != newstate :
                     issue_state = newstate
                     gh_update_issue_property(dest, issue, 'state', newstate)
 
             elif change_type == "resolution" :
-                if change[3] != '' :
-                    desc = "Resolution changed from %s to %s" % (change[3], change[4])
+                if oldvalue != '' :
+                    desc = "Resolution changed from %s to %s" % (oldvalue, newvalue)
                 else :
-                    desc = "Resolution: " + change[4]
+                    desc = "Resolution: " + newvalue
                 note = {
                     'note' : desc,
                     'author' : author,
@@ -873,30 +886,30 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 }
                 gh_comment_issue(dest, issue, note)
             elif change_type == "component" :
-                if change[3] != '' :
-                    labels.remove(change[3])
-                labels.append(change[4])
-                gh_ensure_label(dest, change[4], labelcolor['component'])
-                gh_comment_issue(dest, issue, { 'note' : 'Changing component from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
+                if oldvalue != '' :
+                    labels.remove(oldvalue)
+                labels.append(newvalue)
+                gh_ensure_label(dest, newvalue, labelcolor['component'])
+                gh_comment_issue(dest, issue, { 'note' : 'Changing component from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author })
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "owner" :
-                if change[3] != '' and change[4] != '' :
-                    gh_comment_issue(dest, issue, { 'note' : 'Changing assignee from ' + gh_username(dest, change[3]) + ' to ' + gh_username(dest, change[4]) + '.', 'created_at' : change_time, 'author' : author })
-                elif change[3] == '' :
-                    gh_comment_issue(dest, issue, { 'note' : 'Set assignee to ' + gh_username(dest, change[4]) + '.', 'created_at' : change_time, 'author' : author })
+                if oldvalue != '' and newvalue != '' :
+                    gh_comment_issue(dest, issue, { 'note' : 'Changing assignee from ' + gh_username(dest, oldvalue) + ' to ' + gh_username(dest, newvalue) + '.', 'created_at' : change_time, 'author' : author })
+                elif oldvalue == '' :
+                    gh_comment_issue(dest, issue, { 'note' : 'Set assignee to ' + gh_username(dest, newvalue) + '.', 'created_at' : change_time, 'author' : author })
                 else :
-                    gh_comment_issue(dest, issue, { 'note' : 'Remove assignee ' + gh_username(dest, change[3]) + '.', 'created_at' : change_time, 'author' : author })
+                    gh_comment_issue(dest, issue, { 'note' : 'Remove assignee ' + gh_username(dest, oldvalue) + '.', 'created_at' : change_time, 'author' : author })
 
-                if change[4] != change[3] :
-                    assignee = gh_username(dest, change[4])
+                if newvalue != oldvalue :
+                    assignee = gh_username(dest, newvalue)
                     if not assignee.startswith('@') :
                         assignee = GithubObject.NotSet
                     gh_update_issue_property(dest, issue, 'assignee', assignee)
             elif change_type == "version" :
-                if change[3] != '' :
-                    desc = "Version changed from %s to %s" % (change[3], change[4])
+                if oldvalue != '' :
+                    desc = "Version changed from %s to %s" % (oldvalue, newvalue)
                 else :
-                    desc = "Version: " + change[4]
+                    desc = "Version: " + newvalue
                 note = {
                     'note' : desc,
                     'author' : author,
@@ -904,48 +917,48 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 }
                 gh_comment_issue(dest, issue, note)
             elif change_type == "milestone" :
-                if change[4] != '' and change[4] in milestone_map:
-                    issue_data['milestone'] = milestone_map[change[4]]
+                if newvalue != '' and newvalue in milestone_map:
+                    issue_data['milestone'] = milestone_map[newvalue]
                 elif 'milestone' in issue_data :
                     del issue_data['milestone']
                 gh_update_issue_property(dest, issue, 'milestone', issue_data.get('milestone', GithubObject.NotSet))
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
-                if change[3] != '' :
-                    oldtype = maptickettype(change[3])
+                if oldvalue != '' :
+                    oldtype = maptickettype(oldvalue)
                     labels.remove(oldtype)
-                newtype = maptickettype(change[4])
+                newtype = maptickettype(newvalue)
                 labels.append(newtype)
                 gh_ensure_label(dest, newtype, labelcolor['type'])
-                gh_comment_issue(dest, issue, { 'note' : 'Changing type from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
+                gh_comment_issue(dest, issue, { 'note' : 'Changing type from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author })
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
-                issue_data['description'] = description_pre + trac2markdown(change[4], '/issues/', conv_help, False) + '\n\n(changed by ' + author + ' at ' + change_time + ')'
+                issue_data['description'] = description_pre + trac2markdown(newvalue, '/issues/', conv_help, False) + '\n\n(changed by ' + author + ' at ' + change_time + ')'
                 gh_update_issue_property(dest, issue, 'description', issue_data['description'])
             elif change_type == "summary" :
-                issue_data['title'] = change[4]
+                issue_data['title'] = newvalue
                 gh_update_issue_property(dest, issue, 'title', issue_data['title'])
             elif change_type == "priority" :
-                if change[3] != '' and change[3] != 'normal' :
-                    labels.remove(change[3])
-                if change[4] != '' and change[4] != 'normal' :
-                    labels.append(change[4])
-                    gh_ensure_label(dest, change[4], labelcolor['priority'])
-                    gh_comment_issue(dest, issue, { 'note' : 'Changing priority from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
+                if oldvalue != '' and oldvalue != 'normal' :
+                    labels.remove(oldvalue)
+                if newvalue != '' and newvalue != 'normal' :
+                    labels.append(newvalue)
+                    gh_ensure_label(dest, newvalue, labelcolor['priority'])
+                    gh_comment_issue(dest, issue, { 'note' : 'Changing priority from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author })
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "severity" :
-                if change[3] != '' and change[3] != 'normal' :
-                    labels.remove(change[3])
-                if change[4] != '' and change[4] != 'normal' :
-                    labels.append(change[4])
-                    gh_ensure_label(dest, change[4], labelcolor['severity'])
-                    gh_comment_issue(dest, issue, { 'note' : 'Changing severity from ' + change[3] + ' to ' + change[4] + '.', 'created_at' : change_time, 'author' : author })
+                if oldvalue != '' and oldvalue != 'normal' :
+                    labels.remove(oldvalue)
+                if newvalue != '' and newvalue != 'normal' :
+                    labels.append(newvalue)
+                    gh_ensure_label(dest, newvalue, labelcolor['severity'])
+                    gh_comment_issue(dest, issue, { 'note' : 'Changing severity from ' + oldvalue + ' to ' + newvalue + '.', 'created_at' : change_time, 'author' : author })
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "keywords" :
                 if keywords_to_labels :
-                    oldkeywords = change[3].split(',')
-                    newkeywords = change[4].split(',')
+                    oldkeywords = oldvalue.split(',')
+                    newkeywords = newvalue.split(',')
                     for keyword in oldkeywords :
                         keyword = keyword.strip()
                         if keyword != ''  :
@@ -960,12 +973,12 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".', 'created_at' : change_time, 'author' : author })
                     gh_update_issue_property(dest, issue, 'labels', labels)
                 else :
-                    gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + change[3] + '" to "' + change[4] + '".', 'created_at' : change_time, 'author' : author })
-            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author"] :
+                    gh_comment_issue(dest, issue, { 'note' : 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".', 'created_at' : change_time, 'author' : author })
+            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author", "changetime", "reporter"] :
                 print("TODO Change type: ", change_type)
-            else :
-                raise BaseException("Unknown change type " + change_type)
-        assert attachment is None
+            else:
+                warnings.warn("Unknown change type " + change_type)
+        #assert attachment is None
 
         ticketcount = ticketcount + 1
         if ticketcount % 10 == 0 and sleep_after_10tickets > 0 :
@@ -1157,13 +1170,15 @@ if __name__ == "__main__":
         if github:
             dest = github.get_repo(github_project)
             gh_user = github.get_user()
+            for l in dest.get_labels() :
+                gh_labels[l.name.lower()] = l
+            #print 'Existing labels:', gh_labels.keys()
         else:
+            requester = MigrationArchiveWritingRequester(migration_archive, wiki_export_dir)
+            dest = Repository(requester, None, dict(name="sagetest",
+                                                    url="https://github.com/sagemath/sagetest"), None)
+            print(dest.url)
             sleep_after_request = 0
-
-    if dest is not None :
-        for l in dest.get_labels() :
-            gh_labels[l.name.lower()] = l
-        #print 'Existing labels:', gh_labels.keys()
 
     if svngit_mapfile is not None :
         svngit_map = dict()
