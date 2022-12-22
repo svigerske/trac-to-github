@@ -594,7 +594,7 @@ def gh_comment_issue(dest, issue, comment) :
             try :
                 gist = gh_user.create_gist(False,
                                            { gistname : filecontent },
-                                           'Attachment %s to Ipopt issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
+                                           'Attachment %s to issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
                 note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
             except UnicodeDecodeError :
                 note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
@@ -812,7 +812,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 labels.append(keyword.strip())
                 gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
 
-        description_pre = 'Issue created by migration from Trac.\n\n'
+        description_pre = f'Issue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
+
         description_pre += 'Original creator: ' + reporter + '\n\n'
         description_pre += 'Original creation time: ' + str(convert_xmlrpc_datetime(time_created)) + '\n\n'
 
