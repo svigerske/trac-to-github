@@ -87,7 +87,7 @@ labelcolor = {
 
 sleep_after_request = 2.0
 sleep_after_attachment = 60.0
-sleep_after_10tickets = 0.0  # TODO maybe this can be reduced due to the longer sleep after attaching something
+sleep_after_10tickets = 10.0  # TODO maybe this can be reduced due to the longer sleep after attaching something
 sleep_before_xmlrpc_retry = 30.0
 
 config = configparser.ConfigParser(default_config)
@@ -1035,9 +1035,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 warnings.warn("Unknown change type " + change_type)
         #assert attachment is None
 
-        ticketcount = ticketcount + 1
+        ticketcount += 1
         if ticketcount % 10 == 0 and sleep_after_10tickets > 0 :
-            print ('%d tickets migrated. Waiting %d seconds to let GitHub cool down.' % (ticketcount, sleep_after_10tickets))
+            print ('%d tickets migrated. Waiting %d seconds to let GitHub/Trac cool down.' % (ticketcount, sleep_after_10tickets))
             sleep(sleep_after_10tickets)
 
 
