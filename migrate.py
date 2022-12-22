@@ -678,8 +678,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
     nextticketid = 1;
     ticketcount = 0;
     for src_ticket in get_all_tickets():
-        #src_ticket is [id, time_created, time_changed, attributes]
-        src_ticket_id = src_ticket[0]
+        src_ticket_id, time_created, time_changed, src_ticket_data = src_ticket
+
         if only_issues and src_ticket_id not in only_issues:
             print("SKIP unwanted ticket #%s" % src_ticket_id)
             continue
@@ -704,7 +704,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         nextticketid = nextticketid+1;
 
-        src_ticket_data = src_ticket[3]
         # src_ticket_data.keys(): ['status', 'changetime', 'description', 'reporter', 'cc', 'type', 'milestone', '_ts',
         # 'component', 'owner', 'summary', 'platform', 'version', 'time', 'keywords', 'resolution']
 
@@ -815,7 +814,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         description_pre = 'Issue created by migration from Trac.\n\n'
         description_pre += 'Original creator: ' + reporter + '\n\n'
-        description_pre += 'Original creation time: ' + str(convert_xmlrpc_datetime(src_ticket[1])) + '\n\n'
+        description_pre += 'Original creation time: ' + str(convert_xmlrpc_datetime(time_created)) + '\n\n'
 
         assignee = GithubObject.NotSet
         if owner != '' :
