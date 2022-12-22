@@ -205,9 +205,43 @@ def handle_svnrev_reference(m) :
         return m.group(0)
 
 
+RE_SUPERSCRIPT1 = re.compile(r'\^([^\s]+?)\^')
+RE_SUBSCRIPT1 = re.compile(r',,([^\s]+?),,')
+RE_IMAGE1 = re.compile(r'\[\[Image\(source:([^(]+)\)\]\]')
+RE_IMAGE2 = re.compile(r'\[\[Image\(([^),]+)\)\]\]')
+RE_IMAGE3 = re.compile(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]')
+RE_IMAGE4 = re.compile(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]')
+RE_IMAGE5 = re.compile(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]')
+RE_HTTPS1 = re.compile(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]')
+RE_HTTPS2 = re.compile(r'\[\[(https?://[^\]]+)\]\]')
+RE_HTTPS3 = re.compile(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
+RE_HTTPS4 = re.compile(r'\[(https?://[^\s\[\]\|]+)\]')
+RE_WIKI1 = re.compile(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]')
+RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]')
+RE_WIKI3 = re.compile(r'\[\[\s*([^\]]+)\]\]')
+RE_WIKI4 = re.compile(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]')
+RE_WIKI5 = re.compile(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
+RE_WIKI6 = re.compile(r'\[wiki:([^\s\[\]]+)\]')
+RE_WIKI7 = re.compile(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]')
+RE_QUERY1 = re.compile(r'\[query:\?')
+RE_SOURCE1 = re.compile(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]')
+RE_SOURCE2 = re.compile(r'source:([\S]+)')
+RE_BOLDTEXT1 = re.compile(r'\'\'\'(.*?)\'\'\'')
+RE_ITALIC1 = re.compile(r'\'\'(.*?)\'\'')
+RE_TICKET1 = re.compile(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket)
+RE_TICKET2 = re.compile(r'\#([1-9]\d{0,4})')
+RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
+
+RE_GIT_SERVER = re.compile(r'https?://git.sagemath.org/sage.git/tree/src')
+RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
+
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = matcher_changeset.sub(format_changeset_comment, text)
     text = matcher_changeset2.sub(r'\1', text)
+
+    if svngit_map is not None :
+        text = matcher_svnrev1.sub(handle_svnrev_reference, text)
+        text = matcher_svnrev2.sub(handle_svnrev_reference, text)
 
     # some normalization
     text = re.sub('\r\n', '\n', text)
@@ -222,13 +256,55 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = text.replace('[[BR]]', '\n')
     text = text.replace('[[br]]', '\n')
 
-    # trac processors
+    if multilines:
+        text = re.sub(r'^\S[^\n]+([^=-_|])\n([^\s`*0-9#=->-_|])', r'\1 \2', text)
+
+    def convert_heading(level, text):
+        """
+        Return the given text with converted headdings
+        """
+        def replace(match):
+            """
+            Return the replacement for the headding
+            """
+            heading = match.groups()[0]
+            # There might be a second item if an anchor is set.
+            # We ignore this anchor since it is automatically
+            # set it GitHub Markdown.
+            return '%s %s' % (('#'*level), heading)
+
+        text = re.sub(r'(?m)^%s\s+([^=]+)[^\n=]*([\#][\w-]*)?$' % ('='*level), replace, text)
+        text = re.sub(r'(?m)^%s\s+(.*?)\s+%s[^\n]*([\#][\w-]*)?$' % ('='*level, '='*level), replace, text)
+        return text
+
+    for level in [6, 5, 4, 3, 2, 1]:
+        text = convert_heading(level, text)
+
+    text = re.sub(r'^             * ', r'****', text)
+    text = re.sub(r'^         * ', r'***', text)
+    text = re.sub(r'^     * ', r'**', text)
+    text = re.sub(r'^ * ', r'*', text)
+    text = re.sub(r'^ \d+. ', r'1.', text)
+
     a = []
     level = 0
     in_td = False
     in_code = False
     in_html = False
+    is_table = False
+    previous_line = ''
     for line in text.split('\n'):
+        #if 'the old workflow is explained' in line:
+        #    import pdb; pdb.set_trace()
+
+        if skip_line_with_leading_whitespaces:
+            if line.startswith(' '*skip_line_with_leading_whitespaces):
+                is_table = False
+                continue
+        if previous_line:
+            line = previous_line + line
+            previous_line = ''
+
         if line.startswith('{{{') and in_code:
             level += 1
         elif line.startswith('{{{#!td'):
@@ -269,7 +345,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         # CamelCase wiki link
         if not (in_code or in_html or in_td):
             new_line = ''
-            level = 0
+            depth = 0
             start = 0
             end = 0
             l = len(line)
@@ -277,12 +353,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 if i == l:
                     end = i
                 elif line[i] == '[':
-                    if level == 0:
+                    if depth == 0:
                         end = i
-                    level += 1
+                    depth += 1
                 elif line[i] == ']':
-                    level -= 1
-                    if level == 0:
+                    depth -= 1
+                    if depth == 0:
                         start = i + 1
                         new_line += line[end:start]
                 if end > start:
@@ -293,125 +369,82 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     start = end
             line = new_line
 
-        # superscript ^abc^ and subscript ,,abc,,
         if not (in_code or in_html):
-            line = re.sub(r'\^([^\s]+?)\^', r'<sup>\1</sup>', line)
-            line = re.sub(r',,([^\s]+?),,', r'<sub>\1</sub>', line)
+            line = RE_SUPERSCRIPT1.sub(r'<sup>\1</sup>', line)  # superscript ^abc^
+            line = RE_SUBSCRIPT1.sub(r'<sub>\1</sub>', line)  # subscript ,,abc,,
 
-        a.append(line)
-    text = '\n'.join(a)
+            line = RE_QUERY1.sub(r'[%s?' % trac_url_query, line) # preconversion to URL format
+            line = RE_HTTPS1.sub(r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
+            line = RE_HTTPS2.sub(r'OPENING__LEFT__BRACKET\1CLOSING__RIGHT__BRACKET(\1)', line)  # link without display text
+            line = RE_HTTPS3.sub(r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
+            line = RE_HTTPS4.sub(r'OPENING__LEFT__BRACKET\1CLOSING__RIGHT__BRACKET(\1)', line)
 
-    if svngit_map is not None :
-        text = matcher_svnrev1.sub(handle_svnrev_reference, text)
-        text = matcher_svnrev2.sub(handle_svnrev_reference, text)
+            line = RE_IMAGE1.sub(r'!OPENING__LEFT__BRACKETCLOSING__RIGHT__BRACKET(%s/\1)' % os.path.relpath('/tree/master/'), line)
+            line = RE_IMAGE2.sub(r'!OPENING__LEFT__BRACKETCLOSING__RIGHT__BRACKET(\1)', line)
+            line = RE_IMAGE3.sub(r'!OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
+            line = RE_IMAGE4.sub(r'<img src="\1" \2>', line)
+            line = RE_IMAGE5.sub(conv_help.wiki_image, line)  # \2 is the image width
 
-    if multilines:
-        text = re.sub(r'^\S[^\n]+([^=-_|])\n([^\s`*0-9#=->-_|])', r'\1 \2', text)
+            line = RE_WIKI1.sub(conv_help.wiki_link, line)
+            line = RE_WIKI2.sub(conv_help.wiki_link, line)
+            line = RE_WIKI3.sub(conv_help.wiki_link, line)  # wiki link without display text
+            line = RE_WIKI4.sub(conv_help.wiki_link, line)  # for pagenames containing whitespaces
+            line = RE_WIKI5.sub(conv_help.wiki_link, line)
+            line = RE_WIKI6.sub(conv_help.wiki_link, line)  # link without display text
+            line = RE_WIKI7.sub(conv_help.wiki_link, line)
 
-    def convert_heading(level, text):
-        """
-        Return the given text with converted headdings
-        """
-        def replace(match):
-            """
-            Return the replacement for the headding
-            """
-            heading = match.groups()[0]
-            # There might be a second item if an anchor is set.
-            # We ignore this anchor since it is automatically
-            # set it GitHub Markdown.
-            return '%s %s' % (('#'*level), heading)
+            line = RE_SOURCE1.sub(r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
+            line = RE_SOURCE2.sub(r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
 
-        text = re.sub(r'(?m)^%s\s+([^=]+)[^\n=]*([\#][\w-]*)?$' % ('='*level), replace, text)
-        text = re.sub(r'(?m)^%s\s+(.*?)\s+%s[^\n]*([\#][\w-]*)?$' % ('='*level, '='*level), replace, text)
-        return text
+            line = RE_BOLDTEXT1.sub(r'*\1*', line)
+            line = RE_ITALIC1.sub(r'_\1_', line)
 
-    for level in [6, 5, 4, 3, 2, 1]:
-        text = convert_heading(level, text)
+            line = RE_TICKET1.sub(r' #\1', line) # replace global ticket references
+            line = RE_TICKET2.sub(conv_help.ticket_link, line)
+            line = line.replace('@', r'`@`')
 
-    text = re.sub(r'^             * ', r'****', text)
-    text = re.sub(r'^         * ', r'***', text)
-    text = re.sub(r'^     * ', r'**', text)
-    text = re.sub(r'^ * ', r'*', text)
-    text = re.sub(r'^ \d+. ', r'1.', text)
+            line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)  # no CamelCase wiki link because of leading "!"
 
-    a = []
-    is_table = False
-    previous_line = ''
-    for line in text.split('\n'):
-        if skip_line_with_leading_whitespaces:
-            if line.startswith(' '*skip_line_with_leading_whitespaces):
+            # convert a trac table to a github table
+            if line.startswith('||'):
+                if not is_table:  # header row
+                    if line.endswith('||\\'):
+                        previous_line = line[:-3]
+                        continue
+                    elif line.endswith('|| \\'):
+                        previous_line = line[:-4]
+                        continue
+                    # construct header separator
+                    parts = line.split('||')
+                    sep = []
+                    for part in parts:
+                        if part.startswith('='):
+                            part = part[1:]
+                            start = ':'
+                        else:
+                            start = ''
+                        if part.endswith('='):
+                            part = part[:-1]
+                            end = ':'
+                        else:
+                            end = ''
+                        sep.append(start + '-'*len(part) + end)
+                    sep = '||'.join(sep)
+                    if ':' in sep:
+                        line = line + '\n' + sep
+                    else:  # perhaps a table without header; github table needs header
+                        header = re.sub(r'[^|]', ' ', sep)
+                        line = header + '\n' + sep + '\n' + line
+                    is_table = True
+                # The wiki markup allows the alignment directives to be specified on a cell-by-cell
+                # basis. This is used in many examples. AFAIK this can't be properly translated into
+                # the GitHub markdown as it only allows to align statements column by column.
+                line = line.replace('||=', '||')  # ignore cellwise align instructions
+                line = line.replace('=||', '||')  # ignore cellwise align instructions
+                line = line.replace('||', '|')
+            else:
                 is_table = False
-                continue
-        if previous_line:
-            line = previous_line + line
-            previous_line = ''
 
-        line = re.sub(r'\[\[Image\(source:([^(]+)\)\]\]', r'![](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\[\[Image\(([^),]+)\)\]\]', r'![](\1)', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]', r'![\2](\1)', line)
-        line = re.sub(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]', r'<img src="\1" \2>', line)
-        line = re.sub(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]', conv_help.wiki_image, line)  # \2 is the image width
-        line = re.sub(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]', r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
-        line = re.sub(r'\[\[(https?://[^\]]+)\]\]', r'OPENING__LEFT__BRACKET\1CLOSING__RIGHT__BRACKET(\1)', line)  # link without display text
-        line = re.sub(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]', conv_help.wiki_link, line)
-        line = re.sub(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]', conv_help.wiki_link, line)
-        line = re.sub(r'\[\[\s*([^\]]+)\]\]', conv_help.wiki_link, line)   # wiki link without display text
-        line = re.sub(r'\[query:\?', r'[%s?' % trac_url_query, line) # preconversion to URL format
-        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', r'[\2](\1)', line)
-        line = re.sub(r'\[(https?://[^\s\[\]\|]+)\]', r'[\1](\1)', line)
-        line = re.sub(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]', conv_help.wiki_link, line) # for pagenames containing whitespaces
-        line = re.sub(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]', conv_help.wiki_link, line)
-        line = re.sub(r'\[wiki:([^\s\[\]]+)\]', conv_help.wiki_link, line) # link without display text
-        line = re.sub(r'\[/wiki/([^\s\[\]]+)\s+([^\[\]]+)\]', conv_help.wiki_link, line)
-        line = re.sub(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]', r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'source:([\S]+)', r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
-        line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)  # no CamelCase wiki link because of leading "!"
-        line = re.sub(r'\'\'\'(.*?)\'\'\'', r'*\1*', line)
-        line = re.sub(r'\'\'(.*?)\'\'', r'_\1_', line)
-        line = re.sub(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket, r' #\1', line) # replace global ticket references
-        line = re.sub(r'\#([1-9]\d{0,4})', conv_help.ticket_link, line)
-
-        # Convert a trac table to a github table
-        if line.startswith('||'):
-            if not is_table:  # header row
-                if line.endswith('||\\'):
-                    previous_line = line[:-3]
-                    continue
-                elif line.endswith('|| \\'):
-                    previous_line = line[:-4]
-                    continue
-                # construct header separator
-                parts = line.split('||')
-                sep = []
-                for part in parts:
-                    if part.startswith('='):
-                        part = part[1:]
-                        start = ':'
-                    else:
-                        start = ''
-                    if part.endswith('='):
-                        part = part[:-1]
-                        end = ':'
-                    else:
-                        end = ''
-                    sep.append(start + '-'*len(part) + end)
-                sep = '||'.join(sep)
-                if ':' in sep:
-                    line = line + '\n' + sep
-                else:  # perhaps a table without header; github table needs header
-                    header = re.sub(r'[^|]', ' ', sep)
-                    line = header + '\n' + sep + '\n' + line
-                is_table = True
-            # The wiki markup allows the alignment directives to be specified on a cell-by-cell
-            # basis. This is used in many examples. AFAIK this can't be properly translated into
-            # the GitHub markdown as it only allows to align statements column by column.
-            line = re.sub(r'\|\|=', r'||', line) # ignore cellwise align instructions
-            line = re.sub(r'=\|\|', r'||', line) # ignore cellwise align instructions
-            line = re.sub(r'\|\|', r'|', line)
-        else:
-            is_table = False
-        #line = conv_help.replace_wiki_link_tags(line)
         a.append(line)
 
     # Deal with a github table if the corresponding trac table contains td processors
@@ -452,7 +485,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     in_td = False
                 block.append(line)
             else:
-                line = re.sub('@', r'`@`', line)
                 line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
                 b.append(line)
         else:
@@ -470,29 +502,28 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     html = re.sub('CLOSING__PROCESSOR__TD', r'</div>', html)
                 else:
                     html = table_text
-                html = re.sub('NEW__LINE', '\n', html)
-                html = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'\|', html)
+                html = html.replace('NEW__LINE', '\n')
+                html = html.replace('SEPARATOR__BETWEEN__BRACKETS', r'\|')
                 b += html.split('\n')  # process table
                 table = []
                 in_table = False
             else:
-                line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
+                line = line.replace('SEPARATOR__BETWEEN__BRACKETS', r'|')
                 b.append(line)
+
     text = '\n'.join(b)
-    text = re.sub('OPENING__PROCESSOR__CODE', '\n```', text)
-    text = re.sub('CLOSING__PROCESSOR__CODE', '```\n', text)
 
     # clean artifacts
-    text = re.sub('OPENING__LEFT__BRACKET', '[', text)
-    text = re.sub('CLOSING__RIGHT__BRACKET', ']', text)
+    text = text.replace('OPENING__PROCESSOR__CODE', '\n```')
+    text = text.replace('CLOSING__PROCESSOR__CODE', '```\n')
+
+    text = text.replace('OPENING__LEFT__BRACKET', '[')
+    text = text.replace('CLOSING__RIGHT__BRACKET', ']')
 
     # final rewriting
-    text = re.sub(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>',
-                  r'$\\textcolor{\1}{\\text{\2}}$', text)
-    text = re.sub(r'https?://git.sagemath.org/sage.git/tree/src',
-                  r'https://github.com/sagemath/sagetrac-mirror/blob/master/src', text)
-    text = re.sub(r'\[report:([0-9]+)\s*(.*?)\]',
-                  r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
+    text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
+    text = RE_GIT_SERVER.sub(r'https://github.com/sagemath/sagetrac-mirror/blob/master/src', text)
+    text = RE_TRAC_REPORT.sub(r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
 
     return text
 
