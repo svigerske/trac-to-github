@@ -648,18 +648,19 @@ def gh_comment_issue(dest, issue, comment) :
     # upload attachement, if there is one
     if 'attachment_name' in comment :
         filename = comment.pop('attachment_name')
+        attachment = comment.pop('attachment')
         if attachment_export:
             issuenumber = issue.number if dest is not None else 0
             dirname = os.path.join(attachment_export_dir, 'ticket' + str(issuenumber))
             if not os.path.isdir(dirname) :
                 os.makedirs(dirname)
             # write attachment data to binary file
-            open(os.path.join(dirname, filename), 'wb').write(comment['attachment'])
+            open(os.path.join(dirname, filename), 'wb').write(attachment)
             note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(issuenumber) + '/' + filename, comment['author'], comment['created_at'])
         elif gh_user is not None:
             if dest is None : return
             gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
-            filecontent = InputFileContent(comment['attachment'])
+            filecontent = InputFileContent(attachment)
             try :
                 gist = gh_user.create_gist(False,
                                            { gistname : filecontent },
@@ -677,10 +678,11 @@ def gh_comment_issue(dest, issue, comment) :
         else:
             note = ''
 
-    if 'note' in comment and comment['note'] != '' :
+    body = comment.pop('note', '')
+    if body:
         if note:
             note += '\n\n'
-        note += comment.pop('note')
+        note += body
 
     if dest is None : return
 
@@ -1038,7 +1040,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     desc = "Version changed from %s to %s" % (oldvalue, newvalue)
                 else :
                     desc = "Version: " + newvalue
-                comment_data['note'] = desc,
+                comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data)
             elif change_type == "milestone" :
                 if newvalue != '' and newvalue in milestone_map:
