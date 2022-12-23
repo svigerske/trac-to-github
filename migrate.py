@@ -560,16 +560,26 @@ def gh_ensure_label(dest, labelname, labelcolor) :
 def gh_create_issue(dest, issue_data) :
     if dest is None : return None
 
-    if 'labels' in issue_data :
-        labels = [gh_labels[label.lower()] for label in issue_data['labels']]
-    else :
+    if 'labels' in issue_data:
+        labels = [gh_labels[label.lower()] for label in issue_data.pop('labels')]
+    else:
         labels = GithubObject.NotSet
 
-    gh_issue = dest.create_issue(issue_data['title'],
-                                 issue_data['description'],
-                                 assignee = issue_data.get('assignee', GithubObject.NotSet),
-                                 milestone = issue_data.get('milestone', GithubObject.NotSet),
-                                 labels = labels)
+    description = issue_data.pop('description')
+
+    if github:
+        description_pre = ""
+        description_pre += 'Original creator: ' + issue_data.pop('user') + '\n\n'
+        description_pre += 'Original creation time: ' + str(issue_data.pop('created_at')) + '\n\n'
+        description = description_pre + description
+
+    gh_issue = dest.create_issue(issue_data.pop('title'),
+                                 description,
+                                 assignee=issue_data.pop('assignee', GithubObject.NotSet),
+                                 milestone=issue_data.pop('milestone', GithubObject.NotSet),
+                                 labels=labels,
+                                 **issue_data)
+
     print("  created issue " + str(gh_issue))
     sleep(sleep_after_request)
 
@@ -812,11 +822,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 labels.append(keyword.strip())
                 gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
 
-        description_pre = f'Issue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
-
-        description_pre += 'Original creator: ' + reporter + '\n\n'
-        description_pre += 'Original creation time: ' + str(convert_xmlrpc_datetime(time_created)) + '\n\n'
-
+        description_pre = ""
         assignee = GithubObject.NotSet
         if owner != '' :
             assignee = gh_username(dest, owner)
@@ -845,15 +851,21 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if keywords != '' and not keywords_to_labels :
             description_pre += 'Keywords: ' + keywords + '\n\n'
 
-        description = description_pre + trac2markdown(description, '/issues/', conv_help, False)
+        description_post = f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
+
+        description = description_pre + trac2markdown(description, '/issues/', conv_help, False) + description_post
         #assert description.find('/wiki/') < 0, description
 
         # collect all parameters
         issue_data = {
+            # Supported by create_issue
             'title' : summary,
             'description' : description,
             'labels' : labels,
-            'assignee' : assignee
+            'assignee' : assignee,
+            # Not supported by create_issue
+            'user' : reporter,
+            'created_at': convert_xmlrpc_datetime(time_created)
         }
 
         if 'milestone' in src_ticket_data:
