@@ -261,11 +261,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     def convert_heading(level, text):
         """
-        Return the given text with converted headdings
+        Return the given text with converted headings
         """
         def replace(match):
             """
-            Return the replacement for the headding
+            Return the replacement for the heading
             """
             heading = match.groups()[0]
             # There might be a second item if an anchor is set.
@@ -280,22 +280,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     for level in [6, 5, 4, 3, 2, 1]:
         text = convert_heading(level, text)
 
-    text = re.sub(r'^             * ', r'****', text)
-    text = re.sub(r'^         * ', r'***', text)
-    text = re.sub(r'^     * ', r'**', text)
-    text = re.sub(r'^ * ', r'*', text)
-    text = re.sub(r'^ \d+. ', r'1.', text)
-
     a = []
     level = 0
     in_td = False
     in_code = False
     in_html = False
     is_table = False
+    in_list = False
+    list_indents = []
     previous_line = ''
     for line in text.split('\n'):
-        #if 'the old workflow is explained' in line:
-        #    import pdb; pdb.set_trace()
 
         if skip_line_with_leading_whitespaces:
             if line.startswith(' '*skip_line_with_leading_whitespaces):
@@ -330,7 +324,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             else:
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE\n', 1)
             level += 1
-        elif line == '}}}':
+        elif line.rstrip() == '}}}':
             level -= 1
             if in_td and in_td_level == level:
                 in_td = False
@@ -396,8 +390,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_SOURCE1.sub(r'[\2](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
             line = RE_SOURCE2.sub(r'[\1](%s/\1)' % os.path.relpath('/tree/master/', base_path), line)
 
-            line = RE_BOLDTEXT1.sub(r'*\1*', line)
-            line = RE_ITALIC1.sub(r'_\1_', line)
+            line = RE_BOLDTEXT1.sub(r'**\1**', line)
+            line = RE_ITALIC1.sub(r'*\1*', line)
 
             line = RE_TICKET1.sub(r' #\1', line) # replace global ticket references
             line = RE_TICKET2.sub(conv_help.ticket_link, line)
@@ -444,6 +438,68 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 line = line.replace('||', '|')
             else:
                 is_table = False
+
+            # lists
+            if in_list:
+                if line.strip():
+                    indent = re.search('[^\s]', line).start()
+                    if indent > list_leading_spaces:
+                        line = line[list_leading_spaces:]
+
+                        # nudge slightly-malformed paragraph in list for right indent -- fingers crossed
+                        indent = re.search('[^\s]', line).start()
+                        if indent == 1 and list_indents[0][1] == '*':
+                            line =  ' ' + line
+                        elif indent == 1 and list_indents[0][1] == '-':
+                            line =  ' ' + line
+                        elif indent in [1, 2] and list_indents[0][1] not in ['*', '-']:
+                            line =  (3 - indent)*' ' + line
+
+                    elif indent < list_leading_spaces:
+                        in_list = False
+                        list_indents = []
+                    elif indent == list_leading_spaces:
+                        l = line[indent:]
+                        if not (l.startswith('* ') or l.startswith('- ') or re.match('^[^\s]+\.\s', l)):
+                            in_list = False
+                            list_indents = []
+                        else:
+                            line = line[list_leading_spaces:]
+            l = line.lstrip()
+            if l.startswith('* ') or  l.startswith('- ') or re.match('^[^\s]+\.\s', l):
+                if not in_list:
+                    list_leading_spaces = re.search('[^\s]', line).start()
+                    line = line[list_leading_spaces:]
+                    in_list = True
+                indent = re.search('[^\s]', line).start()
+                for i in range(len(list_indents)):
+                    d, t, c = list_indents[i]
+                    if indent == d:
+                        if line[indent] == t:
+                            c += 1
+                        else:
+                            t = line[indent]
+                            c = 1
+                        list_indents = list_indents[:i] + [(d, t, c)]
+                        break
+                else:
+                    d = indent
+                    t = line[indent]
+                    c = 1
+                    list_indents.append((d, t, c))
+
+                if t in ['*', '-'] :
+                    #depth = 0
+                    #for dd, tt, cc in list_indents:
+                    #    if tt == t:
+                    #        depth += 1
+                    pass
+                elif t == 'a':
+                    line = line.replace('a', 'abcdefghij'[c - 1], 1)
+                elif t == '1':
+                    line = line.replace('1', ['1','2','3','4','5','6','7','8','9','10'][c - 1], 1)
+                elif t == 'i':
+                    line = line.replace('i', ['i','ii','iii','iv','v','vi','vii','viii','ix','x'][c - 1], 1)
 
         a.append(line)
 
