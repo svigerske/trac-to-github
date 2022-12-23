@@ -61,13 +61,6 @@ class MigrationArchiveWritingRequester:
                 self._num_issues += 1
                 issue = self._num_issues
                 url = urljoin(base_url, f'issues/{issue}')
-                if self._wiki:
-                    wiki_file = self._wiki / f'Issue {issue}.md'
-                    with open(wiki_file, 'w') as f:
-                        title = output['title']
-                        f.write(f'# Issue {issue}: {title}\n\n')
-                        f.write(output['body'])
-                        f.write('\n')
             case 'POST', ['issues', issue, 'comments']:
                 # Create an issue comment
                 output['type'] = 'issue_comment'
@@ -75,12 +68,6 @@ class MigrationArchiveWritingRequester:
                 self._num_issue_comments += 1
                 id = self._num_issue_comments
                 url = urljoin(base_url, f'issues/{issue}#issuecomment-{id}')
-                if self._wiki:
-                    wiki_file = self._wiki / f'Issue {issue}.md'
-                    with open(wiki_file, 'a') as f:
-                        f.write('\n\n---\n\n')
-                        f.write(output['body'])
-                        f.write('\n')
         if isinstance(output, dict):
             output['url'] = url
             dump = json.dumps(output, sort_keys=True, indent=4)
@@ -94,4 +81,25 @@ class MigrationArchiveWritingRequester:
                 print(f'# Wrote {json_file}')
             else:
                 print(dump)
+
+            if self._wiki:
+                match verb, endpoint:
+                    case 'POST', ['issues']:
+                        wiki_file = self._wiki / f'Issue {issue}.md'
+                        with open(wiki_file, 'w') as f:
+                            title = output['title']
+                            f.write(f'# Issue {issue}: {title}\n\n')
+                            f.write(f'{json_file}:\n')
+                            f.write(f'```json\n{dump}\n```\n')
+                            f.write(output['body'])
+                            f.write('\n')
+                    case 'POST', ['issues', issue, 'comments']:
+                        wiki_file = self._wiki / f'Issue {issue}.md'
+                        with open(wiki_file, 'a') as f:
+                            f.write('\n\n\n---\n\n')
+                            f.write(f'{json_file}:\n')
+                            f.write(f'```json\n{dump}\n```\n\n')
+                            f.write(output['body'])
+                            f.write('\n')
+
         return responseHeaders, output
