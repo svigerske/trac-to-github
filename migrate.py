@@ -170,6 +170,11 @@ if config.has_option('source', 'skip_line_with_leading_whitespaces') :
     # line is skipped.
     skip_line_with_leading_whitespaces = config.getint('source', 'skip_line_with_leading_whitespaces')
 
+
+from diskcache import Cache
+cache = Cache('trac_cache')
+
+
 #pattern_changeset = r'(?sm)In \[changeset:"([^"/]+?)(?:/[^"]+)?"\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
 pattern_changeset = r'(?sm)In \[changeset:"[0-9]+" ([0-9]+)\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
 matcher_changeset = re.compile(pattern_changeset)
@@ -728,6 +733,24 @@ def gh_username(dest, origname) :
     unmapped_users.add(origname)
     return origname;
 
+@cache.memoize(ignore=[0, 'source'])
+def get_changeLog(source, src_ticket_id):
+    while True:
+        try:
+            return source.ticket.changeLog(src_ticket_id)
+        except Exception as e:
+            print(e)
+            print('Sleeping')
+            sleep(sleep_before_xmlrpc_retry)
+            print('Retrying')
+
+@cache.memoize()
+def get_all_tickets(filter_issues):
+    call = client.MultiCall(source)
+    for ticket in source.ticket.query(filter_issues):
+        call.ticket.get(ticket)
+    return call()
+
 def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
     milestone_map = {}
 
@@ -746,14 +769,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 new_milestone['due_date'] = milestone['due']  #convert_xmlrpc_datetime(milestone['due'])
             milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
 
-    get_all_tickets = client.MultiCall(source)
+    nextticketid = 1
+    ticketcount = 0
 
-    for ticket in source.ticket.query(filter_issues):
-        get_all_tickets.ticket.get(ticket)
-
-    nextticketid = 1;
-    ticketcount = 0;
-    for src_ticket in get_all_tickets():
+    for src_ticket in get_all_tickets(filter_issues):
         src_ticket_id, time_created, time_changed, src_ticket_data = src_ticket
 
         if only_issues and src_ticket_id not in only_issues:
@@ -783,16 +802,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         # src_ticket_data.keys(): ['status', 'changetime', 'description', 'reporter', 'cc', 'type', 'milestone', '_ts',
         # 'component', 'owner', 'summary', 'platform', 'version', 'time', 'keywords', 'resolution']
 
-        while True:
-            try:
-                changelog = source.ticket.changeLog(src_ticket_id)
-            except Exception as e:
-                print(e)
-                print('Sleeping')
-                sleep(sleep_before_xmlrpc_retry)
-                print('Retrying')
-            else:
-                break
+        changelog = get_changeLog(source, src_ticket_id)
 
         print("\n\n## Migrate ticket #%s (%d changes): %s" % (src_ticket_id, len(changelog), src_ticket_data['summary'][:30]))
 
