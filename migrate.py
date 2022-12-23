@@ -88,7 +88,8 @@ labelcolor = {
 
 sleep_after_request = 2.0
 sleep_after_attachment = 60.0
-sleep_after_10tickets = 10.0  # TODO maybe this can be reduced due to the longer sleep after attaching something
+sleep_after_10tickets = 0.0  # TODO maybe this can be reduced due to the longer sleep after attaching something
+sleep_before_xmlrpc = 0.33
 sleep_before_xmlrpc_retry = 30.0
 
 config = configparser.ConfigParser(default_config)
@@ -737,7 +738,20 @@ def gh_username(dest, origname) :
 def get_changeLog(source, src_ticket_id):
     while True:
         try:
+            if sleep_before_xmlrpc:
+                sleep(sleep_before_xmlrpc)
             return source.ticket.changeLog(src_ticket_id)
+        except Exception as e:
+            print(e)
+            print('Sleeping')
+            sleep(sleep_before_xmlrpc_retry)
+            print('Retrying')
+
+@cache.memoize(ignore=[0, 'source'])
+def get_ticket_attachment(source, src_ticket_id, attachment_name):
+    while True:
+        try:
+            return source.ticket.getAttachment(src_ticket_id, attachment_name)
         except Exception as e:
             print(e)
             print('Sleeping')
@@ -992,7 +1006,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
                 if attachment is not None :
                     comment_data['attachment_name'] = attachment[4]  # name of attachment
-                    comment_data['attachment'] = source.ticket.getAttachment(src_ticket_id, attachment[4]).data
+                    comment_data['attachment'] = get_ticket_attachment(source, src_ticket_id, attachment[4]).data
                     attachment = None
                 gh_comment_issue(dest, issue, comment_data)
             elif change_type.startswith("_comment") :
