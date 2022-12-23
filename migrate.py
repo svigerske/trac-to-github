@@ -745,36 +745,36 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         keywords = None
         status = None
         for change in changelog :
-            #change is tuple (time, author, field, oldvalue, newvalue, permanent)
-            if component is None and change[2] == 'component' :
-                component = change[3].strip()
+            time, author, field, oldvalue, newvalue, permanent = change
+            if component is None and field == 'component' :
+                component = oldvalue.strip()
                 continue
-            if owner is None and change[2] == 'owner' :
-                owner = change[3].strip()
+            if owner is None and field == 'owner' :
+                owner = oldvalue.strip()
                 continue
-            if version is None and change[2] == 'version' :
-                version = change[3].strip()
+            if version is None and field == 'version' :
+                version = oldvalue.strip()
                 continue
-            if tickettype is None and change[2] == 'type' :
-                tickettype = change[3].strip()
+            if tickettype is None and field == 'type' :
+                tickettype = oldvalue.strip()
                 continue
-            if description is None and change[2] == 'description' :
-                description = change[3].strip()
+            if description is None and field == 'description' :
+                description = oldvalue.strip()
                 continue
-            if summary is None and change[2] == 'summary' :
-                summary = change[3].strip()
+            if summary is None and field == 'summary' :
+                summary = oldvalue.strip()
                 continue
-            if priority is None and change[2] == 'priority' :
-                priority = change[3].strip()
+            if priority is None and field == 'priority' :
+                priority = oldvalue.strip()
                 continue
-            if severity is None and change[2] == 'severity' :
-                severity = change[3].strip()
+            if severity is None and field == 'severity' :
+                severity = oldvalue.strip()
                 continue
-            if keywords is None and change[2] == 'keywords' :
-                keywords = change[3].strip()
+            if keywords is None and field == 'keywords' :
+                keywords = oldvalue.strip()
                 continue
-            if status is None and change[2] == 'status' :
-                status = change[3].strip()
+            if status is None and field == 'status' :
+                status = oldvalue.strip()
                 continue
 
         # if no change changed a certain attribute, then that attribute is given by ticket data
