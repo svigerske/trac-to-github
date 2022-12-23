@@ -36,6 +36,7 @@ import warnings
 from datetime import datetime
 from time import sleep
 #from re import MULTILINE
+from roman import toRoman
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
 from github.Repository import Repository
@@ -495,11 +496,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     #        depth += 1
                     pass
                 elif t == 'a':
-                    line = line.replace('a', 'abcdefghij'[c - 1], 1)
+                    line = line.replace('a', chr(ord('a') + c - 1), 1)
                 elif t == '1':
-                    line = line.replace('1', ['1','2','3','4','5','6','7','8','9','10'][c - 1], 1)
+                    line = line.replace('1', str(c), 1)
                 elif t == 'i':
-                    line = line.replace('i', ['i','ii','iii','iv','v','vi','vii','viii','ix','x'][c - 1], 1)
+                    line = line.replace('i', toRoman(c).lower(), 1)
 
         a.append(line)
 
