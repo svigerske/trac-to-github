@@ -727,6 +727,7 @@ def gh_update_issue_property(dest, issue, key, val) :
 unmapped_users = set()
 
 def gh_username(dest, origname) :
+    origname = origname.strip('\u200b')
     if origname.startswith('gh-'):
         return '@' + origname[3:]
     gh_name = users_map.get(origname, None)
