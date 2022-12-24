@@ -702,7 +702,7 @@ def gh_update_issue_property(dest, issue, key, val) :
     if dest is None : return
 
     if key == 'labels' :
-        labels = [gh_labels[label.lower()] for label in val]
+        labels = [gh_labels[label.lower()] for label in val if label]
         issue.set_labels(*labels)
     elif key == 'assignee' :
         if issue.assignee == val:
