@@ -762,6 +762,14 @@ def gh_user_url(dest, username):
     return None
 
 @cache.memoize(ignore=[0, 'source'])
+def get_all_milestones(source):
+    return source.ticket.milestone.getAll()
+
+@cache.memoize(ignore=[0, 'source'])
+def get_milestone(source, milestone_name):
+    return source.ticket.milestone.get(milestone_name)
+
+@cache.memoize(ignore=[0, 'source'])
 def get_changeLog(source, src_ticket_id):
     while True:
         try:
@@ -798,8 +806,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
     conv_help = ConversionHelper(source)
 
     if migrate_milestones:
-        for milestone_name in source.ticket.milestone.getAll():
-            milestone = source.ticket.milestone.get(milestone_name)
+        for milestone_name in get_all_milestones(source):
+            milestone = get_milestone(source, milestone_name)
             title = milestone.pop('name')
             print("Creating milestone " + title)
             new_milestone = {
