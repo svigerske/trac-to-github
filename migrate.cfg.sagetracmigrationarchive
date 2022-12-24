@@ -72,7 +72,11 @@ migrate_milestones: no
 # Export attachement as files to the local filesystem or try to upload them as Gist?
 # Gist only allows text files, so binary attachments will be lost
 # Gists are associated with the GitHub user, not the project
-export : no
+export : yes
+
+export_dir = archive/attachments
+# https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
+export_url = tarball://root/attachments/some-uuid/
 
 [wiki]
 

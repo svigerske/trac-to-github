@@ -651,19 +651,18 @@ def gh_create_issue(dest, issue_data) :
 
     return gh_issue
 
-def gh_comment_issue(dest, issue, comment) :
+def gh_comment_issue(dest, issue, comment, src_ticket_id) :
     # upload attachement, if there is one
     if 'attachment_name' in comment :
         filename = comment.pop('attachment_name')
         attachment = comment.pop('attachment')
         if attachment_export:
-            issuenumber = issue.number if dest is not None else 0
-            dirname = os.path.join(attachment_export_dir, 'ticket' + str(issuenumber))
+            dirname = os.path.join(attachment_export_dir, 'ticket' + str(src_ticket_id))
             if not os.path.isdir(dirname) :
                 os.makedirs(dirname)
             # write attachment data to binary file
             open(os.path.join(dirname, filename), 'wb').write(attachment)
-            note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(issuenumber) + '/' + filename, comment['author'], comment['created_at'])
+            note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(src_ticket_id) + '/' + filename, comment['user'], comment['created_at'])
         elif gh_user is not None:
             if dest is None : return
             gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
@@ -671,17 +670,17 @@ def gh_comment_issue(dest, issue, comment) :
             try :
                 gist = gh_user.create_gist(False,
                                            { gistname : filecontent },
-                                           'Attachment %s to issue #%d created by %s at %s' % (filename, issue.number, comment['author'], comment['created_at']) )
-                note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['author'], comment['created_at'])
+                                           'Attachment %s to issue #%d created by %s at %s' % (filename, issue.number, comment['user'], comment['created_at']) )
+                note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['user'], comment['created_at'])
             except UnicodeDecodeError :
-                note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['author'], comment['created_at'])
+                note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['user'], comment['created_at'])
                 print ('  LOSING ATTACHMENT', filename, 'in issue', issue.number)
             sleep(sleep_after_attachment)
         else:
             note = 'Attachment'
     else :
         if github:
-            note = 'Comment by %s created at %s' % (comment.pop('author'), comment.pop('created_at'))
+            note = 'Comment by %s created at %s' % (comment.pop('user'), comment.pop('created_at'))
         else:
             note = ''
 
@@ -1008,7 +1007,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     comment_data['attachment_name'] = attachment[4]  # name of attachment
                     comment_data['attachment'] = get_ticket_attachment(source, src_ticket_id, attachment[4]).data
                     attachment = None
-                gh_comment_issue(dest, issue, comment_data)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type.startswith("_comment") :
                 # this is an old version of a comment, which has been edited later (given in previous change),
                 # e.g., see http://localhost:8080/ticket/3431#comment:9 http://localhost:8080/ticket/3400#comment:14
@@ -1020,7 +1019,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     newstate = 'open'
                     # should not need an extra comment if closing ticket
                     comment_data['note'] = 'Changing status from ' + oldvalue + ' to ' + newvalue + '.'
-                    gh_comment_issue(dest, issue, comment_data)
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 elif newvalue in ['closed'] :
                     newstate = 'closed'
                 else :
@@ -1036,7 +1035,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 else :
                     desc = "Resolution: " + newvalue
                 comment_data['note'] = desc
-                gh_comment_issue(dest, issue, comment_data)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "component" :
                 if oldvalue != '' :
                     with contextlib.suppress(ValueError):
@@ -1044,7 +1043,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 labels.append(newvalue)
                 gh_ensure_label(dest, newvalue, labelcolor['component'])
                 comment_data['note'] = 'Changing component from ' + oldvalue + ' to ' + newvalue + '.'
-                gh_comment_issue(dest, issue, comment_data)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "owner" :
                 if oldvalue != '' and newvalue != '':
@@ -1053,7 +1052,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     comment_data['note'] = 'Set assignee to ' + gh_username(dest, newvalue) + '.'
                 else:
                     comment_data['note'] = 'Remove assignee ' + gh_username(dest, oldvalue) + '.'
-                gh_comment_issue(dest, issue, comment_data)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
                 # if newvalue != oldvalue :
                 #     assignee = gh_username(dest, newvalue)
@@ -1066,7 +1065,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 else :
                     desc = "Version: " + newvalue
                 comment_data['note'] = desc
-                gh_comment_issue(dest, issue, comment_data)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "milestone" :
                 if newvalue != '' and newvalue in milestone_map:
                     issue_data['milestone'] = milestone_map[newvalue]
@@ -1084,7 +1083,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 labels.append(newtype)
                 gh_ensure_label(dest, newtype, labelcolor['type'])
                 comment_data['note'] = 'Changing type from ' + oldvalue + ' to ' + newvalue + '.'
-                gh_comment_issue(dest, issue, comment_data)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
                 issue_data['description'] = description_pre + trac2markdown(newvalue, '/issues/', conv_help, False) + '\n\n(changed by ' + author + ' at ' + change_time + ')'
@@ -1100,7 +1099,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     labels.append(newvalue)
                     gh_ensure_label(dest, newvalue, labelcolor['priority'])
                     comment_data['note'] = 'Changing priority from ' + oldvalue + ' to ' + newvalue + '.'
-                    gh_comment_issue(dest, issue, comment_data)
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "severity" :
                 if oldvalue != '' and oldvalue != 'normal' :
@@ -1110,7 +1109,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     labels.append(newvalue)
                     gh_ensure_label(dest, newvalue, labelcolor['severity'])
                     comment_data['note'] = 'Changing severity from ' + oldvalue + ' to ' + newvalue + '.'
-                    gh_comment_issue(dest, issue, comment_data)
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "keywords" :
                 if keywords_to_labels :
@@ -1129,11 +1128,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     oldkeywords = [ kw.strip() for kw in oldkeywords ]
                     newkeywords = [ kw.strip() for kw in newkeywords ]
                     comment_data['note'] = 'Changing keywords from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".'
-                    gh_comment_issue(dest, issue, comment_data)
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                     gh_update_issue_property(dest, issue, 'labels', labels)
                 else :
                     comment_data['note'] = 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".'
-                    gh_comment_issue(dest, issue, comment_data)
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author", "changetime", "reporter"] :
                 print("TODO Change type: ", change_type)
             else:
