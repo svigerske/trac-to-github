@@ -730,6 +730,12 @@ def gh_username(dest, origname) :
     origname = origname.strip('\u200b')
     if origname.startswith('gh-'):
         return '@' + origname[3:]
+    if origname.startswith('github/'):
+        # example: https://trac.sagemath.org/ticket/17999
+        return '@' + origname[7:]
+    if origname.startswith('gh:'):
+        # example: https://trac.sagemath.org/ticket/24876
+        return '@' + origname[3:]
     gh_name = users_map.get(origname, None)
     if gh_name:
         return '@' + gh_name
