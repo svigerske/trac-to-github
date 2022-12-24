@@ -641,6 +641,10 @@ def gh_create_issue(dest, issue_data) :
         description_pre += 'Original creator: ' + issue_data.pop('user') + '\n\n'
         description_pre += 'Original creation time: ' + str(issue_data.pop('created_at')) + '\n\n'
         description = description_pre + description
+    else:
+        user_url = gh_user_url(dest, issue_data['user'])
+        if user_url:
+            issue_data['user'] = user_url
 
     gh_issue = dest.create_issue(issue_data.pop('title'),
                                  description,
@@ -695,6 +699,11 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id) :
 
     if dest is None : return
 
+    if not github:
+        user_url = gh_user_url(dest, comment['user'])
+        if user_url:
+           comment['user'] = user_url
+
     issue.create_comment(note, **comment)
     sleep(sleep_after_request)
 
@@ -741,7 +750,16 @@ def gh_username(dest, origname) :
         return '@' + gh_name
     assert not origname.startswith('@')
     unmapped_users.add(origname)
-    return origname;
+    return origname
+
+def gh_user_url(dest, username):
+    if username.startswith('@'):
+        return f'https://github.com/{username[1:]}'
+    if re.fullmatch('[-A-Za-z._0-9]+', username):
+        # heuristic pattern for valid Trac account name (not an email address or junk)
+        # Use this URL as the id (this is current best guess what a mannequin user would look like)
+        return f'https://trac.sagemath.org/admin/accounts/users/{username}'
+    return None
 
 @cache.memoize(ignore=[0, 'source'])
 def get_changeLog(source, src_ticket_id):
