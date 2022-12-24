@@ -1000,11 +1000,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             if author in ['anonymous', 'Draftmen888'] :
                 print ("  SKIPPING CHANGE BY", author)
                 continue
-            author = gh_username(dest, author)
+            user = gh_username(dest, author)
 
             comment_data = {
                 'created_at': convert_trac_datetime(change_time),
-                'user': author,
+                'user': user,
             }
 
             if change_type == "attachment":
@@ -1101,7 +1101,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
-                issue_data['description'] = description_pre + trac2markdown(newvalue, '/issues/', conv_help, False) + '\n\n(changed by ' + author + ' at ' + change_time + ')'
+                issue_data['description'] = description_pre + trac2markdown(newvalue, '/issues/', conv_help, False) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
                 gh_update_issue_property(dest, issue, 'description', issue_data['description'])
             elif change_type == "summary" :
                 issue_data['title'] = newvalue
