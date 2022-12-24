@@ -598,16 +598,30 @@ def convert_xmlrpc_datetime(dt):
 def convert_trac_datetime(dt):
     return datetime.strptime(str(dt), "%Y-%m-%d %H:%M:%S")
 
-def maptickettype(tickettype) :
-    if tickettype == 'defect' :
+def maptickettype(tickettype):
+    "Return GitHub label corresponding to Trac ``tickettype``"
+    if tickettype == 'defect':
         return 'bug'
-    if tickettype == 'clarification' :
-        return 'question'
-    if tickettype == 'task' :
-        return 'enhancement'
+    # if tickettype == 'clarification':
+    #     return 'question'
+    # if tickettype == 'task':
+    #     return 'enhancement'
     if tickettype == 'PLEASE CHANGE':
         return None
-    return tickettype.lower()
+    #return tickettype.lower()
+    return None
+
+def mapcomponent(component):
+    "Return GitHub label corresponding to Trac ``component``"
+    # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
+    return f'component: {component}'
+
+default_priority = 'major'
+def mappriority(priority):
+    "Return GitHub label corresponding to Trac ``priority``"
+    if priority == default_priority:
+        return None
+    return priority
 
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
@@ -619,16 +633,16 @@ def gh_create_milestone(dest, milestone_data) :
 def gh_ensure_label(dest, labelname, labelcolor) :
     if dest is None or labelname is None:
         return
+    labelname = labelname.lower()
     if labelname in gh_labels:
         return
     print ('Create label %s with color #%s' % (labelname, labelcolor));
     gh_label = dest.create_label(labelname, labelcolor);
-    gh_labels[labelname.lower()] = gh_label;
+    gh_labels[labelname] = gh_label;
     sleep(sleep_after_request)
 
 def gh_create_issue(dest, issue_data) :
     if dest is None : return None
-
     if 'labels' in issue_data:
         labels = [gh_labels[label.lower()] for label in issue_data.pop('labels')]
     else:
@@ -921,7 +935,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if summary is None :
             summary = src_ticket_data['summary']
         if priority is None :
-            priority = src_ticket_data.get('priority', 'normal')
+            priority = src_ticket_data.get('priority', default_priority)
         if severity is None :
             severity = src_ticket_data.get('severity', 'normal')
         if keywords is None :
@@ -936,10 +950,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if add_label:
             labels.append(add_label)
         if component is not None and component.strip() != '' :
-            labels.append(component)
-            gh_ensure_label(dest, component, labelcolor['component'])
-        if priority != 'normal' :
-            labels.append(priority)
+            label = mapcomponent(component)
+            labels.append(label)
+            gh_ensure_label(dest, label, labelcolor['component'])
+        if priority != default_priority:
+            labels.append(mappriority(priority))
             gh_ensure_label(dest, priority, labelcolor['priority'])
         if severity != 'normal' :
             labels.append(severity)
@@ -1080,9 +1095,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "component" :
                 if oldvalue != '' :
                     with contextlib.suppress(ValueError):
-                        labels.remove(oldvalue)
-                labels.append(newvalue)
-                gh_ensure_label(dest, newvalue, labelcolor['component'])
+                        labels.remove(mapcomponent(oldvalue))
+                label = mapcomponent(newvalue)
+                labels.append(label)
+                gh_ensure_label(dest, label, labelcolor['component'])
                 comment_data['note'] = 'Changing component from ' + oldvalue + ' to ' + newvalue + '.'
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
@@ -1133,12 +1149,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 issue_data['title'] = newvalue
                 gh_update_issue_property(dest, issue, 'title', issue_data['title'])
             elif change_type == "priority" :
-                if oldvalue != '' and oldvalue != 'normal' :
+                if oldvalue != '' and oldvalue != default_priority:
                     with contextlib.suppress(ValueError):
-                        labels.remove(oldvalue)
-                if newvalue != '' and newvalue != 'normal' :
-                    labels.append(newvalue)
-                    gh_ensure_label(dest, newvalue, labelcolor['priority'])
+                        labels.remove(mappriority(oldvalue))
+                if newvalue != '' and newvalue != default_priority:
+                    label = mappriority(newvalue)
+                    labels.append(label)
+                    gh_ensure_label(dest, label, labelcolor['priority'])
                     comment_data['note'] = 'Changing priority from ' + oldvalue + ' to ' + newvalue + '.'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
