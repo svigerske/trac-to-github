@@ -776,15 +776,20 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
     if migrate_milestones:
         for milestone_name in source.ticket.milestone.getAll():
             milestone = source.ticket.milestone.get(milestone_name)
-            print("Creating milestone " + milestone['name'])
+            title = milestone.pop('name')
+            print("Creating milestone " + title)
             new_milestone = {
-                'description' : trac2markdown(milestone['description'], '/milestones/', conv_help, False),
-                'title' : milestone['name'],
-                'state' : 'open' if str(milestone['completed']) == '0'  else 'closed'
+                'description' : trac2markdown(milestone.pop('description'), '/milestones/', conv_help, False),
+                'title' : title,
+                'state' : 'open' if str(milestone.pop('completed')) == '0'  else 'closed'
             }
-            if milestone['due']:
-                new_milestone['due_date'] = convert_xmlrpc_datetime(milestone['due'])
+            due = milestone.pop('due')
+            if due:
+                new_milestone['due_date'] = convert_xmlrpc_datetime(due)
+            if milestone:
+                print(f"Discarded milestone data: {milestone}")
             milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
+            print(milestone_map[milestone_name])
 
     nextticketid = 1
     ticketcount = 0
