@@ -605,7 +605,9 @@ def maptickettype(tickettype) :
         return 'question'
     if tickettype == 'task' :
         return 'enhancement'
-    return tickettype;
+    if tickettype == 'PLEASE CHANGE':
+        return None
+    return tickettype.lower()
 
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
@@ -615,8 +617,9 @@ def gh_create_milestone(dest, milestone_data) :
     return milestone
 
 def gh_ensure_label(dest, labelname, labelcolor) :
-    if dest is None : return
-    if labelname.lower() in gh_labels :
+    if dest is None or labelname is None:
+        return
+    if labelname in gh_labels:
         return
     print ('Create label %s with color #%s' % (labelname, labelcolor));
     gh_label = dest.create_label(labelname, labelcolor);
