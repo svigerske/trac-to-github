@@ -779,7 +779,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 'state' : 'open' if str(milestone['completed']) == '0'  else 'closed'
             }
             if milestone['due']:
-                new_milestone['due_date'] = milestone['due']  #convert_xmlrpc_datetime(milestone['due'])
+                new_milestone['due_date'] = convert_xmlrpc_datetime(milestone['due'])
             milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
 
     nextticketid = 1

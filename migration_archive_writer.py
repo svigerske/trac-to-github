@@ -54,7 +54,10 @@ class MigrationArchiveWritingRequester:
         match verb, endpoint:
             case 'POST', ['labels']:
                 output['type'] = 'label'
-                url = urljoin(base_url, f'labels/' + quote(input['name']))
+                url = urljoin(base_url, 'labels/' + quote(input['name']))
+            case 'POST', ['milestones']:
+                output['type'] = 'milestone'
+                url = urljoin(base_url, 'milestones/' + quote(input['title']))
             case 'POST', ['issues']:
                 # Create a new issue
                 output['type'] = 'issue'

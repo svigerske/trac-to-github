@@ -65,7 +65,7 @@ filter_issues: max=50&order=id&page=1&desc=False
 # keywords_to_labels: no
 
 # Migrate milestones
-migrate_milestones: no
+migrate_milestones: yes
 
 [attachments]
 
