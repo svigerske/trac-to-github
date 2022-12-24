@@ -173,7 +173,7 @@ if config.has_option('source', 'skip_line_with_leading_whitespaces') :
 
 
 from diskcache import Cache
-cache = Cache('trac_cache')
+cache = Cache('trac_cache', size_limit=int(20e9))
 
 
 #pattern_changeset = r'(?sm)In \[changeset:"([^"/]+?)(?:/[^"]+)?"\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
