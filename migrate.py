@@ -934,15 +934,18 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         def issue_description(src_ticket_data):
             description_pre = ""
+            description_post = ""
 
-            if src_ticket_data['owner']:
-                description_pre += 'Assignee: ' + gh_username(dest, src_ticket_data['owner']) + '\n\n'
+            owner = src_ticket_data.pop('owner', None)
+            if owner:
+                description_post += '\n\nAssignee: ' + gh_username(dest, owner)
 
-            if src_ticket_data.get('version') is not None and src_ticket_data.get('version') != 'trunk' :
-                description_pre += 'Version: ' + src_ticket_data.get('version') + '\n\n'
+            version = src_ticket_data.pop('version', None)
+            if version is not None and version != 'trunk' :
+                description_post += '\n\nVersion: ' + version
 
             # subscribe persons in cc
-            cc = src_ticket_data.get('cc', '').lower()
+            cc = src_ticket_data.pop('cc', '').lower()
             ccstr = ''
             for person in cc.replace(';', ',').split(',') :
                 person = person.strip()
@@ -950,14 +953,24 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 person = gh_username(dest, person)
                 ccstr += ' ' + person
             if ccstr != '' :
-                description_pre += 'CC: ' + ccstr + '\n\n'
+                description_post += '\n\nCC: ' + ccstr
 
-            if src_ticket_data['keywords'] != '' and not keywords_to_labels :
-                description_pre += 'Keywords: ' + src_ticket_data['keywords'] + '\n\n'
+            if not keywords_to_labels:
+                keywords = src_ticket_data.pop('keywords', '')
+                if keywords:
+                    description_post += '\n\nKeywords: ' + keywords
 
-            description_post = f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
+            description = src_ticket_data.pop('description', '')
 
-            return description_pre + trac2markdown(src_ticket_data['description'], '/issues/', conv_help, False) + description_post
+            for field, value in src_ticket_data.items():
+                if (not field.startswith('_')
+                    and field not in ['status', 'changetime', 'time']
+                    and value and value not in ['N/A']):
+                    description_post += f'\n\n{field.title()}: {value}'
+
+            description_post += f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
+
+            return description_pre + trac2markdown(description, '/issues/', conv_help, False) + description_post
 
         # get original component, owner
         # src_ticket_data['component'] is the component after all changes, but for creating the issue we want the component
@@ -977,78 +990,74 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if github:
             src_ticket_data.update(first_old_values)
 
-        reporter = gh_username(dest, src_ticket_data['reporter']);
+        # Process src_ticket_data and remove (using pop) attributes that are processed already.
+        # issue_description dumps everything that has not been processed in the description.
 
         labels = []
         if add_label:
             labels.append(add_label)
 
-        component = src_ticket_data.get('component')
+        component = src_ticket_data.pop('component', None)
         if component is not None and component.strip() != '' :
             label = mapcomponent(component)
             if label:
                 labels.append(label)
                 gh_ensure_label(dest, label, labelcolor['component'])
 
-        priority = src_ticket_data.get('priority', default_priority)
+        priority = src_ticket_data.pop('priority', default_priority)
         if priority != default_priority:
             labels.append(mappriority(priority))
             gh_ensure_label(dest, priority, labelcolor['priority'])
 
-        severity = src_ticket_data.get('severity', 'normal')
+        severity = src_ticket_data.pop('severity', 'normal')
         if severity != 'normal' :
             labels.append(severity)
             gh_ensure_label(dest, severity, labelcolor['severity'])
 
-        tickettype = maptickettype(src_ticket_data.get('type'))
+        tickettype = maptickettype(src_ticket_data.pop('type', None))
         if tickettype is not None :
             labels.append(tickettype)
             gh_ensure_label(dest, tickettype, labelcolor['type'])
 
-        keywords = src_ticket_data['keywords']
-        if keywords != '' and keywords_to_labels :
-            for keyword in keywords.split(','):
-                labels.append(keyword.strip())
-                gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
-
-        summary = src_ticket_data['summary']
-        description = issue_description(src_ticket_data)
+        if keywords_to_labels:
+            keywords = src_ticket_data.pop('keywords', '')
+            if keywords:
+                for keyword in keywords.split(','):
+                    labels.append(keyword.strip())
+                    gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
 
         # collect all parameters
         issue_data = {
-            # Supported by create_issue
-            'title' : summary,
-            'description' : description,
+            'title' : src_ticket_data.pop('summary'),
             'labels' : labels,
             #'assignee' : assignee,
-            # Not supported by upstream PyGitHub Repository.create_issue
-            'user' : reporter,
-            'created_at': convert_xmlrpc_datetime(time_created),
-            'number' : int(src_ticket_id),
         }
         if not github:
+            issue_data['user'] = gh_username(dest, src_ticket_data.pop('reporter'))
+            issue_data['created_at'] = convert_xmlrpc_datetime(time_created)
+            issue_data['number'] = int(src_ticket_id)
             # Find closed_at
             for time, author, change_type, oldvalue, newvalue, permanent in reversed(changelog):
                 if change_type == 'status' and mapstatus(newvalue) == 'closed':
                     issue_data['closed_at'] = convert_xmlrpc_datetime(time)
                     break
 
-        if 'milestone' in src_ticket_data:
-            milestone = src_ticket_data['milestone']
-            if milestone  and milestone in milestone_map:
-                issue_data['milestone'] = milestone_map[milestone]
+        milestone = src_ticket_data.pop('milestone', None)
+        if milestone and milestone in milestone_map:
+            issue_data['milestone'] = milestone_map[milestone]
+
+        issue_data['description'] = issue_description(src_ticket_data)
 
         issue = gh_create_issue(dest, issue_data)
 
         if github:
+            status = src_ticket_data.pop('status')
             if status in ['closed']:
                 # sometimes a ticket is already closed at creation, so close issue
                 gh_update_issue_property(dest, issue, 'state', 'closed')
         else:
             src_ticket_data.update(first_old_values)
-
-        # handle status
-        status = src_ticket_data['status']
+            status = src_ticket_data.pop('status')
         issue_state = mapstatus(status)
 
         attachment = None
