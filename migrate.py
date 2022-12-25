@@ -1058,7 +1058,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             }
             event_data = {
                 'created_at': convert_trac_datetime(change_time),
-                'actor': user,
+                'actor': user_url,
             }
             if change_type == "attachment":
                 # The attachment will be described in the next change!
