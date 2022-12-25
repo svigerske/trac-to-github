@@ -974,7 +974,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         # If no change changed a certain attribute, then that attribute is given by ticket data
         # (When writing migration archives, this is true unconditionally.)
-        src_ticket_data.update(first_old_values)
+        if github:
+            src_ticket_data.update(first_old_values)
 
         reporter = gh_username(dest, src_ticket_data['reporter']);
 
@@ -1024,6 +1025,12 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             'user' : reporter,
             'created_at': convert_xmlrpc_datetime(time_created)
         }
+        if not github:
+            # Find closed_at
+            for time, author, change_type, oldvalue, newvalue, permanent in reversed(changelog):
+                if change_type == 'status' and mapstatus(newvalue) == 'closed':
+                    issue_data['closed_at'] = convert_xmlrpc_datetime(time)
+                    break
 
         if 'milestone' in src_ticket_data:
             milestone = src_ticket_data['milestone']
@@ -1032,12 +1039,16 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         issue = gh_create_issue(dest, issue_data)
 
+        if github:
+            if status in ['closed']:
+                # sometimes a ticket is already closed at creation, so close issue
+                gh_update_issue_property(dest, issue, 'state', 'closed')
+        else:
+            src_ticket_data.update(first_old_values)
+
         # handle status
         status = src_ticket_data['status']
         issue_state = mapstatus(status)
-        if status in ['closed']:
-            # sometimes a ticket is already closed at creation, so close issue
-            gh_update_issue_property(dest, issue, 'state', 'closed')
 
         attachment = None
         for change in changelog:
