@@ -908,7 +908,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             print("SKIP blacklisted ticket #%s" % src_ticket_id)
             continue
 
-        if not only_issues and not blacklist_issues and not config.has_option('issues', 'filter_issues') :
+        if github and not only_issues and not blacklist_issues and not config.has_option('issues', 'filter_issues') :
             while nextticketid < src_ticket_id :
                 print("Ticket %d missing in Trac. Generating empty one in GitHub." % nextticketid)
 
@@ -1023,7 +1023,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             #'assignee' : assignee,
             # Not supported by upstream PyGitHub Repository.create_issue
             'user' : reporter,
-            'created_at': convert_xmlrpc_datetime(time_created)
+            'created_at': convert_xmlrpc_datetime(time_created),
+            'number' : int(src_ticket_id),
         }
         if not github:
             # Find closed_at

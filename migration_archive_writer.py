@@ -62,7 +62,11 @@ class MigrationArchiveWritingRequester:
             case 'POST', ['issues']:
                 # Create a new issue
                 output['type'] = 'issue'
-                self._num_issues += 1
+                if 'number' in input:
+                    self._num_issues = int(input['number'])
+                    del output['number']
+                else:
+                    self._num_issues += 1
                 issue = self._num_issues
                 url = urljoin(base_url, f'issues/{issue}')
             case 'POST', ['issues', issue, 'comments']:
