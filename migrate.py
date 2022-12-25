@@ -613,6 +613,8 @@ def maptickettype(tickettype):
 
 def mapcomponent(component):
     "Return GitHub label corresponding to Trac ``component``"
+    if component == 'PLEASE CHANGE':
+        return None
     # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
     return f'component: {component}'
 
@@ -974,8 +976,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             labels.append(add_label)
         if component is not None and component.strip() != '' :
             label = mapcomponent(component)
-            labels.append(label)
-            gh_ensure_label(dest, label, labelcolor['component'])
+            if label:
+                labels.append(label)
+                gh_ensure_label(dest, label, labelcolor['component'])
         if priority != default_priority:
             labels.append(mappriority(priority))
             gh_ensure_label(dest, priority, labelcolor['priority'])
@@ -1113,10 +1116,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "component" :
                 if oldvalue != '' :
                     with contextlib.suppress(ValueError):
-                        labels.remove(mapcomponent(oldvalue))
+                        label = mapcomponent(oldvalue)
+                        if label:
+                            labels.remove(label)
                 label = mapcomponent(newvalue)
-                labels.append(label)
-                gh_ensure_label(dest, label, labelcolor['component'])
+                if label:
+                    labels.append(label)
+                    gh_ensure_label(dest, label, labelcolor['component'])
                 comment_data['note'] = 'Changing component from ' + oldvalue + ' to ' + newvalue + '.'
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
