@@ -731,7 +731,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id) :
     issue.create_comment(note, **comment)
     sleep(sleep_after_request)
 
-def gh_update_issue_property(dest, issue, key, val, **kwds):
+def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     if dest is None : return
 
     if key == 'labels' :
@@ -746,15 +746,23 @@ def gh_update_issue_property(dest, issue, key, val, **kwds):
             issue.add_to_assignees(val)
     elif key == 'state' :
         issue.edit(state = val)
-        # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#reopened
-        # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#closed
-        issue.create_event('reopened' if val=='open' else 'closed', **kwds)
+        if not github:
+            # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#reopened
+            # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#closed
+            issue.create_event('reopened' if val=='open' else 'closed', **kwds)
     elif key == 'description' :
         issue.edit(body = val)
     elif key == 'title' :
         issue.edit(title = val)
     elif key == 'milestone' :
-        issue.edit(milestone = val)
+        issue.edit(milestone=val)
+        if not github:
+            if oldval and oldval is not GithubObject.NotSet:
+                # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#demilestoned
+                issue.create_event('demilestoned', milestone=oldval, **kwds)
+            if val and val is not GithubObject.NotSet:
+                # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#milestoned
+                issue.create_event('milestoned', milestone=val, **kwds)
     else :
         raise ValueError('Unknown key ' + key)
 
@@ -1132,11 +1140,14 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "milestone" :
+                oldvalue=issue_data.get('milestone', GithubObject.NotSet)
                 if newvalue != '' and newvalue in milestone_map:
                     issue_data['milestone'] = milestone_map[newvalue]
                 elif 'milestone' in issue_data :
                     del issue_data['milestone']
-                gh_update_issue_property(dest, issue, 'milestone', issue_data.get('milestone', GithubObject.NotSet))
+                gh_update_issue_property(dest, issue, 'milestone',
+                                         issue_data.get('milestone', GithubObject.NotSet),
+                                         oldval=oldvalue, **event_data)
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
