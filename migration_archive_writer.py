@@ -94,10 +94,16 @@ class MigrationArchiveWritingRequester:
                 print(dump)
 
             if self._wiki:
+
+                def issue_wiki_file():
+                    thousands = int(issue) // 1000
+                    dir = self._wiki / f'Issues-{thousands:02}xxx'
+                    dir.mkdir(parents=True, exist_ok=True)
+                    return dir / f'{issue}.md'
+
                 match verb, endpoint:
                     case 'POST', ['issues']:
-                        wiki_file = self._wiki / f'Issue {issue}.md'
-                        with open(wiki_file, 'w') as f:
+                        with open(issue_wiki_file(), 'w') as f:
                             title = output['title']
                             f.write(f'# Issue {issue}: {title}\n\n')
                             f.write(f'{json_file}:\n')
@@ -105,16 +111,14 @@ class MigrationArchiveWritingRequester:
                             f.write(output['body'])
                             f.write('\n')
                     case 'POST', ['issues', issue, 'comments']:
-                        wiki_file = self._wiki / f'Issue {issue}.md'
-                        with open(wiki_file, 'a') as f:
+                        with open(issue_wiki_file(), 'a') as f:
                             f.write('\n\n\n---\n\n')
                             f.write(f'{json_file}:\n')
                             f.write(f'```json\n{dump}\n```\n\n')
                             f.write(output['body'])
                             f.write('\n')
                     case 'POST', ['issues', issue, 'events']:
-                        wiki_file = self._wiki / f'Issue {issue}.md'
-                        with open(wiki_file, 'a') as f:
+                        with open(issue_wiki_file(), 'a') as f:
                             f.write('\n\n\n---\n\n')
                             f.write(f'{json_file}:\n')
                             f.write(f'```json\n{dump}\n```\n')
