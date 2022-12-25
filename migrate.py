@@ -932,10 +932,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         print("\n\n## Migrate ticket #%s (%d changes): %s" % (src_ticket_id, len(changelog), src_ticket_data['summary'][:30]))
 
-        # get original component, owner
-        # src_ticket_data['component'] is the component after all changes, but for creating the issue we want the component
-        # that was set when the issue was created; we should get this from the first changelog entry that changed a component
-        # ... and similar for other attributes
         component = None
         owner = None
         version = None
@@ -946,6 +942,38 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         severity = None
         keywords = None
         status = None
+
+        def issue_description(src_ticket_data):
+            description_pre = ""
+
+            if owner:
+                description_pre += 'Assignee: ' + gh_username(dest, owner) + '\n\n'
+
+            if version is not None and version != 'trunk' :
+                description_pre += 'Version: ' + version + '\n\n'
+
+            # subscribe persons in cc
+            cc = src_ticket_data.get('cc', '').lower()
+            ccstr = ''
+            for person in cc.replace(';', ',').split(',') :
+                person = person.strip()
+                if person == '' : continue
+                person = gh_username(dest, person)
+                ccstr += ' ' + person
+            if ccstr != '' :
+                description_pre += 'CC: ' + ccstr + '\n\n'
+
+            if keywords != '' and not keywords_to_labels :
+                description_pre += 'Keywords: ' + keywords + '\n\n'
+
+            description_post = f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
+
+            return description_pre + trac2markdown(description, '/issues/', conv_help, False) + description_post
+
+        # get original component, owner
+        # src_ticket_data['component'] is the component after all changes, but for creating the issue we want the component
+        # that was set when the issue was created; we should get this from the first changelog entry that changed a component
+        # ... and similar for other attributes
         for change in changelog :
             time, author, field, oldvalue, newvalue, permanent = change
             if component is None and field == 'component' :
@@ -979,7 +1007,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 status = oldvalue.strip()
                 continue
 
-        # if no change changed a certain attribute, then that attribute is given by ticket data
+        # If no change changed a certain attribute, then that attribute is given by ticket data
+        # (When writing migration archives, this is true unconditionally.)
         if component is None :
             component = src_ticket_data.get('component')
         if owner is None :
@@ -1026,39 +1055,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 labels.append(keyword.strip())
                 gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
 
-        description_pre = ""
-        assignee = GithubObject.NotSet
-        if owner != '' :
-            assignee = gh_username(dest, owner)
-            # FIXME creating an issue with an assignee failed for me
-            # error was like this: https://github.com/google/go-github/issues/75
-            if True : # not assignee.startswith('@'):
-                description_pre += 'Assignee: ' + assignee + '\n\n'
-                assignee = GithubObject.NotSet
-            else :
-                assignee = assignee[1:]
-
-        if version is not None and version != 'trunk' :
-            description_pre += 'Version: ' + version + '\n\n'
-
-        # subscribe persons in cc
-        cc = src_ticket_data.get('cc', '').lower()
-        ccstr = ''
-        for person in cc.replace(';', ',').split(',') :
-            person = person.strip()
-            if person == '' : continue
-            person = gh_username(dest, person)
-            ccstr += ' ' + person
-        if ccstr != '' :
-            description_pre += 'CC: ' + ccstr + '\n\n'
-
-        if keywords != '' and not keywords_to_labels :
-            description_pre += 'Keywords: ' + keywords + '\n\n'
-
-        description_post = f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
-
-        description = description_pre + trac2markdown(description, '/issues/', conv_help, False) + description_post
-        #assert description.find('/wiki/') < 0, description
+        description = issue_description(src_ticket_data)
 
         # collect all parameters
         issue_data = {
@@ -1066,7 +1063,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             'title' : summary,
             'description' : description,
             'labels' : labels,
-            'assignee' : assignee,
+            #'assignee' : assignee,
             # Not supported by upstream PyGitHub Repository.create_issue
             'user' : reporter,
             'created_at': convert_xmlrpc_datetime(time_created)
@@ -1203,7 +1200,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
-                issue_data['description'] = description_pre + trac2markdown(newvalue, '/issues/', conv_help, False) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
+                issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
                 gh_update_issue_property(dest, issue, 'description', issue_data['description'])
             elif change_type == "summary" :
                 issue_data['title'] = newvalue
