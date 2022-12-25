@@ -932,25 +932,14 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         print("\n\n## Migrate ticket #%s (%d changes): %s" % (src_ticket_id, len(changelog), src_ticket_data['summary'][:30]))
 
-        component = None
-        owner = None
-        version = None
-        tickettype = None
-        description = None
-        summary = None
-        priority = None
-        severity = None
-        keywords = None
-        status = None
-
         def issue_description(src_ticket_data):
             description_pre = ""
 
-            if owner:
-                description_pre += 'Assignee: ' + gh_username(dest, owner) + '\n\n'
+            if src_ticket_data['owner']:
+                description_pre += 'Assignee: ' + gh_username(dest, src_ticket_data['owner']) + '\n\n'
 
-            if version is not None and version != 'trunk' :
-                description_pre += 'Version: ' + version + '\n\n'
+            if src_ticket_data.get('version') is not None and src_ticket_data.get('version') != 'trunk' :
+                description_pre += 'Version: ' + src_ticket_data.get('version') + '\n\n'
 
             # subscribe persons in cc
             cc = src_ticket_data.get('cc', '').lower()
@@ -963,98 +952,65 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             if ccstr != '' :
                 description_pre += 'CC: ' + ccstr + '\n\n'
 
-            if keywords != '' and not keywords_to_labels :
-                description_pre += 'Keywords: ' + keywords + '\n\n'
+            if src_ticket_data['keywords'] != '' and not keywords_to_labels :
+                description_pre += 'Keywords: ' + src_ticket_data['keywords'] + '\n\n'
 
             description_post = f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
 
-            return description_pre + trac2markdown(description, '/issues/', conv_help, False) + description_post
+            return description_pre + trac2markdown(src_ticket_data['description'], '/issues/', conv_help, False) + description_post
 
         # get original component, owner
         # src_ticket_data['component'] is the component after all changes, but for creating the issue we want the component
         # that was set when the issue was created; we should get this from the first changelog entry that changed a component
         # ... and similar for other attributes
+        first_old_values = {}
         for change in changelog :
             time, author, field, oldvalue, newvalue, permanent = change
-            if component is None and field == 'component' :
-                component = oldvalue.strip()
-                continue
-            if owner is None and field == 'owner' :
-                owner = oldvalue.strip()
-                continue
-            if version is None and field == 'version' :
-                version = oldvalue.strip()
-                continue
-            if tickettype is None and field == 'type' :
-                tickettype = oldvalue.strip()
-                continue
-            if description is None and field == 'description' :
-                description = oldvalue.strip()
-                continue
-            if summary is None and field == 'summary' :
-                summary = oldvalue.strip()
-                continue
-            if priority is None and field == 'priority' :
-                priority = oldvalue.strip()
-                continue
-            if severity is None and field == 'severity' :
-                severity = oldvalue.strip()
-                continue
-            if keywords is None and field == 'keywords' :
-                keywords = oldvalue.strip()
-                continue
-            if status is None and field == 'status' :
-                status = oldvalue.strip()
-                continue
+            if field not in first_old_values:
+                if field not in ['milestone', 'cc', 'reporter']:
+                    if isinstance(oldvalue, str):
+                        oldvalue = oldvalue.strip()
+                    first_old_values[field] = oldvalue
 
         # If no change changed a certain attribute, then that attribute is given by ticket data
         # (When writing migration archives, this is true unconditionally.)
-        if component is None :
-            component = src_ticket_data.get('component')
-        if owner is None :
-            owner = src_ticket_data['owner']
-        if version is None :
-            version = src_ticket_data.get('version')
-        if tickettype is None :
-            tickettype = src_ticket_data.get('type')
-        if description is None :
-            description = src_ticket_data['description']
-        if summary is None :
-            summary = src_ticket_data['summary']
-        if priority is None :
-            priority = src_ticket_data.get('priority', default_priority)
-        if severity is None :
-            severity = src_ticket_data.get('severity', 'normal')
-        if keywords is None :
-            keywords = src_ticket_data['keywords']
-        if status is None :
-            status = src_ticket_data['status']
+        src_ticket_data.update(first_old_values)
+
         reporter = gh_username(dest, src_ticket_data['reporter']);
-        if tickettype is not None :
-            tickettype = maptickettype(tickettype)
 
         labels = []
         if add_label:
             labels.append(add_label)
+
+        component = src_ticket_data.get('component')
         if component is not None and component.strip() != '' :
             label = mapcomponent(component)
             if label:
                 labels.append(label)
                 gh_ensure_label(dest, label, labelcolor['component'])
+
+        priority = src_ticket_data.get('priority', default_priority)
         if priority != default_priority:
             labels.append(mappriority(priority))
             gh_ensure_label(dest, priority, labelcolor['priority'])
+
+        severity = src_ticket_data.get('severity', 'normal')
         if severity != 'normal' :
             labels.append(severity)
             gh_ensure_label(dest, severity, labelcolor['severity'])
+
+        tickettype = maptickettype(src_ticket_data.get('type'))
         if tickettype is not None :
             labels.append(tickettype)
             gh_ensure_label(dest, tickettype, labelcolor['type'])
+
+        keywords = src_ticket_data['keywords']
         if keywords != '' and keywords_to_labels :
             for keyword in keywords.split(','):
                 labels.append(keyword.strip())
                 gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
 
+        summary = src_ticket_data['summary']
         description = issue_description(src_ticket_data)
 
         # collect all parameters
@@ -1077,6 +1033,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         issue = gh_create_issue(dest, issue_data)
 
         # handle status
+        status = src_ticket_data['status']
         issue_state = mapstatus(status)
         if status in ['closed']:
             # sometimes a ticket is already closed at creation, so close issue
