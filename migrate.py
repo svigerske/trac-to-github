@@ -623,6 +623,16 @@ def mappriority(priority):
         return None
     return priority
 
+def mapstatus(status):
+    if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review',
+                  'needs_work', 'needs_info', 'needs_info_new', 'positive_review']:
+        return 'open'
+    elif status in ['closed'] :
+        return 'closed'
+    else:
+        warnings.warn("unknown ticket status: " + status)
+        return 'open'
+
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
 
@@ -721,7 +731,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id) :
     issue.create_comment(note, **comment)
     sleep(sleep_after_request)
 
-def gh_update_issue_property(dest, issue, key, val) :
+def gh_update_issue_property(dest, issue, key, val, **kwds):
     if dest is None : return
 
     if key == 'labels' :
@@ -736,6 +746,9 @@ def gh_update_issue_property(dest, issue, key, val) :
             issue.add_to_assignees(val)
     elif key == 'state' :
         issue.edit(state = val)
+        # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#reopened
+        # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#closed
+        issue.create_event('reopened' if val=='open' else 'closed', **kwds)
     elif key == 'description' :
         issue.edit(body = val)
     elif key == 'title' :
@@ -1021,15 +1034,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         issue = gh_create_issue(dest, issue_data)
 
         # handle status
-        if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_work'] :
-            issue_state = 'open'
-        elif status in ['closed'] :
+        issue_state = mapstatus(status)
+        if status in ['closed']:
             # sometimes a ticket is already closed at creation, so close issue
-            issue_state = 'closed'
             gh_update_issue_property(dest, issue, 'state', 'closed')
-        else:
-            issue_state = 'open'
-            warnings.warn("unknown ticket status: " + status)
 
         attachment = None
         for change in changelog:
@@ -1042,12 +1050,16 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 print ("  SKIPPING CHANGE BY", author)
                 continue
             user = gh_username(dest, author)
+            user_url = gh_user_url(dest, user)
 
             comment_data = {
                 'created_at': convert_trac_datetime(change_time),
                 'user': user,
             }
-
+            event_data = {
+                'created_at': convert_trac_datetime(change_time),
+                'actor': user,
+            }
             if change_type == "attachment":
                 # The attachment will be described in the next change!
                 attachment = change
@@ -1070,20 +1082,16 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # we will forget about these old versions and only keep the latest one
                 pass
             elif change_type == "status" :
-                # we map here the various statuses we have in trac to just 2 statuses in gitlab (open or close), so lose some information
-                if newvalue in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'needs_work', 'needs_info', 'needs_info_new', 'positive_review'] :
-                    newstate = 'open'
-                    # should not need an extra comment if closing ticket
+                newstate = mapstatus(newvalue)
+                if newstate == 'open':
+                    # mapstatus maps the various statuses we have in trac
+                    # to just 2 statuses in gitlab/github (open or closed),
+                    # so to avoid a loss of information, we add a comment.
                     comment_data['note'] = 'Changing status from ' + oldvalue + ' to ' + newvalue + '.'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                elif newvalue in ['closed'] :
-                    newstate = 'closed'
-                else :
-                    raise ValueError("  unknown ticket status: " + newvalue)
-
                 if issue_state != newstate :
                     issue_state = newstate
-                    gh_update_issue_property(dest, issue, 'state', newstate)
+                    gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
 
             elif change_type == "resolution" :
                 if oldvalue != '' :

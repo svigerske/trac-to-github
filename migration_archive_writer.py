@@ -37,6 +37,7 @@ class MigrationArchiveWritingRequester:
             self._wiki.mkdir(parents=True, exist_ok=True)
         self._num_issues = 0
         self._num_issue_comments = 0
+        self._num_issue_events = 0
         self._num_json_by_type = defaultdict(lambda: 0)
 
     def requestJsonAndCheck(self, verb, url, parameters=None, headers=None, input=None):
@@ -71,6 +72,13 @@ class MigrationArchiveWritingRequester:
                 self._num_issue_comments += 1
                 id = self._num_issue_comments
                 url = urljoin(base_url, f'issues/{issue}#issuecomment-{id}')
+            case 'POST', ['issues', issue, 'events']:
+                # Create an issue event
+                output['type'] = 'issue_event'
+                output['issue'] = urljoin(base_url, f'issues/{issue}')
+                self._num_issue_events += 1
+                id = self._num_issue_events
+                url = urljoin(base_url, f'issues/{issue}#event-{id}')
         if isinstance(output, dict):
             output['url'] = url
             dump = json.dumps(output, sort_keys=True, indent=4)
@@ -104,5 +112,11 @@ class MigrationArchiveWritingRequester:
                             f.write(f'```json\n{dump}\n```\n\n')
                             f.write(output['body'])
                             f.write('\n')
+                    case 'POST', ['issues', issue, 'events']:
+                        wiki_file = self._wiki / f'Issue {issue}.md'
+                        with open(wiki_file, 'a') as f:
+                            f.write('\n\n\n---\n\n')
+                            f.write(f'{json_file}:\n')
+                            f.write(f'```json\n{dump}\n```\n')
 
         return responseHeaders, output
