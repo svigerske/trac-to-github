@@ -238,6 +238,7 @@ RE_ITALIC1 = re.compile(r'\'\'(.*?)\'\'')
 RE_TICKET1 = re.compile(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket)
 RE_TICKET2 = re.compile(r'\#([1-9]\d{0,4})')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
+RE_RULE = re.compile(r'^[-]{4,}\s*')
 
 RE_GIT_SERVER = re.compile(r'https?://git.sagemath.org/sage.git/tree/src')
 RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
@@ -296,12 +297,20 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     in_list = False
     list_indents = []
     previous_line = ''
+    quote_prefix = ''
     for line in text.split('\n'):
-
         if skip_line_with_leading_whitespaces:
             if line.startswith(' '*skip_line_with_leading_whitespaces):
                 is_table = False
                 continue
+
+        # cut quote prefix
+        if line.startswith(quote_prefix):
+            line = line[len(quote_prefix):]
+        else:
+            line = '\n' + line
+            quote_prefix = ''
+
         if previous_line:
             line = previous_line + line
             previous_line = ''
@@ -313,23 +322,29 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             in_td_level = level
             line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
             level += 1
-        elif line.startswith('{{{#!html'):
+        elif line.startswith('{{{#!html') and not (in_code or in_html):
             in_html = True
             in_html_level = level
             line =  re.sub(r'{{{#!html', r'', line)
             level += 1
-        elif line.startswith('{{{#!'):  # code: python, diff, ...
+        elif line.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
             in_code = True
             in_code_level = level
+            if a and a[-1].strip():
+                line = '\n' + line
             line =  re.sub(r'{{{#!([^\s]+)', r'OPENING__PROCESSOR__CODE\1', line)
             level += 1
         elif line.startswith('{{{') and not (in_code or in_html):
             in_code = True
             in_code_level = level
             if line.rstrip() == '{{{':
+                if a and a[-1].strip():
+                    line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE', 1)
             else:
-                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE\n', 1)
+                if a and a[-1].strip():
+                    line = '\n' + line
+                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' + '\n', 1)
             level += 1
         elif line.rstrip() == '}}}':
             level -= 1
@@ -371,6 +386,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = new_line
 
         if not (in_code or in_html):
+            # quote
+            m = re.match('^(>[>\s]*)', line)
+            if m:
+                prefix = m.group(0)
+                l = len(prefix)
+            else:
+                prefix = ''
+            quote_prefix += prefix
+            line = line[len(prefix):]
+
             line = RE_SUPERSCRIPT1.sub(r'<sup>\1</sup>', line)  # superscript ^abc^
             line = RE_SUBSCRIPT1.sub(r'<sub>\1</sub>', line)  # subscript ,,abc,,
 
@@ -403,6 +428,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_TICKET1.sub(r' #\1', line) # replace global ticket references
             line = RE_TICKET2.sub(conv_help.ticket_link, line)
             line = line.replace('@', r'`@`')
+
+            if RE_RULE.match(line):
+                if not a or not a[-1].strip():
+                    line = '---'
+                else:
+                    line = '\n---'
 
             line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)  # no CamelCase wiki link because of leading "!"
 
@@ -508,7 +539,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 elif t == 'i':
                     line = line.replace('i', toRoman(c).lower(), 1)
 
-        a.append(line)
+        for l in line.split('\n'):
+            a.append(quote_prefix + l)
 
     # Deal with a github table if the corresponding trac table contains td processors
     b = []
@@ -535,6 +567,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 elif line.endswith('| \\'):
                     line = line[:-3]
                     previous_line = line
+                elif line == '|':
+                    previous_line = ''
                 else:
                     table.append(line)
             in_table = True
@@ -576,10 +610,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     text = '\n'.join(b)
 
-    # clean artifacts
-    text = text.replace('OPENING__PROCESSOR__CODE', '\n```')
-    text = text.replace('CLOSING__PROCESSOR__CODE', '```\n')
-
+    # remove artifacts
+    text = text.replace('OPENING__PROCESSOR__CODE', '```')
+    text = text.replace('CLOSING__PROCESSOR__CODE', '```')
     text = text.replace('OPENING__LEFT__BRACKET', '[')
     text = text.replace('CLOSING__RIGHT__BRACKET', ']')
 
