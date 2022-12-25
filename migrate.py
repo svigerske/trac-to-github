@@ -745,8 +745,9 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
         if val is not None and val is not GithubObject.NotSet and val != '' :
             issue.add_to_assignees(val)
     elif key == 'state' :
-        issue.edit(state = val)
-        if not github:
+        if github:
+            issue.edit(state = val)
+        else:
             # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#reopened
             # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#closed
             issue.create_event('reopened' if val=='open' else 'closed', **kwds)
@@ -755,8 +756,9 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     elif key == 'title' :
         issue.edit(title = val)
     elif key == 'milestone' :
-        issue.edit(milestone=val)
-        if not github:
+        if github:
+            issue.edit(milestone=val)
+        else:
             if oldval and oldval is not GithubObject.NotSet:
                 # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#demilestoned
                 issue.create_event('demilestoned', milestone=oldval, **kwds)
