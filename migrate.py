@@ -1071,9 +1071,34 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     labels.append(keyword.strip())
                     gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
 
+        def title_status(summary, status=None):
+            r"""
+            Decode title prefixes such as [with patch, positive review] used in early Sage tickets.
+
+            Return (cleaned up title, status)
+            """
+            if m := re.match(r'^\[([A-Za-z_ ,;?]*)\] *', summary):
+                phrases = m.group(1).replace(';', ',').split(',')
+                keep_phrases = []
+                for phrase in phrases:
+                    phrase = phrase.strip()
+                    if re.fullmatch(r'needs review|positive review|needs work', phrase):
+                        status = phrase.replace(' ', '_')
+                    elif re.fullmatch(r'(with)? *(patch|bundl)e?s?|(with)? *spkg', phrase):
+                        pass
+                    else:
+                        keep_phrases.append(phrase)
+                if keep_phrases:
+                    summary = '[' + ', '.join(keep_phrases) + '] ' + summary[m.end(0):]
+                else:
+                    summary = summary[m.end(0):]
+            return summary, status
+
+        title, status = title_status(src_ticket_data.pop('summary'))
+
         # collect all parameters
         issue_data = {
-            'title' : src_ticket_data.pop('summary'),
+            'title' : title,
             'labels' : labels,
             #'assignee' : assignee,
         }
@@ -1102,8 +1127,21 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'state', 'closed')
         else:
             src_ticket_data.update(first_old_values)
-            status = src_ticket_data.pop('status')
+            if status is None:
+                status = src_ticket_data.pop('status')
         issue_state = mapstatus(status)
+
+        def change_status(newvalue, oldvalue):
+            newstate = mapstatus(newvalue)
+            if newstate == 'open':
+                # mapstatus maps the various statuses we have in trac
+                # to just 2 statuses in gitlab/github (open or closed),
+                # so to avoid a loss of information, we add a comment.
+                comment_data['note'] = 'Changing status from ' + (oldvalue or 'new') + ' to ' + newvalue + '.'
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+            if issue_state != newstate :
+                gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
+            return issue_state
 
         attachment = None
         for change in changelog:
@@ -1150,17 +1188,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # we will forget about these old versions and only keep the latest one
                 pass
             elif change_type == "status" :
-                newstate = mapstatus(newvalue)
-                if newstate == 'open':
-                    # mapstatus maps the various statuses we have in trac
-                    # to just 2 statuses in gitlab/github (open or closed),
-                    # so to avoid a loss of information, we add a comment.
-                    comment_data['note'] = 'Changing status from ' + oldvalue + ' to ' + newvalue + '.'
-                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                if issue_state != newstate :
-                    issue_state = newstate
-                    gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
-
+                issue_state = change_status(newvalue, oldvalue)
             elif change_type == "resolution" :
                 if oldvalue != '' :
                     desc = "Resolution changed from %s to %s" % (oldvalue, newvalue)
@@ -1241,9 +1269,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     comment_data['note'] = body
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "summary" :
-                issue_data['title'] = newvalue
-                gh_update_issue_property(dest, issue, 'title', issue_data['title'],
-                                         oldval=oldvalue)
+                oldtitle, oldstatus = title_status(oldvalue)
+                title, status = title_status(newvalue)
+                if title != oldtitle:
+                    issue_data['title'] = title
+                    gh_update_issue_property(dest, issue, 'title', title, oldval=oldtitle)
+                if status is not None:
+                    issue_state = change_status(status, oldstatus)
             elif change_type == "priority" :
                 oldlabels = copy(labels)
                 if oldvalue != '' and oldvalue != default_priority:
