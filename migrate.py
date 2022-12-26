@@ -978,8 +978,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
             for field, value in src_ticket_data.items():
                 if (not field.startswith('_')
-                    and field not in ['status', 'changetime', 'time']
-                    and value and value not in ['N/A', 'tba']):
+                    and field not in ['changetime', 'time']
+                    and value and value not in ['N/A', 'tba', 'closed']):
                     description_post += f'\n\n{field.title()}: {value}'
 
             description_post += f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
