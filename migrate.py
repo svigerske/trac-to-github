@@ -633,12 +633,22 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     # final rewriting
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
-    text = RE_GIT_SERVER_SRC.sub(r'https://github.com/sagemath/sagetrac-mirror/blob/master/src', text)
-    text = RE_GIT_SERVER_COMMIT.sub(r'https://github.com/sagemath/sagetrac-mirror/commit/\1', text)
+    text = RE_GIT_SERVER_SRC.sub(fr'{github_git_repo_base_url}/blob/master/src', text)
+    text = RE_GIT_SERVER_COMMIT.sub(fr'{github_git_repo_base_url}/commit/\1', text)
     text = RE_TRAC_REPORT.sub(r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
 
     return text
 
+github_git_repo_base_url = 'https://github.com/sagemath/sagetrac-mirror'
+def github_ref_url(ref):
+    if re.fullmatch(r'[0-9a-f]{40}', ref):  # commit sha
+        return f'{github_git_repo_base_url}/commit/{ref}'
+    else:  # assume branch
+        return f'{github_git_repo_base_url}/tree/{ref}'
+
+def github_ref_markdown(ref):
+    url = github_ref_url(ref)
+    return f'[{ref}]({url})'
 
 def convert_xmlrpc_datetime(dt):
     # datetime.strptime(str(dt), "%Y%m%dT%X").isoformat() + "Z"
@@ -994,19 +1004,16 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if keywords:
                     description_post += '\n\nKeywords: ' + keywords
 
-            branch = src_ticket_data.get('branch', '')
-            commit = src_ticket_data.get('commit', '')
+            branch = src_ticket_data.pop('branch', '')
+            commit = src_ticket_data.pop('commit', '')
             # These two are the same in all closed-fixed tickets. Reduce noise.
-            if branch:
-                if branch == commit:
-                    description_post += '\n\nBranch/Commit: ' + branch
-                    src_ticket_data.pop('branch')
-                    src_ticket_data.pop('commit')
-                elif not re.fullmatch(r'[0-9a-f]{40}', branch):
-                    # not a commit sha, assume branch
-                    repo = 'https://github.com/sagemath/sagetrac-mirror'
-                    description_post += f'\n\nBranch: [{branch}]({repo}/tree/{branch})'
-                    src_ticket_data.pop('branch')
+            if branch and branch == commit:
+                description_post += '\n\nBranch/Commit: ' + github_ref_markdown(branch)
+            else:
+                if branch:
+                    description_post += f'\n\nBranch: ' + github_ref_markdown(branch)
+                if commit:
+                    description_post += f'\n\nCommit: ' + github_ref_markdown(commit)
 
             description = src_ticket_data.pop('description', '')
 
