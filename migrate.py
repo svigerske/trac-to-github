@@ -34,6 +34,7 @@ import ast
 import codecs
 import warnings
 from datetime import datetime
+from difflib import unified_diff
 from time import sleep
 #from re import MULTILINE
 from roman import toRoman
@@ -769,7 +770,8 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
         note += body
 
     if comment_id:
-        note = f"<a id='comment:{comment_id}'></a>" + "\n" + note
+        anchor = f"<a id='comment:{comment_id}'></a>"
+        note = anchor + '\n' + note
 
     if dest is None : return
 
@@ -802,7 +804,7 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
             # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#closed
             issue.create_event('reopened' if val=='open' else 'closed', **kwds)
     elif key == 'description' :
-        issue.edit(body = val)
+        issue.edit(body=val)
     elif key == 'title' :
         issue.edit(title = val)
     elif key == 'milestone' :
@@ -975,12 +977,20 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if keywords:
                     description_post += '\n\nKeywords: ' + keywords
 
+            branch = src_ticket_data.get('branch', '')
+            commit = src_ticket_data.get('commit', '')
+            # These two are the same in all closed-fixed tickets. Reduce noise.
+            if branch and branch == commit:
+                description_post += '\n\nBranch/Commit: ' + branch
+                src_ticket_data.pop('branch')
+                src_ticket_data.pop('commit')
+
             description = src_ticket_data.pop('description', '')
 
             for field, value in src_ticket_data.items():
                 if (not field.startswith('_')
-                    and field not in ['status', 'changetime', 'time']
-                    and value and value not in ['N/A', 'tba']):
+                    and field not in ['changetime', 'time']
+                    and value and value not in ['N/A', 'tba', 'closed']):
                     description_post += f'\n\n{field.title()}: {value}'
 
             description_post += f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
@@ -993,9 +1003,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         # ... and similar for other attributes
         first_old_values = {}
         for change in changelog :
-            time, author, field, oldvalue, newvalue, permanent = change
-            if field not in first_old_values:
-                if field not in ['milestone', 'cc', 'reporter']:
+            time, author, change_type, oldvalue, newvalue, permanent = change
+            if change_type not in first_old_values:
+                if (change_type not in ['milestone', 'cc', 'reporter', 'comment', 'attachment']
+                    and not change_type.startswith('_comment')):
+                    field = change_type
                     if isinstance(oldvalue, str):
                         oldvalue = oldvalue.strip()
                     first_old_values[field] = oldvalue
@@ -1195,8 +1207,19 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
-                issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
-                gh_update_issue_property(dest, issue, 'description', issue_data['description'])
+                if github:
+                    issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
+                    gh_update_issue_property(dest, issue, 'description', issue_data['description'])
+                else:
+                    body = 'Description changed:\n``````diff\n'
+                    old_description = trac2markdown(oldvalue, '/issues/', conv_help, False)
+                    new_description = trac2markdown(newvalue, '/issues/', conv_help, False)
+                    body += '\n'.join(unified_diff(old_description.split('\n'),
+                                                   new_description.split('\n'),
+                                                   lineterm=''))
+                    body += '\n``````\n'
+                    comment_data['note'] = body
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "summary" :
                 issue_data['title'] = newvalue
                 gh_update_issue_property(dest, issue, 'title', issue_data['title'])
@@ -1243,10 +1266,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 else :
                     comment_data['note'] = 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author", "changetime", "reporter"] :
-                print("TODO Change type: ", change_type)
             else:
-                warnings.warn("Unknown change type " + change_type)
+                if oldvalue != newvalue:
+                    comment_data['note'] = f'Changing {change_type} from "{oldvalue}" to "{newvalue}"'
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+
         #assert attachment is None
 
         ticketcount += 1
