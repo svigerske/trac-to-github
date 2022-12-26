@@ -757,7 +757,10 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
         note += body
 
     if comment_id:
-        note = f"<a id='comment:{comment_id}'></a>" + note
+        anchor = f"<a id='comment:{comment_id}'></a>"
+        if note.startswith('```'):
+            anchor += '\n'
+        note = anchor + note
 
     if dest is None : return
 
