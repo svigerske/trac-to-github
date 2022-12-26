@@ -244,7 +244,8 @@ RE_TICKET_COMMENT1 = re.compile(r'\sticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
 
-RE_GIT_SERVER = re.compile(r'https?://git.sagemath.org/sage.git/tree/src')
+RE_GIT_SERVER_SRC = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src')
+RE_GIT_SERVER_COMMIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?[?]id=([0-9a-f]+)')
 RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
@@ -631,7 +632,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     # final rewriting
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
-    text = RE_GIT_SERVER.sub(r'https://github.com/sagemath/sagetrac-mirror/blob/master/src', text)
+    text = RE_GIT_SERVER_SRC.sub(r'https://github.com/sagemath/sagetrac-mirror/blob/master/src', text)
+    text = RE_GIT_SERVER_COMMIT.sub(r'https://github.com/sagemath/sagetrac-mirror/commit/\1', text)
     text = RE_TRAC_REPORT.sub(r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
 
     return text
