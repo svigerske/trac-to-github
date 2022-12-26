@@ -808,7 +808,10 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     elif key == 'description' :
         issue.edit(body=val)
     elif key == 'title' :
-        issue.edit(title = val)
+        if github:
+            issue.edit(title = val)
+        else:
+            issue.create_event('renamed', rename={'from': oldval, 'to': val}, **kwds)
     elif key == 'milestone' :
         if github:
             issue.edit(milestone=val)
