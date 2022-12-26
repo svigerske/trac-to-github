@@ -997,10 +997,16 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             branch = src_ticket_data.get('branch', '')
             commit = src_ticket_data.get('commit', '')
             # These two are the same in all closed-fixed tickets. Reduce noise.
-            if branch and branch == commit:
-                description_post += '\n\nBranch/Commit: ' + branch
-                src_ticket_data.pop('branch')
-                src_ticket_data.pop('commit')
+            if branch:
+                if branch == commit:
+                    description_post += '\n\nBranch/Commit: ' + branch
+                    src_ticket_data.pop('branch')
+                    src_ticket_data.pop('commit')
+                elif not re.fullmatch(r'[0-9a-f]{40}', branch):
+                    # not a commit sha, assume branch
+                    repo = 'https://github.com/sagemath/sagetrac-mirror'
+                    description_post += f'\n\nBranch: [{branch}]({repo}/tree/{branch})'
+                    src_ticket_data.pop('branch')
 
             description = src_ticket_data.pop('description', '')
 
