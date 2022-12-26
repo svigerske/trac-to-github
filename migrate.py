@@ -717,7 +717,7 @@ def gh_create_issue(dest, issue_data) :
 
     return gh_issue
 
-def gh_comment_issue(dest, issue, comment, src_ticket_id) :
+def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     # upload attachement, if there is one
     if 'attachment_name' in comment :
         filename = comment.pop('attachment_name')
@@ -755,6 +755,9 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id) :
         if note:
             note += '\n\n'
         note += body
+
+    if comment_id:
+        note = f"<a id='comment:{comment_id}'></a>" + note
 
     if dest is None : return
 
@@ -1086,6 +1089,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 attachment = change
             elif change_type == "comment":
                 # oldvalue is here either x or y.x, where x is the number of this comment and y is the number of the comment that is replied to
+                m = re.match('([0-9]+.)?([0-9]+)', oldvalue)
+                x = m and m.group(2)
                 desc = newvalue.strip();
                 if desc == '' and attachment is None :
                     # empty description and not description of attachment
@@ -1096,7 +1101,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     comment_data['attachment_name'] = attachment[4]  # name of attachment
                     comment_data['attachment'] = get_ticket_attachment(source, src_ticket_id, attachment[4]).data
                     attachment = None
-                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id, comment_id=x)
             elif change_type.startswith("_comment") :
                 # this is an old version of a comment, which has been edited later (given in previous change),
                 # e.g., see http://localhost:8080/ticket/3431#comment:9 http://localhost:8080/ticket/3400#comment:14
