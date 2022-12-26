@@ -1255,10 +1255,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 else :
                     comment_data['note'] = 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-            elif change_type in ["commit",  "upstream",  "stopgaps", "branch", "reviewer", "work_issues", "merged", "dependencies", "author", "changetime", "reporter"] :
-                print("TODO Change type: ", change_type)
             else:
-                warnings.warn("Unknown change type " + change_type)
+                if oldvalue != newvalue:
+                    comment_data['note'] = f'Changing {change_type} from "{oldvalue}" to "{newvalue}"'
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+
         #assert attachment is None
 
         ticketcount += 1
