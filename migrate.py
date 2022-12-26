@@ -238,6 +238,9 @@ RE_BOLDTEXT1 = re.compile(r'\'\'\'(.*?)\'\'\'')
 RE_ITALIC1 = re.compile(r'\'\'(.*?)\'\'')
 RE_TICKET1 = re.compile(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket)
 RE_TICKET2 = re.compile(r'\#([1-9]\d{0,4})')
+RE_COMMENT1 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
+RE_COMMENT2 = re.compile(r'\scomment:([1-9]\d*)')  # need to exclude the string as part of http url
+RE_TICKET_COMMENT1 = re.compile(r'\sticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
 
@@ -331,7 +334,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         elif line.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
             in_code = True
             in_code_level = level
-            if a and a[-1].strip():
+            if not a or a[-1].strip():
                 line = '\n' + line
             line =  re.sub(r'{{{#!([^\s]+)', r'OPENING__PROCESSOR__CODE\1', line)
             level += 1
@@ -339,11 +342,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             in_code = True
             in_code_level = level
             if line.rstrip() == '{{{':
-                if a and a[-1].strip():
+                if not a or a[-1].strip():
                     line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE', 1)
             else:
-                if a and a[-1].strip():
+                if not a or a[-1].strip():
                     line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' + '\n', 1)
             level += 1
@@ -428,6 +431,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             line = RE_TICKET1.sub(r' #\1', line) # replace global ticket references
             line = RE_TICKET2.sub(conv_help.ticket_link, line)
+
+            line = RE_COMMENT1.sub(r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(#comment%3A\1)', line)
+            line = RE_COMMENT2.sub(r'OPENING__LEFT__BRACKETcomment:\1CLOSING__RIGHT__BRACKET(#comment%3A\1)', line)
+
+            line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
+
             line = line.replace('@', r'`@`')
 
             if RE_RULE.match(line):
@@ -1363,11 +1372,25 @@ class ConversionHelper:
         """
         ticket = match.groups()[0]
         if self._keep_trac_ticket_references:
-            # as long as the ticket themselfs have not been migrated they should reference to the original place
+            # as long as the ticket themselves have not been migrated they should reference to the original place
             return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
         else:
             # leave them as is
             return r'#%s' % ticket
+
+    def ticket_comment_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a Trac ticket comment link.
+        """
+        ticket = match.group(0)
+        comment = match.group(1)
+        if self._keep_trac_ticket_references:
+            # as long as the ticket themselves have not been migrated they should reference to the original place
+            return r'[#%s comment:%s](%s/%s#comment:%s)' % (ticket, comment, trac_url_ticket, ticket, comment)
+        else:
+            # leave them as is
+            return r'ticket:%s#comment:%s' % (ticket, comment)
 
     def wiki_image(self, match):
         """
