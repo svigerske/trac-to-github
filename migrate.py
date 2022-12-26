@@ -966,6 +966,14 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if keywords:
                     description_post += '\n\nKeywords: ' + keywords
 
+            branch = src_ticket_data.get('branch', '')
+            commit = src_ticket_data.get('commit', '')
+            # These two are the same in all closed-fixed tickets. Reduce noise.
+            if branch and branch == commit:
+                description_post += '\n\nBranch/Commit: ' + branch
+                src_ticket_data.pop('branch')
+                src_ticket_data.pop('commit')
+
             description = src_ticket_data.pop('description', '')
 
             for field, value in src_ticket_data.items():
