@@ -993,9 +993,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         # ... and similar for other attributes
         first_old_values = {}
         for change in changelog :
-            time, author, field, oldvalue, newvalue, permanent = change
-            if field not in first_old_values:
-                if field not in ['milestone', 'cc', 'reporter']:
+            time, author, change_type, oldvalue, newvalue, permanent = change
+            if change_type not in first_old_values:
+                if (change_type not in ['milestone', 'cc', 'reporter', 'comment', 'attachment']
+                    and not change_type.startswith('_comment')):
+                    field = change_type
                     if isinstance(oldvalue, str):
                         oldvalue = oldvalue.strip()
                     first_old_values[field] = oldvalue
@@ -1200,9 +1202,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_update_issue_property(dest, issue, 'description', issue_data['description'])
                 else:
                     body = 'Description changed:\n``````diff\n'
-                    old_description = issue_description(src_ticket_data)
-                    src_ticket_data['description'] = newvalue
-                    new_description = issue_description(src_ticket_data)
+                    old_description = trac2markdown(oldvalue, '/issues/', conv_help, False)
+                    new_description = trac2markdown(newvalue, '/issues/', conv_help, False)
                     body += '\n'.join(unified_diff(old_description.split('\n'),
                                                    new_description.split('\n'),
                                                    lineterm=''))
