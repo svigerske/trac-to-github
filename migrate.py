@@ -34,6 +34,7 @@ import ast
 import codecs
 import warnings
 from datetime import datetime
+from difflib import unified_diff
 from time import sleep
 #from re import MULTILINE
 from roman import toRoman
@@ -793,7 +794,7 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
             # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#closed
             issue.create_event('reopened' if val=='open' else 'closed', **kwds)
     elif key == 'description' :
-        issue.edit(body = val)
+        issue.edit(body=val)
     elif key == 'title' :
         issue.edit(title = val)
     elif key == 'milestone' :
@@ -1194,8 +1195,20 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels)
             elif change_type == "description" :
-                issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
-                gh_update_issue_property(dest, issue, 'description', issue_data['description'])
+                if github:
+                    issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
+                    gh_update_issue_property(dest, issue, 'description', issue_data['description'])
+                else:
+                    body = 'Description changed:\n```diff\n'
+                    old_description = issue_description(src_ticket_data)
+                    src_ticket_data['description'] = newvalue
+                    new_description = issue_description(src_ticket_data)
+                    body += '\n'.join(unified_diff(old_description.split('\n'),
+                                                   new_description.split('\n'),
+                                                   lineterm=''))
+                    body += '\n```\n'
+                    comment_data['note'] = body
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "summary" :
                 issue_data['title'] = newvalue
                 gh_update_issue_property(dest, issue, 'title', issue_data['title'])
