@@ -1205,7 +1205,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     new_description = issue_description(src_ticket_data)
                     body += '\n'.join(unified_diff(old_description.split('\n'),
                                                    new_description.split('\n'),
-                                                   lineterm=''))
+                                                   lineterm='')).replace(r'`', r'\`')
                     body += '\n```\n'
                     comment_data['note'] = body
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
