@@ -551,18 +551,18 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         for l in line.split('\n'):
             a.append(quote_prefix + l)
 
-    # Deal with a github table if the corresponding trac table contains td processors
+    # process a github table when the corresponding trac table contains td processors
     b = []
     table = []
     in_table = False
     in_block = False
     in_td = False
     previous_line = ''
-    for line in a:
+    for line in a + ['']:  # a blank line terminates a table at the end
         if previous_line:
             line = previous_line + line
             previous_line = ''
-        if line == '|\\' or line == '| \\':  #  ||\ or || \ in trac
+        if line == '|\\' or line == '| \\':  #  ||\ or || \ in trac, which (always?) precedes a TD block
             in_block = True
             block = []
         elif line.startswith('|'):
@@ -593,7 +593,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             else:
                 line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
                 b.append(line)
-        else:
+        else:  # blank line
             if in_block and in_td:
                 block.append(line)
             elif in_table:  # terminate a table
@@ -610,12 +610,15 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     html = table_text
                 html = html.replace('NEW__LINE', '\n')
                 html = html.replace('SEPARATOR__BETWEEN__BRACKETS', r'\|')
-                b += html.split('\n')  # process table
+                b += html.split('\n')
+                b.append(line)
+
                 table = []
                 in_table = False
             else:
                 line = line.replace('SEPARATOR__BETWEEN__BRACKETS', r'|')
                 b.append(line)
+    b = b[:-1]
 
     text = '\n'.join(b)
 
@@ -766,7 +769,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
         note += body
 
     if comment_id:
-        note = f"<a id='comment:{comment_id}'></a>" + note
+        note = f"<a id='comment:{comment_id}'></a>" + "\n" + note
 
     if dest is None : return
 
