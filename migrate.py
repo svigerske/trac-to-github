@@ -33,6 +33,7 @@ import contextlib
 import ast
 import codecs
 import warnings
+from copy import copy
 from datetime import datetime
 from difflib import unified_diff
 from time import sleep
@@ -788,9 +789,20 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
 def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     if dest is None : return
 
-    if key == 'labels' :
+    if key == 'labels':
         labels = [gh_labels[label.lower()] for label in val if label]
-        issue.set_labels(*labels)
+        if github:
+            issue.set_labels(*labels)
+        else:
+            oldlabels = [gh_labels[label.lower()] for label in oldval if label]
+            for label in oldlabels:
+                if label not in labels:
+                    # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#unlabeled
+                    issue.create_event('unlabeled', label=label, **kwds)
+            for label in labels:
+                if label not in oldlabels:
+                    # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#labeled
+                    issue.create_event('labeled', label=label, **kwds)
     elif key == 'assignee' :
         if issue.assignee == val:
             return
@@ -1157,6 +1169,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "component" :
+                oldlabels = copy(labels)
                 if oldvalue != '' :
                     with contextlib.suppress(ValueError):
                         label = mapcomponent(oldvalue)
@@ -1166,9 +1179,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if label:
                     labels.append(label)
                     gh_ensure_label(dest, label, labelcolor['component'])
-                comment_data['note'] = 'Changing component from ' + oldvalue + ' to ' + newvalue + '.'
-                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels)
+                # comment_data['note'] = 'Changing component from ' + oldvalue + ' to ' + newvalue + '.'
+                # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "owner" :
                 if oldvalue != '' and newvalue != '':
                     comment_data['note'] = 'Changing assignee from ' + gh_username(dest, oldvalue) + ' to ' + gh_username(dest, newvalue) + '.'
@@ -1202,6 +1215,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
+                oldlabels = copy(labels)
                 if oldvalue != '' :
                     oldtype = maptickettype(oldvalue)
                     with contextlib.suppress(ValueError):
@@ -1209,9 +1223,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 newtype = maptickettype(newvalue)
                 labels.append(newtype)
                 gh_ensure_label(dest, newtype, labelcolor['type'])
-                comment_data['note'] = 'Changing type from ' + oldvalue + ' to ' + newvalue + '.'
-                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels)
+                # comment_data['note'] = 'Changing type from ' + oldvalue + ' to ' + newvalue + '.'
+                # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "description" :
                 if github:
                     issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
@@ -1228,8 +1242,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "summary" :
                 issue_data['title'] = newvalue
-                gh_update_issue_property(dest, issue, 'title', issue_data['title'])
+                gh_update_issue_property(dest, issue, 'title', issue_data['title'],
+                                         oldval=oldvalue)
             elif change_type == "priority" :
+                oldlabels = copy(labels)
                 if oldvalue != '' and oldvalue != default_priority:
                     with contextlib.suppress(ValueError):
                         labels.remove(mappriority(oldvalue))
@@ -1237,21 +1253,23 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     label = mappriority(newvalue)
                     labels.append(label)
                     gh_ensure_label(dest, label, labelcolor['priority'])
-                    comment_data['note'] = 'Changing priority from ' + oldvalue + ' to ' + newvalue + '.'
-                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels)
+                    # comment_data['note'] = 'Changing priority from ' + oldvalue + ' to ' + newvalue + '.'
+                    # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "severity" :
+                oldlabels = copy(labels)
                 if oldvalue != '' and oldvalue != 'normal' :
                     with contextlib.suppress(ValueError):
                         labels.remove(oldvalue)
                 if newvalue != '' and newvalue != 'normal' :
                     labels.append(newvalue)
                     gh_ensure_label(dest, newvalue, labelcolor['severity'])
-                    comment_data['note'] = 'Changing severity from ' + oldvalue + ' to ' + newvalue + '.'
-                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels)
+                    # comment_data['note'] = 'Changing severity from ' + oldvalue + ' to ' + newvalue + '.'
+                    # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "keywords" :
                 if keywords_to_labels :
+                    oldlabels = copy(labels)
                     oldkeywords = oldvalue.split(',')
                     newkeywords = newvalue.split(',')
                     for keyword in oldkeywords :
@@ -1268,7 +1286,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     newkeywords = [ kw.strip() for kw in newkeywords ]
                     comment_data['note'] = 'Changing keywords from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                    gh_update_issue_property(dest, issue, 'labels', labels)
+                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
                 else :
                     comment_data['note'] = 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
