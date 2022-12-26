@@ -675,7 +675,7 @@ def mappriority(priority):
     return priority
 
 def mapstatus(status):
-    if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review',
+    if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'open',
                   'needs_work', 'needs_info', 'needs_info_new', 'positive_review']:
         return 'open'
     elif status in ['closed'] :
