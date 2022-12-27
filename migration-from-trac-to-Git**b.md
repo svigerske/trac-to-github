@@ -137,7 +137,7 @@ Preview of the converted issues:
 
 Preview of the converted wiki: https://github.com/sagemath/trac_to_gh/wiki
 
-Switchover day (date to be determined; proposed: Nov 1):
+Switchover day (date to be determined; proposed: Feb 1, 2023):
 1. Make Trac read-only:
    - Take Trac offline, 
    - Reconfigure Trac ticket system, Trac wiki to be read-only
