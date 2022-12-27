@@ -910,6 +910,17 @@ def gh_user_url(dest, username):
         return f'https://trac.sagemath.org/admin/accounts/users/{username}'
     return None
 
+def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tba']):
+    "Split and transform comma- separated lists of names"
+    if not orignames:
+        return ''
+    names = []
+    for origname in orignames.split(','):
+        name = gh_username(dest, origname.strip())
+        if name and name not in ignore:
+            names.append(name)
+    return ', '.join(names)
+
 @cache.memoize(ignore=[0, 'source'])
 def get_all_milestones(source):
     return source.ticket.milestone.getAll()
@@ -1013,9 +1024,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             description_pre = ""
             description_post = ""
 
-            owner = src_ticket_data.pop('owner', None)
+            owner = gh_username_list(dest, src_ticket_data.pop('owner', None))
             if owner:
-                description_post += '\n\n**Assignee:** ' + gh_username(dest, owner)
+                description_post += '\n\n**Assignee:** ' + owner
 
             version = src_ticket_data.pop('version', None)
             if version is not None and version != 'trunk' :
@@ -1257,13 +1268,16 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "owner" :
-                if oldvalue != '' and newvalue != '':
-                    comment_data['note'] = '**Changing assignee** from ' + gh_username(dest, oldvalue) + ' to ' + gh_username(dest, newvalue) + '.'
-                elif oldvalue == '':
-                    comment_data['note'] = '**Set assignee** to ' + gh_username(dest, newvalue) + '.'
+                oldvalue = gh_username_list(dest, oldvalue)
+                newvalue = gh_username_list(dest, newvalue)
+                if oldvalue and newvalue:
+                    comment_data['note'] = '**Changing assignee** from ' + oldvalue + ' to ' + newvalue + '.'
+                elif newvalue:
+                    comment_data['note'] = '**Assignee:** ' + newvalue
                 else:
-                    comment_data['note'] = '**Remove assignee** ' + gh_username(dest, oldvalue) + '.'
-                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                    comment_data['note'] = '**Remove assignee** ' + oldvalue + '.'
+                if newvalue != oldvalue:
+                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
                 # if newvalue != oldvalue :
                 #     assignee = gh_username(dest, newvalue)
