@@ -397,7 +397,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             else:
                 if non_blank_previous_line:
                     line = '\n' + line
-                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' , 1) + '\n'
+                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' +'\n' , 1)
             level += 1
         elif line_temporary.rstrip() == '}}}':
             level -= 1
