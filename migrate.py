@@ -262,9 +262,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = re.sub(r'(?sm){{{\n#!', r'{{{#!', text)
     text = re.sub(r'\swiki:([a-zA-Z]+)', r' [wiki:\1]', text)
 
-    # inline code snippets
-    text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
-
     text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
     text = re.sub(r'(?m)\[\[PageOutline\]\]\s*\n', '', text)
     text = text.replace('[[BR]]', '\n')
@@ -317,33 +314,45 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = '\n' + line
             quote_prefix = ''
 
+        if not (in_code or in_html):
+            # quote
+            m = re.match('^(>[>\s]*)', line)
+            if m:
+                prefix = m.group(0)
+                l = len(prefix)
+            else:
+                prefix = ''
+            quote_prefix += prefix
+            line = line[len(prefix):]
+
         if previous_line:
             line = previous_line + line
             previous_line = ''
 
-        if line.startswith('{{{') and in_code:
+        line_temporary = line.lstrip()
+        if line_temporary.startswith('{{{') and in_code:
             level += 1
-        elif line.startswith('{{{#!td'):
+        elif line_temporary.startswith('{{{#!td'):
             in_td = True
             in_td_level = level
             line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
             level += 1
-        elif line.startswith('{{{#!html') and not (in_code or in_html):
+        elif line_temporary.startswith('{{{#!html') and not (in_code or in_html):
             in_html = True
             in_html_level = level
             line =  re.sub(r'{{{#!html', r'', line)
             level += 1
-        elif line.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
+        elif line_temporary.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
             in_code = True
             in_code_level = level
             if not a or a[-1].strip():
                 line = '\n' + line
             line =  re.sub(r'{{{#!([^\s]+)', r'OPENING__PROCESSOR__CODE\1', line)
             level += 1
-        elif line.startswith('{{{') and not (in_code or in_html):
+        elif line_temporary.startswith('{{{') and not (in_code or in_html):
             in_code = True
             in_code_level = level
-            if line.rstrip() == '{{{':
+            if line_temporary.rstrip() == '{{{':
                 if not a or a[-1].strip():
                     line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE', 1)
@@ -352,7 +361,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' + '\n', 1)
             level += 1
-        elif line.rstrip() == '}}}':
+        elif line_temporary.rstrip() == '}}}':
             level -= 1
             if in_td and in_td_level == level:
                 in_td = False
@@ -392,16 +401,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = new_line
 
         if not (in_code or in_html):
-            # quote
-            m = re.match('^(>[>\s]*)', line)
-            if m:
-                prefix = m.group(0)
-                l = len(prefix)
-            else:
-                prefix = ''
-            quote_prefix += prefix
-            line = line[len(prefix):]
-
             line = RE_SUPERSCRIPT1.sub(r'<sup>\1</sup>', line)  # superscript ^abc^
             line = RE_SUBSCRIPT1.sub(r'<sub>\1</sub>', line)  # subscript ,,abc,,
 
@@ -439,6 +438,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
 
+            # inline code snippets
+            def inline_code_snippet(match):
+                code = match.group(1)
+                code = code.replace('@', 'AT__SIGN__IN__CODE')
+                return '`' + code + '`'
+
+            line = re.sub(r'{{{(.*?)}}}', inline_code_snippet, line)
+            line = re.sub(r'`(.*?)`', inline_code_snippet, line)
+
+            # to avoid unintended github mention
             line = line.replace('@', r'`@`')
 
             if RE_RULE.match(line):
@@ -630,12 +639,33 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = text.replace('CLOSING__PROCESSOR__CODE', '```')
     text = text.replace('OPENING__LEFT__BRACKET', '[')
     text = text.replace('CLOSING__RIGHT__BRACKET', ']')
+    text = text.replace('AT__SIGN__IN__CODE', '@')
 
-    # final rewriting
+    # Sage-specific rewritings
+
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
     text = RE_GIT_SERVER_SRC.sub(fr'{github_git_repo_base_url}/blob/master/src', text)
     text = RE_GIT_SERVER_COMMIT.sub(fr'{github_git_repo_base_url}/commit/\1', text)
     text = RE_TRAC_REPORT.sub(r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
+
+    def commits_list(match):
+        t = '**' + match.group(1) +'**\n'
+        t += '<table>'
+        for c in match.group(2).split('\n')[2:]:  # the first two are blank header
+            if not c:
+                continue
+            _, commit_id, commit_message, _ = c.split('|')
+            t_id = re.sub(r'\[(.+?)\]\((.*)\)', r'<td><a href="\2">\1</a></td>', commit_id)
+            t_msg = re.sub(r'`(.*?)`', r'<td><code>\1</code></td>', commit_message)
+            t += '<tr>' + t_id + t_msg + '</tr>'
+        t += '</table>\n'
+        return t
+
+    text = re.sub(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
+    text = re.sub(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
+
+    text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1. This was a forced push.)', r'**\1**', text)
+    text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1.)', r'**\1**', text)
 
     return text
 
@@ -982,11 +1012,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
             owner = src_ticket_data.pop('owner', None)
             if owner:
-                description_post += '\n\nAssignee: ' + gh_username(dest, owner)
+                description_post += '\n\n**Assignee:** ' + gh_username(dest, owner)
 
             version = src_ticket_data.pop('version', None)
             if version is not None and version != 'trunk' :
-                description_post += '\n\nVersion: ' + version
+                description_post += '\n\n**Version:** ' + version
 
             # subscribe persons in cc
             cc = src_ticket_data.pop('cc', '').lower()
@@ -997,23 +1027,23 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 person = gh_username(dest, person)
                 ccstr += ' ' + person
             if ccstr != '' :
-                description_post += '\n\nCC: ' + ccstr
+                description_post += '\n\n**CC:** ' + ccstr
 
             if not keywords_to_labels:
                 keywords = src_ticket_data.pop('keywords', '')
                 if keywords:
-                    description_post += '\n\nKeywords: ' + keywords
+                    description_post += '\n\n**Keywords:** ' + keywords
 
             branch = src_ticket_data.pop('branch', '')
             commit = src_ticket_data.pop('commit', '')
             # These two are the same in all closed-fixed tickets. Reduce noise.
             if branch and branch == commit:
-                description_post += '\n\nBranch/Commit: ' + github_ref_markdown(branch)
+                description_post += '\n\n**Branch/Commit:** ' + github_ref_markdown(branch)
             else:
                 if branch:
-                    description_post += f'\n\nBranch: ' + github_ref_markdown(branch)
+                    description_post += f'\n\n**Branch:** ' + github_ref_markdown(branch)
                 if commit:
-                    description_post += f'\n\nCommit: ' + github_ref_markdown(commit)
+                    description_post += f'\n\n**Commit:** ' + github_ref_markdown(commit)
 
             description = src_ticket_data.pop('description', '')
 
@@ -1022,7 +1052,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     and field not in ['changetime', 'time']
                     and value and value not in ['N/A', 'tba', 'tbd', 'closed', 'somebody']):
                     field = field.title().replace('_', ' ')
-                    description_post += f'\n\n{field}: {value}'
+                    description_post += f'\n\n**{field}:** {value}'
 
             description_post += f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
 
@@ -1150,7 +1180,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # mapstatus maps the various statuses we have in trac
                 # to just 2 statuses in gitlab/github (open or closed),
                 # so to avoid a loss of information, we add a comment.
-                comment_data['note'] = 'Changing status from ' + (oldvalue or 'new') + ' to ' + newvalue + '.'
+                comment_data['note'] = '**Changing status from ' + (oldvalue or 'new') + ' to ' + newvalue + '.**'
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             if issue_state != newstate :
                 gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
@@ -1204,9 +1234,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 issue_state = change_status(newvalue, oldvalue)
             elif change_type == "resolution" :
                 if oldvalue != '' :
-                    desc = "Resolution changed from %s to %s" % (oldvalue, newvalue)
+                    desc = "**Resolution changed from %s to %s.**" % (oldvalue, newvalue)
                 else :
-                    desc = "Resolution: " + newvalue
+                    desc = "**Resolution:** " + newvalue
                 comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "component" :
@@ -1225,11 +1255,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "owner" :
                 if oldvalue != '' and newvalue != '':
-                    comment_data['note'] = 'Changing assignee from ' + gh_username(dest, oldvalue) + ' to ' + gh_username(dest, newvalue) + '.'
+                    comment_data['note'] = '**Changing assignee from ' + gh_username(dest, oldvalue) + ' to ' + gh_username(dest, newvalue) + '.**'
                 elif oldvalue == '':
-                    comment_data['note'] = 'Set assignee to ' + gh_username(dest, newvalue) + '.'
+                    comment_data['note'] = '**Set assignee to ' + gh_username(dest, newvalue) + '.**'
                 else:
-                    comment_data['note'] = 'Remove assignee ' + gh_username(dest, oldvalue) + '.'
+                    comment_data['note'] = '**Remove assignee ' + gh_username(dest, oldvalue) + '.**'
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
                 # if newvalue != oldvalue :
@@ -1239,9 +1269,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 #     gh_update_issue_property(dest, issue, 'assignee', assignee)
             elif change_type == "version" :
                 if oldvalue != '' :
-                    desc = "Version changed from %s to %s" % (oldvalue, newvalue)
+                    desc = "**Version changed from %s to %s.**" % (oldvalue, newvalue)
                 else :
-                    desc = "Version: " + newvalue
+                    desc = "**Version:** " + newvalue
                 comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "milestone" :
@@ -1272,7 +1302,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
                     gh_update_issue_property(dest, issue, 'description', issue_data['description'])
                 else:
-                    body = 'Description changed:\n``````diff\n'
+                    body = '**Description changed:**\n``````diff\n'
                     old_description = trac2markdown(oldvalue, '/issues/', conv_help, False)
                     new_description = trac2markdown(newvalue, '/issues/', conv_help, False)
                     body += '\n'.join(unified_diff(old_description.split('\n'),
@@ -1329,11 +1359,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                             gh_ensure_label(dest, keyword, labelcolor['keyword'])
                     oldkeywords = [ kw.strip() for kw in oldkeywords ]
                     newkeywords = [ kw.strip() for kw in newkeywords ]
-                    comment_data['note'] = 'Changing keywords from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".'
+                    comment_data['note'] = '**Changing keywords from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".**'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                     gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
                 else :
-                    comment_data['note'] = 'Changing keywords from "' + oldvalue + '" to "' + newvalue + '".'
+                    comment_data['note'] = '**Changing keywords from "' + oldvalue + '" to "' + newvalue + '".**'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             else:
                 if oldvalue != newvalue:
@@ -1343,9 +1373,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                         if newvalue:
                             newvalue = github_ref_markdown(newvalue)
                     if not oldvalue:
-                        comment_data['note'] = f'{change_type.title()}: {newvalue}'
+                        comment_data['note'] = f'**{change_type.title()}:** {newvalue}'
                     else:
-                        comment_data['note'] = f'Changing {change_type} from "{oldvalue}" to "{newvalue}"'
+                        comment_data['note'] = f'**Changing {change_type} from "{oldvalue}" to "{newvalue}".**'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
         #assert attachment is None
