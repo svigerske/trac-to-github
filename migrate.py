@@ -262,9 +262,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = re.sub(r'(?sm){{{\n#!', r'{{{#!', text)
     text = re.sub(r'\swiki:([a-zA-Z]+)', r' [wiki:\1]', text)
 
-    # inline code snippets
-    text = re.sub(r'{{{(.*?)}}}', r'`\1`', text)
-
     text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
     text = re.sub(r'(?m)\[\[PageOutline\]\]\s*\n', '', text)
     text = text.replace('[[BR]]', '\n')
@@ -317,33 +314,45 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = '\n' + line
             quote_prefix = ''
 
+        if not (in_code or in_html):
+            # quote
+            m = re.match('^(>[>\s]*)', line)
+            if m:
+                prefix = m.group(0)
+                l = len(prefix)
+            else:
+                prefix = ''
+            quote_prefix += prefix
+            line = line[len(prefix):]
+
         if previous_line:
             line = previous_line + line
             previous_line = ''
 
-        if line.startswith('{{{') and in_code:
+        line_temporary = line.lstrip()
+        if line_temporary.startswith('{{{') and in_code:
             level += 1
-        elif line.startswith('{{{#!td'):
+        elif line_temporary.startswith('{{{#!td'):
             in_td = True
             in_td_level = level
             line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
             level += 1
-        elif line.startswith('{{{#!html') and not (in_code or in_html):
+        elif line_temporary.startswith('{{{#!html') and not (in_code or in_html):
             in_html = True
             in_html_level = level
             line =  re.sub(r'{{{#!html', r'', line)
             level += 1
-        elif line.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
+        elif line_temporary.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
             in_code = True
             in_code_level = level
             if not a or a[-1].strip():
                 line = '\n' + line
             line =  re.sub(r'{{{#!([^\s]+)', r'OPENING__PROCESSOR__CODE\1', line)
             level += 1
-        elif line.startswith('{{{') and not (in_code or in_html):
+        elif line_temporary.startswith('{{{') and not (in_code or in_html):
             in_code = True
             in_code_level = level
-            if line.rstrip() == '{{{':
+            if line_temporary.rstrip() == '{{{':
                 if not a or a[-1].strip():
                     line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE', 1)
@@ -352,7 +361,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' + '\n', 1)
             level += 1
-        elif line.rstrip() == '}}}':
+        elif line_temporary.rstrip() == '}}}':
             level -= 1
             if in_td and in_td_level == level:
                 in_td = False
@@ -392,16 +401,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = new_line
 
         if not (in_code or in_html):
-            # quote
-            m = re.match('^(>[>\s]*)', line)
-            if m:
-                prefix = m.group(0)
-                l = len(prefix)
-            else:
-                prefix = ''
-            quote_prefix += prefix
-            line = line[len(prefix):]
-
             line = RE_SUPERSCRIPT1.sub(r'<sup>\1</sup>', line)  # superscript ^abc^
             line = RE_SUBSCRIPT1.sub(r'<sub>\1</sub>', line)  # subscript ,,abc,,
 
@@ -439,6 +438,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
 
+            # inline code snippets
+            def inline_code_snippet(match):
+                code = match.group(1)
+                code = code.replace('@', 'AT__SIGN__IN__CODE')
+                return '`' + code + '`'
+
+            line = re.sub(r'{{{(.*?)}}}', inline_code_snippet, line)
+            line = re.sub(r'`(.*?)`', inline_code_snippet, line)
+
+            # to avoid unintended github mention
             line = line.replace('@', r'`@`')
 
             if RE_RULE.match(line):
@@ -630,6 +639,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = text.replace('CLOSING__PROCESSOR__CODE', '```')
     text = text.replace('OPENING__LEFT__BRACKET', '[')
     text = text.replace('CLOSING__RIGHT__BRACKET', ']')
+    text = text.replace('AT__SIGN__IN__CODE', '@')
 
     # Sage-specific rewritings
 
