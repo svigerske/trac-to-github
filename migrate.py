@@ -447,8 +447,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = re.sub(r'{{{(.*?)}}}', inline_code_snippet, line)
             line = re.sub(r'`(.*?)`', inline_code_snippet, line)
 
+            def github_mention(match):
+                trac_user = match.group(1)
+                if trac_user in users_map:
+                    github_user = users_map[trac_user]
+                    if github_user:
+                        return '@' + github_user
+                return '`@`' + trac_user
+
             # to avoid unintended github mention
-            line = line.replace('@', r'`@`')
+            line = re.sub('(?<=\s)@([a-zA-Z][a-zA-Z0-9.]*)', github_mention, line)
 
             if RE_RULE.match(line):
                 if not a or not a[-1].strip():
@@ -654,10 +662,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         for c in match.group(2).split('\n')[2:]:  # the first two are blank header
             if not c:
                 continue
-            _, commit_id, commit_message, _ = c.split('|')
-            t_id = re.sub(r'\[(.+?)\]\((.*)\)', r'<td><a href="\2">\1</a></td>', commit_id)
-            t_msg = re.sub(r'`(.*?)`', r'<td><code>\1</code></td>', commit_message)
-            t += '<tr>' + t_id + t_msg + '</tr>'
+            match_row = re.match(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|', c)
+            commit_id = match_row.group(1)
+            commit_url = match_row.group(2)
+            commit_msg = match_row.group(3)
+            t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
         t += '</table>\n'
         return t
 
