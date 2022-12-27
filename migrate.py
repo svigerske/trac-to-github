@@ -1339,9 +1339,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if oldvalue != newvalue:
                     if change_type in ['branch', 'commit']:
                         if oldvalue:
-                            oldvalue = github_ref_url(oldvalue)
+                            oldvalue = github_ref_markdown(oldvalue)
                         if newvalue:
-                            newvalue = github_ref_url(newvalue)
+                            newvalue = github_ref_markdown(newvalue)
                     if not oldvalue:
                         comment_data['note'] = f'{change_type.title()}: {newvalue}'
                     else:
