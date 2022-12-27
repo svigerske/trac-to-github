@@ -1180,7 +1180,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # mapstatus maps the various statuses we have in trac
                 # to just 2 statuses in gitlab/github (open or closed),
                 # so to avoid a loss of information, we add a comment.
-                comment_data['note'] = '**Changing status from ' + (oldvalue or 'new') + ' to ' + newvalue + '.**'
+                comment_data['note'] = '**Changing status** from ' + (oldvalue or 'new') + ' to ' + newvalue + '.'
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             if issue_state != newstate :
                 gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
@@ -1234,7 +1234,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 issue_state = change_status(newvalue, oldvalue)
             elif change_type == "resolution" :
                 if oldvalue != '' :
-                    desc = "**Resolution changed from %s to %s.**" % (oldvalue, newvalue)
+                    desc = "**Resolution changed** from %s to %s." % (oldvalue, newvalue)
                 else :
                     desc = "**Resolution:** " + newvalue
                 comment_data['note'] = desc
@@ -1255,11 +1255,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "owner" :
                 if oldvalue != '' and newvalue != '':
-                    comment_data['note'] = '**Changing assignee from ' + gh_username(dest, oldvalue) + ' to ' + gh_username(dest, newvalue) + '.**'
+                    comment_data['note'] = '**Changing assignee** from ' + gh_username(dest, oldvalue) + ' to ' + gh_username(dest, newvalue) + '.'
                 elif oldvalue == '':
-                    comment_data['note'] = '**Set assignee to ' + gh_username(dest, newvalue) + '.**'
+                    comment_data['note'] = '**Set assignee** to ' + gh_username(dest, newvalue) + '.'
                 else:
-                    comment_data['note'] = '**Remove assignee ' + gh_username(dest, oldvalue) + '.**'
+                    comment_data['note'] = '**Remove assignee** ' + gh_username(dest, oldvalue) + '.'
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
                 # if newvalue != oldvalue :
@@ -1269,7 +1269,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 #     gh_update_issue_property(dest, issue, 'assignee', assignee)
             elif change_type == "version" :
                 if oldvalue != '' :
-                    desc = "**Version changed from %s to %s.**" % (oldvalue, newvalue)
+                    desc = "**Version changed** from %s to %s." % (oldvalue, newvalue)
                 else :
                     desc = "**Version:** " + newvalue
                 comment_data['note'] = desc
@@ -1359,11 +1359,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                             gh_ensure_label(dest, keyword, labelcolor['keyword'])
                     oldkeywords = [ kw.strip() for kw in oldkeywords ]
                     newkeywords = [ kw.strip() for kw in newkeywords ]
-                    comment_data['note'] = '**Changing keywords from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".**'
+                    comment_data['note'] = '**Changing keywords** from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                     gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
                 else :
-                    comment_data['note'] = '**Changing keywords from "' + oldvalue + '" to "' + newvalue + '".**'
+                    comment_data['note'] = '**Changing keywords** from "' + oldvalue + '" to "' + newvalue + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             else:
                 if oldvalue != newvalue:
@@ -1375,7 +1375,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     if not oldvalue:
                         comment_data['note'] = f'**{change_type.title()}:** {newvalue}'
                     else:
-                        comment_data['note'] = f'**Changing {change_type} from "{oldvalue}" to "{newvalue}".**'
+                        comment_data['note'] = f'**Changing {change_type}** from "{oldvalue}" to "{newvalue}".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
         #assert attachment is None
