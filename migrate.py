@@ -1337,7 +1337,15 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             else:
                 if oldvalue != newvalue:
-                    comment_data['note'] = f'Changing {change_type} from "{oldvalue}" to "{newvalue}"'
+                    if change_type in ['branch', 'commit']:
+                        if oldvalue:
+                            oldvalue = github_ref_url(oldvalue)
+                        if newvalue:
+                            newvalue = github_ref_url(newvalue)
+                    if not oldvalue:
+                        comment_data['note'] = f'{change_type.title()}: {newvalue}'
+                    else:
+                        comment_data['note'] = f'Changing {change_type} from "{oldvalue}" to "{newvalue}"'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
         #assert attachment is None
