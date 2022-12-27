@@ -668,7 +668,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         pass
 
     text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])', r'**\1**', text)
-    text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.]', r'**\1**', text)
+    text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])', r'**\1**', text)
 
     return text
 
