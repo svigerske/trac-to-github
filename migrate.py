@@ -637,6 +637,22 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = RE_GIT_SERVER_COMMIT.sub(fr'{github_git_repo_base_url}/commit/\1', text)
     text = RE_TRAC_REPORT.sub(r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
 
+    def commits_list(match):
+        t = '**' + match.group(1) +'**\n'
+        t += '<table>'
+        for c in match.group(2).split('\n')[2:]:  # the first two are blank header
+            if not c:
+                continue
+            _, commit_id, commit_message, _ = c.split('|')
+            t_id = re.sub(r'\[(.+?)\]\((.*)\)', r'<td><a href="\2">\1</a></td>', commit_id)
+            t_msg = re.sub(r'`(.*?)`', r'<td><code>\1</code></td>', commit_message)
+            t += '<tr>' + t_id + t_msg + '</tr>'
+        t += '</table>\n'
+        return t
+
+    text = re.sub(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
+    text = re.sub(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
+
     return text
 
 github_git_repo_base_url = 'https://github.com/sagemath/sagetrac-mirror'
