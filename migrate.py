@@ -237,6 +237,7 @@ RE_SOURCE1 = re.compile(r'\[source:([^\s\[\]]+)\s+([^\[\]]+)\]')
 RE_SOURCE2 = re.compile(r'source:([\S]+)')
 RE_BOLDTEXT1 = re.compile(r'\'\'\'(.*?)\'\'\'')
 RE_ITALIC1 = re.compile(r'\'\'(.*?)\'\'')
+RE_ITALIC2 = re.compile(r'(?<=\s)//(.*?)//')
 RE_TICKET1 = re.compile(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket)
 RE_TICKET2 = re.compile(r'\#([1-9]\d{0,4})')
 RE_COMMENT1 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
@@ -291,17 +292,27 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     for level in [6, 5, 4, 3, 2, 1]:
         text = convert_heading(level, text)
 
+    is_table = False  # ???
+
     a = []
     level = 0
     in_td = False
     in_code = False
     in_html = False
-    is_table = False
     in_list = False
+    in_table = False
+    block = []
+    table = []
     list_indents = []
     previous_line = ''
     quote_prefix = ''
-    for line in text.split('\n'):
+    text_lines = text.split('\n') + ['']
+    text_lines.reverse()
+    line = True
+    while text_lines:
+        non_blank_previous_line = bool(line)
+        line = text_lines.pop()
+
         if skip_line_with_leading_whitespaces:
             if line.startswith(' '*skip_line_with_leading_whitespaces):
                 is_table = False
@@ -311,6 +322,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         if line.startswith(quote_prefix):
             line = line[len(quote_prefix):]
         else:
+            if in_code:  # to recover from interrupted codeblock
+                text_lines.append(quote_prefix + '}}}')
+                continue
+
             line = '\n' + line
             quote_prefix = ''
 
@@ -335,43 +350,101 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         elif line_temporary.startswith('{{{#!td'):
             in_td = True
             in_td_level = level
+            in_td_prefix = re.search('{{{', line).start()
+            in_td_n = 0
+            in_td_defect = 0
             line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
             level += 1
         elif line_temporary.startswith('{{{#!html') and not (in_code or in_html):
             in_html = True
             in_html_level = level
+            in_html_prefix = re.search('{{{', line).start()
+            in_html_n = 0
+            in_html_defect =0
             line =  re.sub(r'{{{#!html', r'', line)
             level += 1
         elif line_temporary.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
             in_code = True
             in_code_level = level
-            if not a or a[-1].strip():
+            in_code_prefix = re.search('{{{', line).start()
+            in_code_n = 0
+            in_code_defect = 0
+            if non_blank_previous_line:
                 line = '\n' + line
             line =  re.sub(r'{{{#!([^\s]+)', r'OPENING__PROCESSOR__CODE\1', line)
             level += 1
-        elif line_temporary.startswith('{{{') and not (in_code or in_html):
+        elif line_temporary.rstrip() == '{{{' and not (in_code or in_html):
+            # check dangling #!...
+            next_line = text_lines.pop()
+            if next_line.startswith(quote_prefix):
+                m =  re.match('#!([a-zA-Z]+)', next_line[len(quote_prefix):].strip())
+                if m:
+                    line = line.rstrip() + m.group(1)
+                else:
+                    text_lines.append(next_line)
+            else:
+                text_lines.append(next_line)
+
             in_code = True
             in_code_level = level
+            in_code_prefix = re.search('{{{', line).start()
+            in_code_n = 0
+            in_code_defect = 0
             if line_temporary.rstrip() == '{{{':
-                if not a or a[-1].strip():
+                if non_blank_previous_line:
                     line = '\n' + line
                 line = line.replace('{{{', 'OPENING__PROCESSOR__CODE', 1)
             else:
-                if not a or a[-1].strip():
+                if non_blank_previous_line:
                     line = '\n' + line
-                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' + '\n', 1)
+                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' , 1) + '\n'
             level += 1
         elif line_temporary.rstrip() == '}}}':
             level -= 1
             if in_td and in_td_level == level:
                 in_td = False
+                in_td_prefix = 0
+                if in_td_defect > 0:
+                    for i in range(in_td_n):
+                        prev_line = a[-i-1]
+                        a[-i-1] = prev_line[:len(quote_prefix)] + in_td_defect*' ' + prev_line[len(quote_prefix):]
                 line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__TD', line)
             elif in_html and in_html_level == level:
                 in_html = False
+                id_html_prefix = 0
+                if in_html_defect > 0:
+                    for i in range(in_html_n):
+                        prev_line = a[-i-1]
+                        a[-i-1] = prev_line[:len(quote_prefix)] + in_html_defect*' ' + prev_line[len(quote_prefix):]
                 line =  re.sub(r'}}}', r'', line)
             elif in_code and in_code_level == level:
                 in_code = False
+                in_code_prefix = 0
+                if in_code_defect > 0:
+                    for i in range(in_code_n):
+                        prev_line = a[-i-1]
+                        a[-i-1] = prev_line[:len(quote_prefix)] + in_code_defect*' ' + prev_line[len(quote_prefix):]
                 line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
+        else:
+            # nudge badly indented codeblocks
+            if in_td:
+                if line.strip():
+                    indent = re.search('[^\s]', line).start()
+                    if indent < in_td_prefix:
+                        in_td_defect = max(in_td_defect, in_td_prefix - indent)
+                in_td_n += 1
+            if in_html:
+                if line.strip():
+                    indent = re.search('[^\s]', line).start()
+                    if indent < in_html_prefix:
+                        in_html_defect = max(in_html_defect, in_html_prefix - indent)
+                in_html_n += 1
+            if in_code:
+                if line.strip():
+                    indent = re.search('[^\s]', line).start()
+                    if indent < in_code_prefix:
+                        in_code_defect = max(in_code_defect, in_code_prefix - indent)
+                in_code_n += 1
 
         # CamelCase wiki link
         if not (in_code or in_html or in_td):
@@ -399,6 +472,17 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
                     start = end
             line = new_line
+
+#        if 'This sounds like a dangerous behaviour' in line:
+#            import pdb; pdb.set_trace()
+#            debugging = True
+#        else:
+#            try:
+#                if debugging:
+#                    import pdb; pdb.set_trace()
+#            except:
+#                pass
+
 
         if not (in_code or in_html):
             line = RE_SUPERSCRIPT1.sub(r'<sup>\1</sup>', line)  # superscript ^abc^
@@ -429,6 +513,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             line = RE_BOLDTEXT1.sub(r'**\1**', line)
             line = RE_ITALIC1.sub(r'*\1*', line)
+            line = RE_ITALIC2.sub(r'*\1*', line)
 
             line = RE_TICKET1.sub(r' #\1', line) # replace global ticket references
             line = RE_TICKET2.sub(conv_help.ticket_link, line)
@@ -442,7 +527,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             def inline_code_snippet(match):
                 code = match.group(1)
                 code = code.replace('@', 'AT__SIGN__IN__CODE')
-                return '`' + code + '`'
+                if '`' in code:
+                    return '<code>' + code + '</code>'
+                else:
+                    return '`' + code + '`'
 
             line = re.sub(r'{{{(.*?)}}}', inline_code_snippet, line)
             line = re.sub(r'`(.*?)`', inline_code_snippet, line)
@@ -468,7 +556,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             # convert a trac table to a github table
             if line.startswith('||'):
-                if not is_table:  # header row
+                if not in_table:  # header row
                     if line.endswith('||\\'):
                         previous_line = line[:-3]
                         continue
@@ -496,15 +584,13 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     else:  # perhaps a table without header; github table needs header
                         header = re.sub(r'[^|]', ' ', sep)
                         line = header + '\n' + sep + '\n' + line
-                    is_table = True
+                    in_table = True
                 # The wiki markup allows the alignment directives to be specified on a cell-by-cell
                 # basis. This is used in many examples. AFAIK this can't be properly translated into
                 # the GitHub markdown as it only allows to align statements column by column.
                 line = line.replace('||=', '||')  # ignore cellwise align instructions
                 line = line.replace('=||', '||')  # ignore cellwise align instructions
                 line = line.replace('||', '|')
-            else:
-                is_table = False
 
             # lists
             if in_list:
@@ -568,59 +654,41 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 elif t == 'i':
                     line = line.replace('i', toRoman(c).lower(), 1)
 
-        for l in line.split('\n'):
-            a.append(quote_prefix + l)
-
-    # process a github table when the corresponding trac table contains td processors
-    b = []
-    table = []
-    in_table = False
-    in_block = False
-    in_td = False
-    previous_line = ''
-    for line in a + ['']:  # a blank line terminates a table at the end
-        if previous_line:
-            line = previous_line + line
-            previous_line = ''
-        if line == '|\\' or line == '| \\':  #  ||\ or || \ in trac, which (always?) precedes a TD block
-            in_block = True
-            block = []
-        elif line.startswith('|'):
-            if in_block:  # terminate a block
+        # only for table with td blocks:
+        if in_table:
+            if line == '|\\' or line == '| \\':  # leads td block
+                block = []
+                continue
+            if line == '|':
                 table.append('|' + 'NEW__LINE'.join(block) +'|')
-                in_block = False
-            else:
+                block = []
+                continue
+            if line.startswith('OPENING__PROCESSOR__TD'):
+                if len(block) > 1:
+                    block.append('|')
+                block.append(line)
+                continue
+            if in_td:
+                line = re.sub('\n', 'NEW__LINE', line)
+                block.append(line)
+                continue
+            if line.startswith('CLOSING__PROCESSOR__TD'):
+                block.append(line)
+                continue
+            if line.startswith('|'):
                 if line.endswith('|\\'):
-                    line = line[:-2]
-                    previous_line = line
+                    previous_line = line[:-2].replace('|', '||')  # restore to trac table row
                 elif line.endswith('| \\'):
-                    line = line[:-3]
-                    previous_line = line
-                elif line == '|':
-                    previous_line = ''
+                    previous_line = line[:-3].replace('|', '||')  # restore to trac table row
                 else:
                     table.append(line)
-            in_table = True
-        elif line:
-            if in_block:
-                if line.startswith('OPENING__PROCESSOR__TD'):
-                    in_td = True
-                    if len(block) > 1:
-                        block.append('|')
-                elif line.startswith('CLOSING__PROCESSOR__TD'):
-                    in_td = False
-                block.append(line)
-            else:
-                line = re.sub('SEPARATOR__BETWEEN__BRACKETS', r'|', line)
-                b.append(line)
-        else:  # blank line
-            if in_block and in_td:
-                block.append(line)
-            elif in_table:  # terminate a table
-                if in_block:  # terminate a block
-                    table.append(' | ' + 'NEW__LINE'.join(block) +'|')
-                    in_block = False
+                continue
 
+            if block:  # td block may not be terminated by "|" (or trac "||")
+                table.append('|' + 'NEW__LINE'.join(block) +'|')
+                block = []
+
+            if table:
                 table_text = '\n'.join(table)
                 if 'OPENING__PROCESSOR__TD' in table_text:
                     html = markdown.markdown(table_text, extensions=[TableExtension(use_align_attribute=True)])
@@ -628,19 +696,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     html = re.sub('CLOSING__PROCESSOR__TD', r'</div>', html)
                 else:
                     html = table_text
-                html = html.replace('NEW__LINE', '\n')
-                html = html.replace('SEPARATOR__BETWEEN__BRACKETS', r'\|')
-                b += html.split('\n')
-                b.append(line)
-
+                line = html.replace('NEW__LINE', '\n') + '\n' + line
                 table = []
-                in_table = False
-            else:
-                line = line.replace('SEPARATOR__BETWEEN__BRACKETS', r'|')
-                b.append(line)
-    b = b[:-1]
 
-    text = '\n'.join(b)
+            in_table = False
+
+        for l in line.split('\n'):
+            a.append(quote_prefix + l)
+
+    a = a[:-1]
+    text = '\n'.join(a)
 
     # remove artifacts
     text = text.replace('OPENING__PROCESSOR__CODE', '```')
