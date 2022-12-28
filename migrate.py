@@ -251,16 +251,15 @@ RE_GIT_SERVER_COMMIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit
 RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
-    text = matcher_changeset.sub(format_changeset_comment, text)
-    text = matcher_changeset2.sub(r'\1', text)
+    #text = matcher_changeset.sub(format_changeset_comment, text)
+    #text = matcher_changeset2.sub(r'\1', text)
 
-    if svngit_map is not None :
-        text = matcher_svnrev1.sub(handle_svnrev_reference, text)
-        text = matcher_svnrev2.sub(handle_svnrev_reference, text)
+    #if svngit_map is not None :
+    #    text = matcher_svnrev1.sub(handle_svnrev_reference, text)
+    #    text = matcher_svnrev2.sub(handle_svnrev_reference, text)
 
     # some normalization
     text = re.sub('\r\n', '\n', text)
-    text = re.sub(r'(?sm){{{\n#!', r'{{{#!', text)
     text = re.sub(r'\swiki:([a-zA-Z]+)', r' [wiki:\1]', text)
 
     text = re.sub(r'\[\[TOC[^]]*\]\]', '', text)
@@ -344,6 +343,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = previous_line + line
             previous_line = ''
 
+#        if 'You can also use backticks' in line:
+#            import pdb; pdb.set_trace()
+#            debugging = True
+#        else:
+#            try:
+#                if debugging:
+#                    import pdb; pdb.set_trace()
+#            except:
+#                pass
+
         line_temporary = line.lstrip()
         if line_temporary.startswith('{{{') and in_code:
             level += 1
@@ -379,6 +388,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             if next_line.startswith(quote_prefix):
                 m =  re.match('#!([a-zA-Z]+)', next_line[len(quote_prefix):].strip())
                 if m:
+                    if m.group(1) == 'html':
+                        text_lines.append(quote_prefix + line.replace('{{{', '{{{#!html'))
+                        continue
                     line = line.rstrip() + m.group(1)
                 else:
                     text_lines.append(next_line)
@@ -397,7 +409,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             else:
                 if non_blank_previous_line:
                     line = '\n' + line
-                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' , 1) + '\n'
+                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' +'\n' , 1)
             level += 1
         elif line_temporary.rstrip() == '}}}':
             level -= 1
@@ -426,7 +438,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                         a[-i-1] = prev_line[:len(quote_prefix)] + in_code_defect*' ' + prev_line[len(quote_prefix):]
                 line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
         else:
-            # nudge badly indented codeblocks
+            # adjust badly indented codeblocks
             if in_td:
                 if line.strip():
                     indent = re.search('[^\s]', line).start()
@@ -473,17 +485,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     start = end
             line = new_line
 
-#        if 'This sounds like a dangerous behaviour' in line:
-#            import pdb; pdb.set_trace()
-#            debugging = True
-#        else:
-#            try:
-#                if debugging:
-#                    import pdb; pdb.set_trace()
-#            except:
-#                pass
-
-
         if not (in_code or in_html):
             line = RE_SUPERSCRIPT1.sub(r'<sup>\1</sup>', line)  # superscript ^abc^
             line = RE_SUBSCRIPT1.sub(r'<sub>\1</sub>', line)  # subscript ,,abc,,
@@ -528,12 +529,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 code = match.group(1)
                 code = code.replace('@', 'AT__SIGN__IN__CODE')
                 if '`' in code:
-                    return '<code>' + code + '</code>'
+                    return '<code>' + code.replace('`', r'\`') + '</code>'
                 else:
                     return '`' + code + '`'
 
-            line = re.sub(r'{{{(.*?)}}}', inline_code_snippet, line)
-            line = re.sub(r'`(.*?)`', inline_code_snippet, line)
+            line = re.sub(r'(?<!`){{{(.*?)}}}', inline_code_snippet, line)
 
             def github_mention(match):
                 trac_user = match.group(1)
@@ -544,7 +544,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 return '`@`' + trac_user
 
             # to avoid unintended github mention
-            line = re.sub('(?<=\s)@([a-zA-Z][a-zA-Z0-9.]*)', github_mention, line)
+            line = re.sub('(?<=\s)@([a-zA-Z][a-zA-Z.]*)', github_mention, line)
+            line = re.sub('^@([a-zA-Z][a-zA-Z.]*)', github_mention, line)
 
             if RE_RULE.match(line):
                 if not a or not a[-1].strip():
@@ -599,7 +600,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     if indent > list_leading_spaces:
                         line = line[list_leading_spaces:]
 
-                        # nudge slightly-malformed paragraph in list for right indent -- fingers crossed
+                        # adjust slightly-malformed paragraph in list for right indent -- fingers crossed
                         indent = re.search('[^\s]', line).start()
                         if indent == 1 and list_indents[0][1] == '*':
                             line =  ' ' + line
@@ -727,11 +728,24 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         for c in match.group(2).split('\n')[2:]:  # the first two are blank header
             if not c:
                 continue
-            match_row = re.match(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|', c)
-            commit_id = match_row.group(1)
-            commit_url = match_row.group(2)
-            commit_msg = match_row.group(3)
-            t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
+            m = re.match(r'\|\[(.+?)\]\((.*)\)\|<code>(.*?)</code>\|', c)
+            if m:
+                commit_id = m.group(1)
+                commit_url = m.group(2)
+                commit_msg = m.group(3).replace('\`', '`')
+                t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
+            else:
+                m = re.match(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|', c)
+                if m:
+                    commit_id = m.group(1)
+                    commit_url = m.group(2)
+                    commit_msg = m.group(3)
+                    t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
+                else: # unusual format
+                    m = re.match(r'\|(.*?)\|(.*?)\|', c)
+                    commit_id = m.group(1)
+                    commit_msg = m.group(2)
+                    t += r'<tr><td>{}</td><td><code>{}</code></td></tr>'.format(commit_id, commit_msg)
         t += '</table>\n'
         return t
 
