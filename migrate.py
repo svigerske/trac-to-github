@@ -980,7 +980,9 @@ def gh_username(dest, origname) :
     if gh_name:
         return '@' + gh_name
     assert not origname.startswith('@')
-    unmapped_users.add(origname)
+    if re.fullmatch('[-A-Za-z._0-9]+', origname):
+        # heuristic pattern for valid Trac account name (not an email address or full name or junk)
+        unmapped_users.add(origname)
     return origname
 
 def gh_user_url(dest, username):
