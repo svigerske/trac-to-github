@@ -738,7 +738,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     try:
         text = re.sub(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
         text = re.sub(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
-    except ValueError:
+    except Exception:
         pass
 
     text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])', r'**\1**', text)
