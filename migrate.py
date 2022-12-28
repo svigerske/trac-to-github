@@ -241,8 +241,8 @@ RE_ITALIC2 = re.compile(r'(?<=\s)//(.*?)//')
 RE_TICKET1 = re.compile(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket)
 RE_TICKET2 = re.compile(r'\#([1-9]\d{0,4})')
 RE_COMMENT1 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
-RE_COMMENT2 = re.compile(r'\scomment:([1-9]\d*)')  # need to exclude the string as part of http url
-RE_TICKET_COMMENT1 = re.compile(r'\sticket:([1-9]\d*)#comment:([1-9]\d*)')
+RE_COMMENT2 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
+RE_TICKET_COMMENT1 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
 
@@ -270,6 +270,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     #if svngit_map is not None :
     #    text = matcher_svnrev1.sub(handle_svnrev_reference, text)
     #    text = matcher_svnrev2.sub(handle_svnrev_reference, text)
+
+    # sage-specific normalization
+    text = re.sub(r'https?://trac.sagemath.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
 
     # some normalization
     text = re.sub('\r\n', '\n', text)
@@ -1615,8 +1618,8 @@ class ConversionHelper:
         Return a formatted string that replaces the match object found by re
         in the case of a Trac ticket comment link.
         """
-        ticket = match.group(0)
-        comment = match.group(1)
+        ticket = match.group(1)
+        comment = match.group(2)
         if self._keep_trac_ticket_references:
             # as long as the ticket themselves have not been migrated they should reference to the original place
             return r'[#%s comment:%s](%s/%s#comment:%s)' % (ticket, comment, trac_url_ticket, ticket, comment)
