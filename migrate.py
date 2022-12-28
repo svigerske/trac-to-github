@@ -246,6 +246,19 @@ RE_TICKET_COMMENT1 = re.compile(r'\sticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
 
+RE_COMMIT_LIST1 = re.compile(r'\|\[(.+?)\]\((.*)\)\|<code>(.*?)</code>\|')
+RE_COMMIT_LIST2 = re.compile(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|')
+RE_COMMIT_LIST3 = re.compile(r'\|(.*?)\|(.*?)\|')
+
+RE_NEW_COMMITS = re.compile(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
+RE_LAST_NEW_COMMITS = re.compile(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
+
+RE_BRANCH_FORCED_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])')
+RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])')
+
+RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_')
+RE_UNDERLINED_CODE2 = re.compile(r'^_([a-zA-Z_]+)_')
+
 RE_GIT_SERVER_SRC = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src')
 RE_GIT_SERVER_COMMIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?[?]id=([0-9a-f]+)')
 RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
@@ -342,16 +355,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         if previous_line:
             line = previous_line + line
             previous_line = ''
-
-#        if 'You can also use backticks' in line:
-#            import pdb; pdb.set_trace()
-#            debugging = True
-#        else:
-#            try:
-#                if debugging:
-#                    import pdb; pdb.set_trace()
-#            except:
-#                pass
 
         line_temporary = line.lstrip()
         if line_temporary.startswith('{{{') and in_code:
@@ -728,21 +731,21 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         for c in match.group(2).split('\n')[2:]:  # the first two are blank header
             if not c:
                 continue
-            m = re.match(r'\|\[(.+?)\]\((.*)\)\|<code>(.*?)</code>\|', c)
+            m = RE_COMMIT_LIST1.match(c)
             if m:
                 commit_id = m.group(1)
                 commit_url = m.group(2)
                 commit_msg = m.group(3).replace('\`', '`')
                 t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
             else:
-                m = re.match(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|', c)
+                m = RE_COMMIT_LIST2.match(c)
                 if m:
                     commit_id = m.group(1)
                     commit_url = m.group(2)
                     commit_msg = m.group(3)
                     t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
                 else: # unusual format
-                    m = re.match(r'\|(.*?)\|(.*?)\|', c)
+                    m = RE_COMMIT_LIST3.match(c)
                     commit_id = m.group(1)
                     commit_msg = m.group(2)
                     t += r'<tr><td>{}</td><td><code>{}</code></td></tr>'.format(commit_id, commit_msg)
@@ -750,13 +753,17 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         return t
 
     try:
-        text = re.sub(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
-        text = re.sub(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)', commits_list, text)
+        text = RE_NEW_COMMITS.sub(commits_list, text)
+        text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
     except Exception:
         pass
 
-    text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])', r'**\1**', text)
-    text = re.sub(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])', r'**\1**', text)
+    text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
+    text = RE_BRANCH_PUSH.sub(r'**\1**', text)
+
+    # code surrounded by underline, mistaken as italics by github
+    text = RE_UNDERLINED_CODE1.sub(r'`_\1_`', text)
+    text = RE_UNDERLINED_CODE2.sub(r'`_\1_`', text)
 
     return text
 
