@@ -729,18 +729,23 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             if not c:
                 continue
             m = re.match(r'\|\[(.+?)\]\((.*)\)\|<code>(.*?)</code>\|', c)
-            if not m:
-                m = re.match(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|', c)
             if m:
                 commit_id = m.group(1)
                 commit_url = m.group(2)
-                commit_msg = m.group(3)
+                commit_msg = m.group(3).replace('\`', '`')
                 t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
-            else: # unusual format
-                m = re.match(r'\|(.*?)\|(.*?)\|', c)
-                commit_id = m.group(1)
-                commit_msg = m.group(2)
-                t += r'<tr><td>{}</td><td><code>{}</code></td></tr>'.format(commit_id, commit_msg)
+            else:
+                m = re.match(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|', c)
+                if m:
+                    commit_id = m.group(1)
+                    commit_url = m.group(2)
+                    commit_msg = m.group(3)
+                    t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
+                else: # unusual format
+                    m = re.match(r'\|(.*?)\|(.*?)\|', c)
+                    commit_id = m.group(1)
+                    commit_msg = m.group(2)
+                    t += r'<tr><td>{}</td><td><code>{}</code></td></tr>'.format(commit_id, commit_msg)
         t += '</table>\n'
         return t
 
