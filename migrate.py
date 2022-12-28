@@ -807,6 +807,14 @@ def maptickettype(tickettype):
     #return tickettype.lower()
     return None
 
+def mapresolution(resolution):
+    "Return GitHub label corresponding to Trac ``resolution``"
+    if resolution == 'fixed':
+        return None
+    if not resolution:
+        return None
+    return resolution
+
 def mapcomponent(component):
     "Return GitHub label corresponding to Trac ``component``"
     if component == 'PLEASE CHANGE':
@@ -1254,6 +1262,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             labels.append(tickettype)
             gh_ensure_label(dest, tickettype, labelcolor['type'])
 
+        resolution = mapresolution(src_ticket_data.pop('resolution', None))
+        if resolution is not None:
+            labels.append(resolution)
+            gh_ensure_label(dest, resolution, labelcolor['type'])
+
         keywords, keyword_labels = mapkeywords(src_ticket_data.get('keywords', ''))
         for label in keyword_labels:
             labels.append(label)
@@ -1378,12 +1391,15 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "status" :
                 issue_state = change_status(newvalue, oldvalue)
             elif change_type == "resolution" :
-                if oldvalue != '' :
-                    desc = "**Resolution changed** from %s to %s." % (oldvalue, newvalue)
-                else :
-                    desc = "**Resolution:** " + newvalue
-                comment_data['note'] = desc
-                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                oldlabels = copy(labels)
+                oldresolution = mapresolution(oldvalue)
+                with contextlib.suppress(ValueError):
+                    labels.remove(oldresolution)
+                newresolution = mapresolution(newvalue)
+                labels.append(newresolution)
+                gh_ensure_label(dest, newresolution, labelcolor['type'])
+                if labels != oldlabels:
+                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "component" :
                 oldlabels = copy(labels)
                 if oldvalue != '' :
