@@ -33,6 +33,7 @@ import contextlib
 import ast
 import codecs
 import warnings
+from collections import defaultdict
 from copy import copy
 from datetime import datetime
 from difflib import unified_diff
@@ -135,7 +136,10 @@ if config.has_option('issues', 'blacklist_issues'):
 filter_issues = 'max=0&order=id'
 if config.has_option('issues', 'filter_issues') :
     filter_issues = config.get('issues', 'filter_issues')
-keywords_to_labels = config.getboolean('issues', 'keywords_to_labels')
+try:
+    keywords_to_labels = config.getboolean('issues', 'keywords_to_labels')
+except ValueError:
+    keywords_to_labels = ast.literal_eval(config.get('issues', 'keywords_to_labels'))
 migrate_milestones = config.getboolean('issues', 'migrate_milestones')
 add_label = None
 if config.has_option('issues', 'add_label'):
@@ -825,6 +829,24 @@ def mapstatus(status):
         warnings.warn("unknown ticket status: " + status)
         return 'open'
 
+keyword_frequency = defaultdict(lambda: 0)
+def mapkeywords(keywords):
+    "Return a pair: (list of keywords for ticket description, list of labels)"
+    keep_as_keywords = []
+    labels = []
+    for keyword in keywords.replace(';', ',').split(','):
+        keyword = keyword.strip()
+        if not keyword:
+            continue
+        if keywords_to_labels is True:
+            labels.append(keyword)
+        elif isinstance(keywords_to_labels, dict) and keyword in keywords_to_labels:
+            labels.append(keywords_to_labels[keyword])
+        else:
+            keep_as_keywords.append(keyword)
+            keyword_frequency[keyword.lower()] += 1
+    return keep_as_keywords, labels
+
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
 
@@ -1153,10 +1175,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             if ccstr != '' :
                 description_post += '\n\n**CC:** ' + ccstr
 
-            if not keywords_to_labels:
-                keywords = src_ticket_data.pop('keywords', '')
-                if keywords:
-                    description_post += '\n\n**Keywords:** ' + keywords
+            keywords, labels = mapkeywords(src_ticket_data.pop('keywords', ''))
+            if keywords:
+                description_post += '\n\n**Keywords:** ' + ', '.join(keywords)
 
             branch = src_ticket_data.pop('branch', '')
             commit = src_ticket_data.pop('commit', '')
@@ -1231,12 +1252,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             labels.append(tickettype)
             gh_ensure_label(dest, tickettype, labelcolor['type'])
 
-        if keywords_to_labels:
-            keywords = src_ticket_data.pop('keywords', '')
-            if keywords:
-                for keyword in keywords.split(','):
-                    labels.append(keyword.strip())
-                    gh_ensure_label(dest, keyword.strip(), labelcolor['keyword'])
+        keywords, keyword_labels = mapkeywords(src_ticket_data.get('keywords', ''))
+        for label in keyword_labels:
+            labels.append(label)
+            gh_ensure_label(dest, label, labelcolor['keyword'])
 
         def title_status(summary, status=None):
             r"""
@@ -1470,28 +1489,20 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "keywords" :
-                if keywords_to_labels :
-                    oldlabels = copy(labels)
-                    oldkeywords = oldvalue.split(',')
-                    newkeywords = newvalue.split(',')
-                    for keyword in oldkeywords :
-                        keyword = keyword.strip()
-                        if keyword != ''  :
-                            with contextlib.suppress(ValueError):
-                                labels.remove(keyword)
-                    for keyword in newkeywords :
-                        keyword = keyword.strip()
-                        if keyword != '' :
-                            labels.append(keyword)
-                            gh_ensure_label(dest, keyword, labelcolor['keyword'])
-                    oldkeywords = [ kw.strip() for kw in oldkeywords ]
-                    newkeywords = [ kw.strip() for kw in newkeywords ]
-                    comment_data['note'] = '**Changing keywords** from "' + ','.join(oldkeywords) + '" to "' + ','.join(newkeywords) + '".'
+                oldlabels = copy(labels)
+                oldkeywords, oldkeywordlabels = mapkeywords(oldvalue)
+                newkeywords, newkeywordlabels = mapkeywords(newvalue)
+                for label in oldkeywordlabels:
+                    with contextlib.suppress(ValueError):
+                        labels.remove(label)
+                for label in newkeywordlabels:
+                    labels.append(label)
+                    gh_ensure_label(dest, label, labelcolor['keyword'])
+                if oldkeywords != newkeywords:
+                    comment_data['note'] = '**Changing keywords** from "' + ', '.join(oldkeywords) + '" to "' + ', '.join(newkeywords) + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+                if labels != oldlabels:
                     gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
-                else :
-                    comment_data['note'] = '**Changing keywords** from "' + oldvalue + '" to "' + newvalue + '".'
-                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             else:
                 if oldvalue != newvalue:
                     if change_type in ['branch', 'commit']:
@@ -1745,3 +1756,4 @@ if __name__ == "__main__":
             convert_wiki(source, dest)
     finally:
         print(f'Unmapped users: {sorted(unmapped_users)}')
+        print(f'Unmapped keyword frequencies: {sorted(keyword_frequency.items(), key=lambda x: -x[1])}')

@@ -1023,8 +1023,8 @@ filter_issues: max=50&order=id&page=1&desc=False
 # Add a label to all migrated issues
 # add_label: Websites
 
-# Migrate keywords to labels, or add to issue description
-# keywords_to_labels: no
+# Keywords to migrate to labels (all others go to the issue description)
+keywords_to_labels: {'beginner': 'good first issue'}
 
 # Migrate milestones
 migrate_milestones: yes
