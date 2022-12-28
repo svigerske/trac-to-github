@@ -762,8 +762,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = RE_BRANCH_PUSH.sub(r'**\1**', text)
 
     # code surrounded by underline, mistaken as italics by github
-    text = RE_UNDERLINED_CODE1.sub(r'`_\1_`', text)
-    text = RE_UNDERLINED_CODE2.sub(r'`_\1_`', text)
+    ## text = RE_UNDERLINED_CODE1.sub(r'`_\1_`', text)
+    ## text = RE_UNDERLINED_CODE2.sub(r'`_\1_`', text)
 
     return text
 
