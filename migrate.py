@@ -796,6 +796,8 @@ def maptickettype(tickettype):
     "Return GitHub label corresponding to Trac ``tickettype``"
     if tickettype == 'defect':
         return 'bug'
+    if tickettype == 'enhancement':
+        return 'enhancement'
     # if tickettype == 'clarification':
     #     return 'question'
     # if tickettype == 'task':
