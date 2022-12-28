@@ -861,7 +861,15 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
                 os.makedirs(dirname)
             # write attachment data to binary file
             open(os.path.join(dirname, filename), 'wb').write(attachment)
-            note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(src_ticket_id) + '/' + filename, comment['user'], comment['created_at'])
+            if github:
+                note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_export_url + 'ticket' + str(src_ticket_id) + '/' + filename, comment['user'], comment['created_at'])
+            else:
+                note = ''
+                issue.create_attachment(filename,
+                                        "application/octet-stream",
+                                        attachment_export_url,
+                                        user=comment['user'],
+                                        created_at=comment['created_at'])
         elif gh_user is not None:
             if dest is None : return
             gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename

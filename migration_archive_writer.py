@@ -83,6 +83,13 @@ class MigrationArchiveWritingRequester:
                 self._num_issue_events += 1
                 id = self._num_issue_events
                 url = urljoin(base_url, f'issues/{issue}#event-{id}')
+            case 'POST', ['issues', issue, 'attachments']:
+                # Create an attachment
+                output['type'] = 'attachment'
+                output['issue'] = urljoin(base_url, f'issues/{issue}')
+                # https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
+                extension = pathlib.Path(input['asset_name']).suffix
+                url = f'https://github.com/assets/some-id/some-uuid{extension}'  # FIXME
         if isinstance(output, dict):
             output['url'] = url
             dump = json.dumps(output, sort_keys=True, indent=4)
@@ -114,17 +121,14 @@ class MigrationArchiveWritingRequester:
                             f.write(f'```json\n{dump}\n```\n')
                             f.write(output['body'])
                             f.write('\n')
-                    case 'POST', ['issues', issue, 'comments']:
-                        with open(issue_wiki_file(), 'a') as f:
-                            f.write('\n\n\n---\n\n')
-                            f.write(f'{json_file}:\n')
-                            f.write(f'```json\n{dump}\n```\n\n')
-                            f.write(output['body'])
-                            f.write('\n')
-                    case 'POST', ['issues', issue, 'events']:
+                    case 'POST', ['issues', issue, _]:
                         with open(issue_wiki_file(), 'a') as f:
                             f.write('\n\n\n---\n\n')
                             f.write(f'{json_file}:\n')
                             f.write(f'```json\n{dump}\n```\n')
+                            if 'body' in output:
+                                f.write('\n')
+                                f.write(output['body'])
+                                f.write('\n')
 
         return responseHeaders, output
