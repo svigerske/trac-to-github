@@ -3,3 +3,4 @@ requests
 markdown
 roman
 diskcache
+rich

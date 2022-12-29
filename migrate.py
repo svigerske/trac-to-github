@@ -1730,6 +1730,13 @@ class ConversionHelper:
 
 
 if __name__ == "__main__":
+
+    from rich.logging import RichHandler
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+    )
+
     source = client.ServerProxy(trac_url)
 
     github = None
@@ -1751,7 +1758,7 @@ if __name__ == "__main__":
             requester = MigrationArchiveWritingRequester(migration_archive, wiki_export_dir)
             dest = Repository(requester, None, dict(name="sagetest",
                                                     url="https://github.com/sagemath/sagetest"), None)
-            print(dest.url)
+            #print(dest.url)
             sleep_after_request = 0
 
     if svngit_mapfile is not None :
