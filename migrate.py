@@ -250,6 +250,10 @@ RE_TICKET_COMMENT1 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
 
+RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
+RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
+RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
+
 RE_COMMIT_LIST1 = re.compile(r'\|\[(.+?)\]\((.*)\)\|<code>(.*?)</code>\|')
 RE_COMMIT_LIST2 = re.compile(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|')
 RE_COMMIT_LIST3 = re.compile(r'\|(.*?)\|(.*?)\|')
@@ -259,9 +263,6 @@ RE_LAST_NEW_COMMITS = re.compile(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(
 
 RE_BRANCH_FORCED_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])')
 RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])')
-
-RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_')
-RE_UNDERLINED_CODE2 = re.compile(r'^_([a-zA-Z_]+)_')
 
 RE_GIT_SERVER_SRC = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src')
 RE_GIT_SERVER_COMMIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?[?]id=([0-9a-f]+)')
@@ -534,6 +535,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
 
+            # code surrounded by underline, mistaken as italics by github
+            line = RE_UNDERLINED_CODE1.sub(r'`_\1_`', line)
+            line = RE_UNDERLINED_CODE2.sub(r'`_\1_`', line)
+            line = RE_UNDERLINED_CODE3.sub(r'`_\1_`', line)
+
             # inline code snippets
             def inline_code_snippet(match):
                 code = match.group(1)
@@ -767,10 +773,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
     text = RE_BRANCH_PUSH.sub(r'**\1**', text)
-
-    # code surrounded by underline, mistaken as italics by github
-    ## text = RE_UNDERLINED_CODE1.sub(r'`_\1_`', text)
-    ## text = RE_UNDERLINED_CODE2.sub(r'`_\1_`', text)
 
     return text
 
