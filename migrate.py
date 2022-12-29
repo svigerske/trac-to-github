@@ -1035,7 +1035,7 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 
     sleep(sleep_after_request)
 
-unmapped_users = set()
+unmapped_users = defaultdict(lambda: 0)
 
 def gh_username(dest, origname) :
     origname = origname.strip('\u200b')
@@ -1053,7 +1053,7 @@ def gh_username(dest, origname) :
     assert not origname.startswith('@')
     if re.fullmatch('[-A-Za-z._0-9]+', origname):
         # heuristic pattern for valid Trac account name (not an email address or full name or junk)
-        unmapped_users.add(origname)
+        unmapped_users[origname] += 1
     return origname
 
 def gh_user_url(dest, username):
@@ -1793,5 +1793,5 @@ if __name__ == "__main__":
         if must_convert_wiki:
             convert_wiki(source, dest)
     finally:
-        print(f'Unmapped users: {sorted(unmapped_users)}')
+        print(f'Unmapped users: {sorted(unmapped_users.items(), key=lambda x: -x[1])}')
         print(f'Unmapped keyword frequencies: {sorted(keyword_frequency.items(), key=lambda x: -x[1])}')
