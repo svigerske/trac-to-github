@@ -1326,9 +1326,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 keep_phrases = []
                 for phrase in phrases:
                     phrase = phrase.strip()
-                    if re.fullmatch(r'needs review|positive review|needs work', phrase):
-                        status = phrase.replace(' ', '_')
-                    elif re.fullmatch(r'(with)? *(patch|bundl)e?s?|(with)? *spkg', phrase):
+                    if re.fullmatch(r'needs review|(with )?positive review|needs work', phrase):
+                        status = phrase.replace('with ', '').replace(' ', '_')
+                    elif re.fullmatch(r'(with)? *(new|trivial)? *(patch|bundl)e?s?|(with)? *spkg', phrase):
                         pass
                     else:
                         keep_phrases.append(phrase)
