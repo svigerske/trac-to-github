@@ -94,8 +94,8 @@ export_url : http://www.example.org/trac-attachments/foo/bar
 
 [wiki]
 
-# destination of wiki
-url: https://github.com/sagemath/sage/wiki
+#url: https://github.com/sagemath/sage/wiki
+url: https://github.com/sagemath/trac_to_gh/wiki
 
 migrate : yes
 

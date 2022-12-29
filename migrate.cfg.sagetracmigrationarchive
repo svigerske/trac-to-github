@@ -1049,6 +1049,9 @@ export_url = tarball://root/attachments/some-uuid/
 
 [wiki]
 
+#url: https://github.com/sagemath/sage/wiki
+url: https://github.com/sagemath/trac_to_gh/wiki
+
 migrate : no
 
 export_dir: wiki

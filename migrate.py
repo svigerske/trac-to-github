@@ -177,14 +177,6 @@ if config.has_option('source', 'default_multilines') :
     # trac2markdown
     default_multilines = config.getboolean('source', 'default_multilines')
 
-skip_line_with_leading_whitespaces = 0
-if config.has_option('source', 'skip_line_with_leading_whitespaces') :
-    # set this integer in the source section of the configuration file
-    # to the number of leading whitespaces that a line must have to
-    # be skipped in the function trac2markdown. Zero means that no
-    # line is skipped.
-    skip_line_with_leading_whitespaces = config.getint('source', 'skip_line_with_leading_whitespaces')
-
 
 from diskcache import Cache
 cache = Cache('trac_cache', size_limit=int(20e9))
@@ -216,7 +208,6 @@ def format_changeset_comment(m):
     r += ':\n> ' + m.group(3).replace('\n', '\n> ')
     return r
 
-
 def handle_svnrev_reference(m) :
     assert svngit_map is not None
     if m.group(1) in svngit_map :
@@ -225,6 +216,17 @@ def handle_svnrev_reference(m) :
         #print '  WARNING: svn revision', m.group(1), 'not given in svn to git mapping'
         return m.group(0)
 
+# The file wiki_path_conversion_table.txt is created if not exists. If it
+# exists, the table below is constructed from the data in the file.
+wiki_path_conversion_table = {}
+if os.path.exists('wiki_path_conversion_table.txt'):
+    create_wiki_link_conversion_table = False
+    with open('wiki_path_conversion_table.txt', 'r') as f:
+        for line in f.readlines():
+            trac_wiki_path, wiki_path = line[:-1].split(' ')
+            wiki_path_conversion_table[trac_wiki_path] = wiki_path
+else:
+    create_wiki_link_conversion_table = True
 
 RE_SUPERSCRIPT1 = re.compile(r'\^([^\s]+?)\^')
 RE_SUBSCRIPT1 = re.compile(r',,([^\s]+?),,')
@@ -278,6 +280,14 @@ RE_GIT_SERVER_SRC = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src'
 RE_GIT_SERVER_COMMIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?[?]id=([0-9a-f]+)')
 RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
 
+def convert_wiki_link(match):
+    trac_path = match.group(1)
+
+    if trac_path in wiki_path_conversion_table:
+        wiki_path = wiki_path_conversion_table[trac_path]
+        return os.path.join(target_url_wiki, wiki_path)
+
+    return match.group(0)
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     #text = matcher_changeset.sub(format_changeset_comment, text)
@@ -287,8 +297,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     #    text = matcher_svnrev1.sub(handle_svnrev_reference, text)
     #    text = matcher_svnrev2.sub(handle_svnrev_reference, text)
 
-    # sage-specific normalization
-    text = re.sub(r'https?://trac.sagemath.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
+    # Sage-specific normalization
+    text = re.sub(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
+    text = re.sub(r'https://trac\.sagemath\.org/wiki/([/\-\w0-9@:%._+~#=]+)', convert_wiki_link, text)
 
     # some normalization
     text = re.sub('\r\n', '\n', text)
@@ -302,28 +313,23 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     if multilines:
         text = re.sub(r'^\S[^\n]+([^=-_|])\n([^\s`*0-9#=->-_|])', r'\1 \2', text)
 
-    def convert_heading(level, text):
+    def heading_replace(match):
         """
-        Return the given text with converted headings
+        Return the replacement for the heading
         """
-        def replace(match):
-            """
-            Return the replacement for the heading
-            """
-            heading = match.groups()[0]
-            # There might be a second item if an anchor is set.
-            # We ignore this anchor since it is automatically
-            # set it GitHub Markdown.
-            return '%s %s' % (('#'*level), heading)
+        level = len(match.group(1))
+        heading = match.group(2).rstrip()
 
-        text = re.sub(r'(?m)^%s\s+([^=]+)[^\n=]*([\#][\w-]*)?$' % ('='*level), replace, text)
-        text = re.sub(r'(?m)^%s\s+(.*?)\s+%s[^\n]*([\#][\w-]*)?$' % ('='*level, '='*level), replace, text)
-        return text
+        if create_wiki_link_conversion_table:
+            with open('wiki_path_conversion_table.txt', "a") as f:
+                f.write(conv_help._trac_wiki_path + '#' + heading.replace(' ', '') + ' '
+                        + conv_help._wiki_path + '#' + heading.replace(' ', '-'))
+                f.write('\n')
 
-    for level in [6, 5, 4, 3, 2, 1]:
-        text = convert_heading(level, text)
-
-    is_table = False  # ???
+        # There might be a second item if an anchor is set.
+        # We ignore this anchor since it is automatically
+        # set it GitHub Markdown.
+        return '#'*level + ' ' + heading
 
     a = []
     level = 0
@@ -344,10 +350,19 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         non_blank_previous_line = bool(line)
         line = text_lines.pop()
 
-        if skip_line_with_leading_whitespaces:
-            if line.startswith(' '*skip_line_with_leading_whitespaces):
-                is_table = False
-                continue
+        # heading
+        line = re.sub(r'^(=)\s(.+)\s=\s*([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(==)\s(.+)\s==\s*([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(===)\s(.+)\s===\s*([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(====)\s(.+)\s====\s*([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(=====)\s(.+)\s=====\s*([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(======)\s(.+)\s======\s*([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(=)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(==)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(===)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(====)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(=====)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
+        line = re.sub(r'^(======)\s([^#]+)([\#][^\s]*)?' , heading_replace, line)
 
         # cut quote prefix
         if line.startswith(quote_prefix):
@@ -786,6 +801,139 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = RE_BRANCH_PUSH.sub(r'**\1**', text)
 
     return text
+
+
+class ConversionHelper:
+    """
+    A class that provides conversion methods that depend on information collected
+    at startup, such as Wiki page names and configuration flags.
+    """
+    def __init__(self, source):
+        """
+        The Python constructor collects all the necessary information.
+        """
+        pagenames = source.wiki.getAllPages()
+        pagenames_splitted = []
+        for p in pagenames:
+            pagenames_splitted += p.split('/')
+        pagenames_not_splitted = [p for p in pagenames if not p in pagenames_splitted]
+
+        self._pagenames_splitted = pagenames_splitted
+        self._pagenames_not_splitted = pagenames_not_splitted
+        self._keep_trac_ticket_references = False
+        self._attachment_path = ''
+        if config.has_option('source', 'keep_trac_ticket_references') :
+            self._keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
+
+    def set_path(self, pagename):
+        """
+        Set paths from pagename
+        """
+        gh_pagename = ' '.join(pagename.split('/'))
+        self._attachment_path = gh_pagename  #  attachment_path for the wiki_image method
+        self._trac_wiki_path = pagename.replace(' ', '%20')
+        self._wiki_path = gh_pagename.replace(' ', '-')
+
+        if create_wiki_link_conversion_table:
+            with open('wiki_path_conversion_table.txt', "a") as f:
+                f.write(self._trac_wiki_path + ' ' + self._wiki_path)
+                f.write('\n')
+
+    def ticket_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a Trac ticket link.
+        """
+        ticket = match.groups()[0]
+        if self._keep_trac_ticket_references:
+            # as long as the ticket themselves have not been migrated they should reference to the original place
+            return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
+        else:
+            # leave them as is
+            return r'#%s' % ticket
+
+    def ticket_comment_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a Trac ticket comment link.
+        """
+        ticket = match.group(1)
+        comment = match.group(2)
+        if self._keep_trac_ticket_references:
+            # as long as the ticket themselves have not been migrated they should reference to the original place
+            return r'[#%s comment:%s](%s/%s#comment:%s)' % (ticket, comment, trac_url_ticket, ticket, comment)
+        else:
+            # leave them as is
+            return r'ticket:%s#comment:%s' % (ticket, comment)
+
+    def wiki_image(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a wiki link to an attached image.
+        """
+        mg = match.groups()
+        filename = os.path.join(self._attachment_path, mg[0])
+        if len(mg) > 1:
+            return r'<img src="%s" width=%s>' % (filename, mg[1])
+        else:
+            return r'<img src="%s">' % filename
+
+    def wiki_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to a wiki page.
+        """
+        mg = match.groups()
+        pagename = mg[0]
+        if len(mg) > 1:
+            display = mg[1]
+            if not display:
+                display = pagename
+        else:
+            display = pagename
+
+        # take care of section references
+        pagename_sect = pagename.split('#')
+        pagename_ori = pagename
+        if len(pagename_sect) > 1:
+            pagename = pagename_sect[0]
+            if not display:
+                display = pagename_sect[1]
+
+        if pagename.startswith('http'):
+            link = pagename_ori.strip()
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+        elif pagename in self._pagenames_splitted:
+            link = pagename_ori.replace(' ', '-')
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+        elif pagename in self._pagenames_not_splitted:
+            # Use normalized wiki pagename
+            link = pagename_ori.replace('/', ' ').replace(' ', '-')
+             # \| instead of | for wiki links in a table
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+        else:
+            # we assume that this must be a Trac macro like TicketQuery
+            # first lets extract arguments
+            macro_split = pagename.split('(')
+            macro = macro_split[0]
+            args = None
+            if len(macro_split) > 1:
+                args =  macro_split[1]
+            display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
+            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
+            if args:
+                return r'OPENING__LEFT__BRACKET%s called with arguments (%s)CLOSING__RIGHT__BRACKET(%s)' % (display, args, link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+
+    def camelcase_wiki_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to a wiki page recognized from CamelCase.
+        """
+        if match.group(1) in self._pagenames_splitted:
+            return self.wiki_link(match)
+        return match.group(0)
+
 
 def github_ref_url(ref):
     if re.fullmatch(r'[0-9a-f]{40}', ref):  # commit sha
@@ -1553,7 +1701,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             print ('%d tickets migrated. Waiting %d seconds to let GitHub/Trac cool down.' % (ticketcount, sleep_after_10tickets))
             sleep(sleep_after_10tickets)
 
-
 def convert_wiki(source, dest):
     exclude_authors = ['trac']
 
@@ -1562,6 +1709,9 @@ def convert_wiki(source, dest):
 
     client.MultiCall(source)
     conv_help = ConversionHelper(source)
+
+    if os.path.exists('links.txt'):
+        os.remove('links.txt')
 
     for pagename in source.wiki.getAllPages():
         info = source.wiki.getPageInfo(pagename)
@@ -1574,7 +1724,7 @@ def convert_wiki(source, dest):
         # Github wiki does not have folder structure
         gh_pagename = ' '.join(pagename.split('/'))
 
-        conv_help.set_attachment_path(gh_pagename)
+        conv_help.set_path(pagename)
         converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help)
 
         attachments = []
@@ -1611,130 +1761,6 @@ def convert_wiki(source, dest):
             print ('  Context:', e.object[e.start-20:e.end+20])
             print ('  Retrying with UTF-8 encoding')
             codecs.open(outfile, 'w', 'utf-8').write(converted)
-
-
-class ConversionHelper:
-    """
-    A class that provides conversion methods that depend on information collected
-    at startup, such as Wiki page names and configuration flags.
-    """
-    def __init__(self, source):
-        """
-        The Python constructor collects all the necessary information.
-        """
-        pagenames = source.wiki.getAllPages()
-        pagenames_splitted = []
-        for p in pagenames:
-            pagenames_splitted += p.split('/')
-        pagenames_not_splitted = [p for p in pagenames if not p in pagenames_splitted]
-
-        self._pagenames_splitted = pagenames_splitted
-        self._pagenames_not_splitted = pagenames_not_splitted
-        self._keep_trac_ticket_references = False
-        self._attachment_path = ''
-        if config.has_option('source', 'keep_trac_ticket_references') :
-            self._keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
-
-    def set_attachment_path(self, attachment_path):
-        """
-        Set the attachment_path for the wiki_image method.
-        """
-        self._attachment_path = attachment_path
-
-    def ticket_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a Trac ticket link.
-        """
-        ticket = match.groups()[0]
-        if self._keep_trac_ticket_references:
-            # as long as the ticket themselves have not been migrated they should reference to the original place
-            return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
-        else:
-            # leave them as is
-            return r'#%s' % ticket
-
-    def ticket_comment_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a Trac ticket comment link.
-        """
-        ticket = match.group(1)
-        comment = match.group(2)
-        if self._keep_trac_ticket_references:
-            # as long as the ticket themselves have not been migrated they should reference to the original place
-            return r'[#%s comment:%s](%s/%s#comment:%s)' % (ticket, comment, trac_url_ticket, ticket, comment)
-        else:
-            # leave them as is
-            return r'ticket:%s#comment:%s' % (ticket, comment)
-
-    def wiki_image(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a wiki link to an attached image.
-        """
-        mg = match.groups()
-        filename = os.path.join(self._attachment_path, mg[0])
-        if len(mg) > 1:
-            return r'<img src="%s" width=%s>' % (filename, mg[1])
-        else:
-            return r'<img src="%s">' % filename
-
-    def wiki_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a link to a wiki page.
-        """
-        mg = match.groups()
-        pagename = mg[0]
-        if len(mg) > 1:
-            display = mg[1]
-            if not display:
-                display = pagename
-        else:
-            display = pagename
-
-        # take care of section references
-        pagename_sect = pagename.split('#')
-        pagename_ori = pagename
-        if len(pagename_sect) > 1:
-            pagename = pagename_sect[0]
-            if not display:
-                display = pagename_sect[1]
-
-        if pagename.startswith('http'):
-            link = pagename_ori.strip()
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
-        elif pagename in self._pagenames_splitted:
-            link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
-        elif pagename in self._pagenames_not_splitted:
-            # Use normalized wiki pagename
-            link = pagename_ori.replace('/', ' ').replace(' ', '-')
-             # \| instead of | for wiki links in a table
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
-        else:
-            # we assume that this must be a Trac macro like TicketQuery
-            # first lets extract arguments
-            macro_split = pagename.split('(')
-            macro = macro_split[0]
-            args = None
-            if len(macro_split) > 1:
-                args =  macro_split[1]
-            display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
-            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
-            if args:
-                return r'OPENING__LEFT__BRACKET%s called with arguments (%s)CLOSING__RIGHT__BRACKET(%s)' % (display, args, link)
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
-
-    def camelcase_wiki_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a link to a wiki page recognized from CamelCase.
-        """
-        if match.group(1) in self._pagenames_splitted:
-            return self.wiki_link(match)
-        return match.group(0)
 
 
 if __name__ == "__main__":
