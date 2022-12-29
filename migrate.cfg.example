@@ -18,6 +18,15 @@ svngitmap: /path/to/git_svn.map
 
 [target]
 
+# URL of the GitHub web API (default: https://api.github.com)
+# url: https://api.github.com
+
+# repo of all issues converted from trac tickets
+issues_repo_url: https://issues/repo
+
+# git repo with all branches
+git_repo_url: https://git/repo
+
 # Trac to GitLab user mappings
 usernames = {
     'trac1': 'git1',
@@ -79,6 +88,9 @@ export_dir : /path/to/attachment/directory
 export_url : http://www.example.org/trac-attachments/foo/bar
 
 [wiki]
+
+# destination of wiki
+url: https://destination/of/wiki
 
 migrate : yes
 

@@ -80,7 +80,8 @@ default_config = {
     'url' : 'https://api.github.com'
 }
 
-# 6-digit hex notation with leading '#' sign (e.g. #FFAABB) or one of the CSS color names (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords)
+# 6-digit hex notation with leading '#' sign (e.g. #FFAABB) or one of the CSS color names
+# (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords)
 labelcolor = {
   'component' : '08517b',
   'priority' : 'ff0000',
@@ -107,6 +108,12 @@ trac_url_ticket = os.path.join(trac_url_dir, 'ticket')
 trac_url_wiki = os.path.join(trac_url_dir, 'wiki')
 trac_url_query = os.path.join(trac_url_dir, 'query')
 
+if config.has_option('target', 'issues_repo_url'):
+    target_url_issues_repo = config.get('target', 'issues_repo_url')
+    target_url_git_repo = config.get('target', 'git_repo_url')
+if config.has_option('wiki', 'url'):
+    target_url_wiki = config.get('wiki', 'url')
+
 trac_path = None
 if config.has_option('source', 'path') :
     trac_path = config.get('source', 'path')
@@ -121,6 +128,7 @@ elif config.has_option('target', 'username'):
 else:
     github_username = None
 github_project = config.get('target', 'project_name')
+
 migration_archive = None
 if config.has_option('target', 'migration_archive'):
     migration_archive = config.get('target', 'migration_archive')
@@ -249,6 +257,8 @@ RE_COMMENT2 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the st
 RE_TICKET_COMMENT1 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
+RE_CAMELCASE1 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])')
+RE_CAMELCASE2 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$')
 
 RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
@@ -267,6 +277,7 @@ RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1
 RE_GIT_SERVER_SRC = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src')
 RE_GIT_SERVER_COMMIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?[?]id=([0-9a-f]+)')
 RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
+
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     #text = matcher_changeset.sub(format_changeset_comment, text)
@@ -489,8 +500,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                         start = i + 1
                         new_line += line[end:start]
                 if end > start:
-                    converted_part = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])', conv_help.camelcase_wiki_link, line[start:end])
-                    converted_part = re.sub(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$', conv_help.camelcase_wiki_link, converted_part)  # CamelCase wiki link at end
+                    converted_part = RE_CAMELCASE1.sub(conv_help.camelcase_wiki_link, line[start:end])
+                    converted_part = RE_CAMELCASE2.sub(conv_help.camelcase_wiki_link, converted_part)
                     new_line += converted_part
 
                     start = end
@@ -734,8 +745,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     # Sage-specific rewritings
 
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
-    text = RE_GIT_SERVER_SRC.sub(fr'{github_git_repo_base_url}/blob/master/src', text)
-    text = RE_GIT_SERVER_COMMIT.sub(fr'{github_git_repo_base_url}/commit/\1', text)
+    text = RE_GIT_SERVER_SRC.sub(fr'{target_url_git_repo}/blob/master/src', text)
+    text = RE_GIT_SERVER_COMMIT.sub(fr'{target_url_git_repo}/commit/\1', text)
     text = RE_TRAC_REPORT.sub(r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
 
     def commits_list(match):
@@ -776,12 +787,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     return text
 
-github_git_repo_base_url = 'https://github.com/sagemath/sagetrac-mirror'
 def github_ref_url(ref):
     if re.fullmatch(r'[0-9a-f]{40}', ref):  # commit sha
-        return f'{github_git_repo_base_url}/commit/{ref}'
+        return f'{target_url_git_repo}/commit/{ref}'
     else:  # assume branch
-        return f'{github_git_repo_base_url}/tree/{ref}'
+        return f'{target_url_git_repo}/tree/{ref}'
 
 def github_ref_markdown(ref):
     url = github_ref_url(ref)

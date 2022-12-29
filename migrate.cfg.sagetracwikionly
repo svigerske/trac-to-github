@@ -23,6 +23,15 @@ keep_trac_ticket_references: yes
 
 [target]
 
+# URL of the GitHub web API (default: https://api.github.com)
+# url: https://api.github.com
+
+# repo of all issues converted from trac tickets
+issues_repo_url: https://github.com/sagemath/sage
+
+# git repo with all branches
+git_repo_url: https://github.com/sagemath/sagetrac-mirror
+
 # Trac to GitLab user mappings
 usernames = {
     'trac1': 'git1',
@@ -84,6 +93,9 @@ export_dir : attachments
 export_url : http://www.example.org/trac-attachments/foo/bar
 
 [wiki]
+
+# destination of wiki
+url: https://github.com/sagemath/sage/wiki
 
 migrate : yes
 

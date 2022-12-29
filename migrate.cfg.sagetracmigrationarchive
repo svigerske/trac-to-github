@@ -18,8 +18,33 @@ url: https://trac.sagemath.org/xmlrpc
 
 [target]
 
+# URL of the GitHub web API (default: https://api.github.com)
+# url: https://api.github.com
+
+# repo of all issues converted from trac tickets
+issues_repo_url: https://github.com/sagemath/sage
+
+# git repo with all branches
+git_repo_url: https://github.com/sagemath/sagetrac-mirror
+
+# project's path
+project_name: username/projectname
+
+# GitHub access token
+#token : 2190valkrl123c
+
+# GitHub username (if no token specified)
+#username: johndoe
+
+# GitHub password (if no token specified)
+#password: secret
+
+# Where to write a migration archive
+migration_archive: archive
+
 # Trac to GitHub user mappings
 # contributors-trac-to-github.py ran on 2022-12-24
+
 usernames = {
  'tabbott': 'timabbott',
  'mabshoff': None,
@@ -985,24 +1010,6 @@ usernames = {
  'arattan': None,
  'joskarsson': None,
  'shahuwang': None}
-
-# URL of the GitHub web API (default: https://api.github.com)
-# url: https://api.github.com
-
-# project's path
-project_name: username/projectname
-
-# GitHub access token
-#token : 2190valkrl123c
-
-# GitHub username (if no token specified)
-#username: johndoe
-
-# GitHub password (if no token specified)
-#password: secret
-
-# Where to write a migration archive
-migration_archive: archive
 
 [issues]
 
