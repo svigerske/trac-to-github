@@ -32,7 +32,7 @@ import configparser
 import contextlib
 import ast
 import codecs
-import warnings
+import logging
 from collections import defaultdict
 from copy import copy
 from datetime import datetime
@@ -52,6 +52,8 @@ from markdown.extensions.tables import TableExtension
 
 #import github as gh
 #gh.enable_console_debug_logging()
+
+log = logging.getLogger("trac_to_gh")
 
 """
 What
@@ -838,7 +840,7 @@ def mapstatus(status):
     elif status in ['closed'] :
         return 'closed'
     else:
-        warnings.warn("unknown ticket status: " + status)
+        log.warning("unknown ticket status: " + status)
         return 'open'
 
 keyword_frequency = defaultdict(lambda: 0)
@@ -872,7 +874,7 @@ def gh_ensure_label(dest, labelname, labelcolor) :
     labelname = labelname.lower()
     if labelname in gh_labels:
         return
-    print ('Create label %s with color #%s' % (labelname, labelcolor));
+    log.info('Create label "%s" with color #%s' % (labelname, labelcolor));
     gh_label = dest.create_label(labelname, labelcolor);
     gh_labels[labelname] = gh_label;
     sleep(sleep_after_request)
@@ -903,7 +905,7 @@ def gh_create_issue(dest, issue_data) :
                                  labels=labels,
                                  **issue_data)
 
-    print("  created issue " + str(gh_issue))
+    log.debug("  created issue " + str(gh_issue))
     sleep(sleep_after_request)
 
     return gh_issue
@@ -1162,7 +1164,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         changelog = get_changeLog(source, src_ticket_id)
 
-        print("\n\n## Migrate ticket #%s (%d changes): %s" % (src_ticket_id, len(changelog), src_ticket_data['summary'][:30]))
+        log.info('Migrating ticket #%s (%3d changes): "%s"' % (src_ticket_id, len(changelog), src_ticket_data['summary'][:50].replace('"', '\'')))
 
         def issue_description(src_ticket_data):
             description_pre = ""
@@ -1351,11 +1353,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             time, author, change_type, oldvalue, newvalue, permanent = change
             change_time = str(convert_xmlrpc_datetime(time))
             #print(change)
-            print(("  %s by %s (%s -> %s)" % (change_type, author, str(oldvalue)[:40].replace("\n", " "), str(newvalue)[:40].replace("\n", " "))).encode("ascii", "replace"))
+            log.debug("  %s by %s (%s -> %s)" % (change_type, author, str(oldvalue)[:40].replace("\n", " "), str(newvalue)[:40].replace("\n", " ")))
             #assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
-            if author in ['anonymous', 'Draftmen888'] :
-                print ("  SKIPPING CHANGE BY", author)
-                continue
+            # if author in ['anonymous', 'Draftmen888'] :
+            #     print ("  SKIPPING CHANGE BY", author)
+            #     continue
             user = gh_username(dest, author)
             user_url = gh_user_url(dest, user)
 
