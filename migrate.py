@@ -848,7 +848,9 @@ def mapkeywords(keywords):
     "Return a pair: (list of keywords for ticket description, list of labels)"
     keep_as_keywords = []
     labels = []
-    for keyword in keywords.replace(';', ',').split(','):
+    keywords = keywords.replace(';', ',')
+    has_comma = ',' in keywords
+    for keyword in keywords.split(','):
         keyword = keyword.strip()
         if not keyword:
             continue
@@ -859,6 +861,13 @@ def mapkeywords(keywords):
         else:
             keep_as_keywords.append(keyword)
             keyword_frequency[keyword.lower()] += 1
+            if not has_comma:
+                # Maybe not a phrase but whitespace-separated keywords
+                words = keywords.split()
+                if len(words) > 1:
+                    for word in words:
+                        keyword_frequency[word.lower()] += 1
+
     return keep_as_keywords, labels
 
 def gh_create_milestone(dest, milestone_data) :
