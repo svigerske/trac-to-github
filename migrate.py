@@ -88,7 +88,9 @@ labelcolor = {
   'priority' : 'ff0000',
   'severity' : 'ee0000',
   'type' : '008080',
-  'keyword' : 'eeeeee'
+  'keyword' : 'eeeeee',
+  'milestone' : '008080',
+  'resolution' : '008080',
 }
 
 sleep_after_request = 2.0
@@ -870,6 +872,22 @@ def mapkeywords(keywords):
 
     return keep_as_keywords, labels
 
+milestone_map = {}
+unmapped_milestones = defaultdict(lambda: 0)
+def mapmilestone(title):
+    "Return a pair: (milestone title, label)"
+    title = title.lower()
+    if title in ['sage-duplicate/invalid/wontfix', 'sage-duplicate/invalid', 'sage-duplicate']:
+        return None, 'duplicate/invalid/wontfix'
+    # sage-feature?
+    # sage-pending?
+    # sage-wishlist?
+    if re.match('^[0-9]', title):
+        title = 'sage-' + title
+    if re.fullmatch('sage-[1-9]', title):
+        title = title + '.0'
+    return title, None
+
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
 
@@ -1116,27 +1134,27 @@ def get_all_tickets(filter_issues):
     return call()
 
 def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
-    milestone_map = {}
-
     conv_help = ConversionHelper(source)
 
     if migrate_milestones:
         for milestone_name in get_all_milestones(source):
             milestone = get_milestone(source, milestone_name)
             title = milestone.pop('name')
-            print("Creating milestone " + title)
-            new_milestone = {
-                'description' : trac2markdown(milestone.pop('description'), '/milestones/', conv_help, False),
-                'title' : title,
-                'state' : 'open' if str(milestone.pop('completed')) == '0'  else 'closed'
-            }
-            due = milestone.pop('due')
-            if due:
-                new_milestone['due_date'] = convert_xmlrpc_datetime(due)
-            if milestone:
-                print(f"Discarded milestone data: {milestone}")
-            milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
-            print(milestone_map[milestone_name])
+            title, label = mapmilestone(title)
+            if title:
+                log.info("Creating milestone " + title)
+                new_milestone = {
+                    'description' : trac2markdown(milestone.pop('description'), '/milestones/', conv_help, False),
+                    'title' : title,
+                    'state' : 'open' if str(milestone.pop('completed')) == '0'  else 'closed'
+                    }
+                due = milestone.pop('due')
+                if due:
+                    new_milestone['due_date'] = convert_xmlrpc_datetime(due)
+                if milestone:
+                    log.warning(f"Discarded milestone data: {milestone}")
+                milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
+                log.debug(milestone_map[milestone_name])
 
     nextticketid = 1
     ticketcount = 0
@@ -1278,12 +1296,24 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         resolution = mapresolution(src_ticket_data.pop('resolution', None))
         if resolution is not None:
             labels.append(resolution)
-            gh_ensure_label(dest, resolution, labelcolor['type'])
+            gh_ensure_label(dest, resolution, labelcolor['resolution'])
 
         keywords, keyword_labels = mapkeywords(src_ticket_data.get('keywords', ''))
         for label in keyword_labels:
             labels.append(label)
             gh_ensure_label(dest, label, labelcolor['keyword'])
+
+        milestone, label = mapmilestone(src_ticket_data.pop('milestone', None))
+        if milestone and milestone in milestone_map:
+            issue_data['milestone'] = milestone_map[milestone]
+        elif milestone:
+            # Unknown milestone, put it back
+            logging.warning(f'Unknown milestone "{milestone}"')
+            unmapped_milestones[milestone] += 1
+            src_ticket_data['milestone'] = milestone
+        elif label:
+            labels.append(label)
+            gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['milestone'])
 
         def title_status(summary, status=None):
             r"""
@@ -1325,10 +1355,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if change_type == 'status' and mapstatus(newvalue) == 'closed':
                     issue_data['closed_at'] = convert_xmlrpc_datetime(time)
                     break
-
-        milestone = src_ticket_data.pop('milestone', None)
-        if milestone and milestone in milestone_map:
-            issue_data['milestone'] = milestone_map[milestone]
 
         issue_data['description'] = issue_description(src_ticket_data)
 
@@ -1452,14 +1478,34 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "milestone" :
-                oldvalue=issue_data.get('milestone', GithubObject.NotSet)
-                if newvalue != '' and newvalue in milestone_map:
-                    issue_data['milestone'] = milestone_map[newvalue]
-                elif 'milestone' in issue_data :
-                    del issue_data['milestone']
-                gh_update_issue_property(dest, issue, 'milestone',
-                                         issue_data.get('milestone', GithubObject.NotSet),
-                                         oldval=oldvalue, **event_data)
+                oldmilestone, oldlabel = mapmilestone(oldvalue)
+                newmilestone, newlabel = mapmilestone(newvalue)
+                if oldmilestone and oldmilestone in milestone_map:
+                    oldmilestone = milestone_map[oldmilestone]
+                else:
+                    if oldmilestone:
+                        logging.warning(f'Ignoring unknown milestone "{oldmilestone}"')
+                        unmapped_milestones[oldmilestone] += 1
+                    oldmilestone = GithubObject.NotSet
+                if newmilestone and newmilestone in milestone_map:
+                    newmilestone = milestone_map[newmilestone]
+                else:
+                    if newmilestone:
+                        logging.warning(f'Ignoring unknown milestone "{newmilestone}"')
+                        unmapped_milestones[newmilestone] += 1
+                    newmilestone = GithubObject.NotSet
+                if oldmilestone != newmilestone:
+                    gh_update_issue_property(dest, issue, 'milestone',
+                                             newmilestone, oldval=oldmilestone, **event_data)
+                if oldlabel != newlabel:
+                    oldlabels = copy(labels)
+                    if oldlabel:
+                        with contextlib.suppress(ValueError):
+                            labels.remove(oldlabel)
+                    if newlabel:
+                        labels.append(label)
+                        gh_ensure_label(dest, label, labelcolor['milestone'])
+                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
@@ -1795,3 +1841,4 @@ if __name__ == "__main__":
     finally:
         print(f'Unmapped users: {sorted(unmapped_users.items(), key=lambda x: -x[1])}')
         print(f'Unmapped keyword frequencies: {sorted(keyword_frequency.items(), key=lambda x: -x[1])}')
+        print(f'Unmapped milestones: {sorted(unmapped_milestones.items(), key=lambda x: -x[1])}')
