@@ -218,14 +218,14 @@ def handle_svnrev_reference(m) :
 
 # The file wiki_path_conversion_table.txt is created if not exists. If it
 # exists, the table below is constructed from the data in the file.
+create_wiki_link_conversion_table = False
 wiki_path_conversion_table = {}
 if os.path.exists('wiki_path_conversion_table.txt'):
-    create_wiki_link_conversion_table = False
     with open('wiki_path_conversion_table.txt', 'r') as f:
         for line in f.readlines():
             trac_wiki_path, wiki_path = line[:-1].split(' ')
             wiki_path_conversion_table[trac_wiki_path] = wiki_path
-else:
+elif must_convert_wiki:
     create_wiki_link_conversion_table = True
 
 RE_SUPERSCRIPT1 = re.compile(r'\^([^\s]+?)\^')
