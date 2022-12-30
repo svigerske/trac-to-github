@@ -164,11 +164,6 @@ add_label = None
 if config.has_option('issues', 'add_label'):
     add_label = config.get('issues', 'add_label')
 
-svngit_mapfile = None
-if config.has_option('source', 'svngitmap') :
-    svngit_mapfile = config.get('source', 'svngitmap')
-svngit_map = None
-
 attachment_export = config.getboolean('attachments', 'export')
 if attachment_export :
     attachment_export_dir = config.get('attachments', 'export_dir')
@@ -200,32 +195,8 @@ matcher_changeset = re.compile(pattern_changeset)
 pattern_changeset2 = r'\[changeset:([a-zA-Z0-9]+)\]'
 matcher_changeset2 = re.compile(pattern_changeset2)
 
-pattern_svnrev1 = r'(?:\bchangeset *)|(?<=\s)\[([0-9]+)\]'
-matcher_svnrev1 = re.compile(pattern_svnrev1)
-
-pattern_svnrev2 = r'\b(?:changeset *)?r([0-9]+)\b'
-matcher_svnrev2 = re.compile(pattern_svnrev2)
-
 gh_labels = dict()
 gh_user = None
-
-def format_changeset_comment(m):
-    if svngit_map is not None and m.group(1) in svngit_map :
-        r = 'In ' + svngit_map[m.group(1)][0][:10]
-    else :
-        if svngit_map is not None :
-            print ('  WARNING: svn revision', m.group(1), 'not given in svn to git mapping')
-        r = 'In changeset ' + m.group(1)
-    r += ':\n> ' + m.group(3).replace('\n', '\n> ')
-    return r
-
-def handle_svnrev_reference(m) :
-    assert svngit_map is not None
-    if m.group(1) in svngit_map :
-        return svngit_map[m.group(1)][0][:10]
-    else :
-        #print '  WARNING: svn revision', m.group(1), 'not given in svn to git mapping'
-        return m.group(0)
 
 # The file wiki_path_conversion_table.txt is created if not exists. If it
 # exists, the table below is constructed from the data in the file.
@@ -301,13 +272,6 @@ def convert_wiki_link(match):
     return match.group(0)
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
-    #text = matcher_changeset.sub(format_changeset_comment, text)
-    #text = matcher_changeset2.sub(r'\1', text)
-
-    #if svngit_map is not None :
-    #    text = matcher_svnrev1.sub(handle_svnrev_reference, text)
-    #    text = matcher_svnrev2.sub(handle_svnrev_reference, text)
-
     # Sage-specific normalization
     text = re.sub(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
     text = re.sub(r'https://trac\.sagemath\.org/wiki/([/\-\w0-9@:%._+~#=]+)', convert_wiki_link, text)
@@ -1916,22 +1880,6 @@ if __name__ == "__main__":
                                                     url="https://github.com/sagemath/sagetest"), None)
             #print(dest.url)
             sleep_after_request = 0
-
-    if svngit_mapfile is not None :
-        svngit_map = dict()
-        for line in open(svngit_mapfile, 'r') :
-            l = line.split()
-            if len(l) <= 1 :
-                continue
-            assert len(l) >= 2, line
-            githash = l[0]
-            svnrev = l[1][1:]
-            svnbranch = l[2] if len(l) > 2 else 'trunk'
-            #print l[1], l[0]
-            # if already have a svn revision entry from branch trunk, then ignore others
-            if svnrev in svngit_map and svngit_map[svnrev][1] == 'trunk' :
-                continue
-            svngit_map[svnrev] = [githash, svnbranch]
 
     try:
         if must_convert_issues:

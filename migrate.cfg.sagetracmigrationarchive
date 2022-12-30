@@ -13,9 +13,6 @@ url: https://trac.sagemath.org/xmlrpc
 # optional path to trac instance used to convert some attachments
 # path: /path/to/trac/instance
 
-# mapping file from git hashes to subversion revisions and branch names ("hash revision @branch" in each line)
-#svngitmap: /path/to/git_svn.map
-
 [target]
 
 # URL of the GitHub web API (default: https://api.github.com)

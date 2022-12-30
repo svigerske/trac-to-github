@@ -48,7 +48,6 @@ Features
  * Resolution is added as comment
  * Issue text attachments are uploaded as Gist (GitHub doesn't allow to attach files to issues via the GitHub API)
    or all issue attachments are exported to files
- * References to SVN commits can be replaced by references to Githashes.
  * Wiki pages including attachments are exported into files that can be
    added to the GitHub project wiki repository.
 
