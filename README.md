@@ -4,9 +4,41 @@ What
 This script migrates milestones, issues/tickets, and wiki pages from Trac to GitHub.
 
 The script has its origin at https://github.com/moimael/trac-to-gitlab,
-which then has been [extended to suite a specific use case of SVN+Trac to GitLab migration](https://www.gams.com/~stefan/svn2git/).
-Next, GitLab specific code has been removed and a migration to GitHub
-has been added.
+which then was [extended to suite a specific use case of SVN+Trac to GitLab migration](https://www.gams.com/~stefan/svn2git/).
+Next, GitLab specific code was removed, and a migration to GitHub was added.
+
+In its present form, it is used for the migration of SageMath from
+https://trac.sagemath.org/ to GitHub. This migration is described in more detail in
+https://trac.sagemath.org/ticket/30363
+
+Why
+===
+
+[docs/Github-vs-Gitlab-vs-trac.md](docs/Github-vs-Gitlab-vs-trac.md) compares
+[Github](https://github.com/) and [Trac](https://trac.sagemath.org/),
+focusing on the specific differences that are important to the SageMath
+community.
+
+How
+====
+
+Migrating a Trac project to GitHub is a relatively complex process involving four steps:
+
+ * Create a new project
+ * Migrate the repository
+ * Migrate issues and milestones
+ * Migrate wiki pages
+
+This script takes care of the third and fourth bullet points.
+
+Usage:
+
+  1. copy ```migrate.cfg.example``` to ```migrate.cfg```
+  2. configure the values
+  3. run (```./migrate.py```). Make sure you test it on a test project prior, if you run it twice against the same project you will get duplicated issues.
+
+See [docs/Migration-Trac-to-Github.md](docs/Migration-Trac-to-Github.md) for details of the migration process
+and a proposed workflow on GitHub (with transition guide from Trac for developers).
 
 Features
 --------
@@ -26,23 +58,6 @@ Missing
  * History on wiki pages is not kept.
 
 
-How
-====
-
-Migrating a Trac project to GitHub is a relatively complex process involving four steps:
-
- * Create a new project
- * Migrate the repository
- * Migrate issues and milestones
- * Migrate wiki pages
-
-This script takes care of the third and fourth bullet points.
-
-Usage:
-
-  1. copy ```migrate.cfg.example``` to ```migrate.cfg```
-  2. configure the values
-  3. run (```./migrate.py```). Make sure you test it on a test project prior, if you run it twice against the same project you will get duplicated issues.
 
 
 License
