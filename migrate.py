@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=python fileencoding=utf-8
 '''
+Copyright © 2022
+    Matthias Koeppe
+    Kwankyu Lee
+    Sebastian Oehms
+    Dima Pasechnik
+Modified and extended for the migration of SageMath from Trac to GitHub.
+
 Copyright © 2018-2019
     Stefan Vigerske <svigerske@gams.com>
 This is a modified/extended version of trac-to-gitlab from https://github.com/moimael/trac-to-gitlab.
@@ -11,7 +18,7 @@ Copyright © 2013
     Eric van der Vlist <vdv@dyomedea.com>
     Jens Neuhalfen <http://www.neuhalfen.name/>
 
-This sotfware is free software: you can redistribute it and/or modify
+This software is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
