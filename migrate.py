@@ -1320,6 +1320,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         # Process src_ticket_data and remove (using pop) attributes that are processed already.
         # issue_description dumps everything that has not been processed in the description.
 
+        issue_data = {}
+
         labels = []
         if add_label:
             labels.append(add_label)
@@ -1393,13 +1395,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             return summary, status
 
         title, status = title_status(src_ticket_data.pop('summary'))
+        issue_data['title'] = title
+        issue_data['labels'] = labels
+        #'assignee' : assignee,
 
-        # collect all parameters
-        issue_data = {
-            'title' : title,
-            'labels' : labels,
-            #'assignee' : assignee,
-        }
         if not github:
             issue_data['user'] = gh_username(dest, src_ticket_data.pop('reporter'))
             issue_data['created_at'] = convert_xmlrpc_datetime(time_created)
