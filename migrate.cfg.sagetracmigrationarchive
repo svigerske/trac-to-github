@@ -1024,7 +1024,7 @@ migrate: yes
 # blacklist_issues: [ 268, 843 ]
 
 # If defined, then this is added to the ticket query string to trac
-filter_issues: max=50&order=id&page=1&desc=False
+#filter_issues: max=50&order=id&page=1&desc=False
 #filter_issues: max=2796&order=id&page=2
 
 # Add a label to all migrated issues
@@ -1049,9 +1049,9 @@ export_url = tarball://root/attachments/some-uuid/
 
 [wiki]
 
+migrate : no
+
 #url: https://github.com/sagemath/sage/wiki
 url: https://github.com/sagemath/trac_to_gh/wiki
-
-migrate : no
 
 export_dir: wiki
