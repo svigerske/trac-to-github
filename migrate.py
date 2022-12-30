@@ -1287,8 +1287,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         priority = src_ticket_data.pop('priority', default_priority)
         if priority != default_priority:
-            labels.append(mappriority(priority))
-            gh_ensure_label(dest, priority, labelcolor['priority'])
+            label = mappriority(priority)
+            labels.append(label)
+            gh_ensure_label(dest, label, labelcolor['priority'])
 
         severity = src_ticket_data.pop('severity', 'normal')
         if severity != 'normal' :
