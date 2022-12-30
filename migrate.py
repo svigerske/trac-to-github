@@ -828,10 +828,13 @@ def mapresolution(resolution):
         return None
     return resolution
 
+component_frequency = defaultdict(lambda: 0)
 def mapcomponent(component):
     "Return GitHub label corresponding to Trac ``component``"
     if component == 'PLEASE CHANGE':
         return None
+    component = component.replace('_', ' ')
+    component_frequency[component] += 1
     # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
     return f'component: {component}'
 
@@ -886,9 +889,12 @@ def mapmilestone(title):
     title = title.lower()
     if title in ['sage-duplicate/invalid/wontfix', 'sage-duplicate/invalid', 'sage-duplicate']:
         return None, 'duplicate/invalid/wontfix'
-    # sage-feature?
-    # sage-pending?
-    # sage-wishlist?
+    if title in ['sage-feature', 'sage-pending', 'sage-wishlist']:
+        return None, title[5:]
+    if title == 'sage-combinat':
+        return None, mapcomponent('combinatorics')
+    if title == 'sage-symbolics':
+        return None, mapcomponent('symbolics')
     if re.match('^[0-9]', title):
         title = 'sage-' + title
     if re.fullmatch('sage-[1-9]', title):
@@ -1850,3 +1856,4 @@ if __name__ == "__main__":
         print(f'Unmapped users: {sorted(unmapped_users.items(), key=lambda x: -x[1])}')
         print(f'Unmapped keyword frequencies: {sorted(keyword_frequency.items(), key=lambda x: -x[1])}')
         print(f'Unmapped milestones: {sorted(unmapped_milestones.items(), key=lambda x: -x[1])}')
+        print(f'Components: {sorted(component_frequency.items(), key=lambda x: -x[1])}')
