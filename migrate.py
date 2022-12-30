@@ -862,14 +862,16 @@ def mappriority(priority):
     return priority
 
 def mapstatus(status):
+    "Return a pair: (status, label)"
+    status = status.lower()
     if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'open',
                   'needs_work', 'needs_info', 'needs_info_new', 'positive_review']:
-        return 'open'
+        return 'open', status.replace('_', ' ')
     elif status in ['closed'] :
-        return 'closed'
+        return 'closed', None
     else:
         log.warning("unknown ticket status: " + status)
-        return 'open'
+        return 'open', status.replace('_', ' ')
 
 keyword_frequency = defaultdict(lambda: 0)
 def mapkeywords(keywords):
@@ -1404,9 +1406,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             issue_data['number'] = int(src_ticket_id)
             # Find closed_at
             for time, author, change_type, oldvalue, newvalue, permanent in reversed(changelog):
-                if change_type == 'status' and mapstatus(newvalue) == 'closed':
-                    issue_data['closed_at'] = convert_xmlrpc_datetime(time)
-                    break
+                if change_type == 'status':
+                    state, label = mapstatus(newvalue)
+                    if state == 'closed':
+                        issue_data['closed_at'] = convert_xmlrpc_datetime(time)
+                        break
 
         issue_data['description'] = issue_description(src_ticket_data)
 
@@ -1421,10 +1425,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             src_ticket_data.update(first_old_values)
             if status is None:
                 status = src_ticket_data.pop('status')
-        issue_state = mapstatus(status)
+        issue_state, label = mapstatus(status)
 
         def change_status(newvalue, oldvalue):
-            newstate = mapstatus(newvalue)
+            newstate, newlabel = mapstatus(newvalue)
             if newstate == 'open':
                 # mapstatus maps the various statuses we have in trac
                 # to just 2 statuses in gitlab/github (open or closed),
