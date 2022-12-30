@@ -1053,15 +1053,24 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     issue.create_comment(note, **comment)
     sleep(sleep_after_request)
 
+def normalize_labels(labels):
+    if 'duplicate/invalid/wontfix' in labels:
+        labels.remove('duplicate/invalid/wontfix')
+        if any(x in labels for x in ['duplicate', 'invalid', 'wontfix']):
+            return
+        labels.append('invalid')
+
 def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     if dest is None : return
 
     if key == 'labels':
         labels = [gh_labels[label.lower()] for label in val if label]
+        normalize_labels(labels)
         if github:
             issue.set_labels(*labels)
         else:
             oldlabels = [gh_labels[label.lower()] for label in oldval if label]
+            normalize_labels(oldlabels)
             for label in oldlabels:
                 if label not in labels:
                     # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#unlabeled
@@ -1395,6 +1404,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             return summary, status
 
         title, status = title_status(src_ticket_data.pop('summary'))
+        normalize_labels(labels)
         issue_data['title'] = title
         issue_data['labels'] = labels
         #'assignee' : assignee,
