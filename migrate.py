@@ -833,7 +833,23 @@ def mapcomponent(component):
     "Return GitHub label corresponding to Trac ``component``"
     if component == 'PLEASE CHANGE':
         return None
-    component = component.replace('_', ' ')
+    component = component.replace('_', ' ').lower()
+    if component in ['solaris', 'cygwin']:
+        component = 'porting: ' + component
+    elif component == 'freebsd':
+        component = 'porting: bsd'
+    elif component == 'aix or hp-ux ports':
+        component = 'porting: aix or hp-ux'
+    elif component == 'experimental package':
+        component = 'packages: experimental'
+    elif component == 'optional packages':
+        component = 'packages: optional'
+    elif component == 'plotting':
+        component = 'graphics'
+    elif component == 'doctest':
+        component = 'doctest coverage'
+    elif component == 'sage-check':
+        component = 'spkg-check'
     component_frequency[component] += 1
     # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
     return f'component: {component}'
@@ -889,16 +905,38 @@ def mapmilestone(title):
     title = title.lower()
     if title in ['sage-duplicate/invalid/wontfix', 'sage-duplicate/invalid', 'sage-duplicate']:
         return None, 'duplicate/invalid/wontfix'
+    if title == 'sage-wait':
+        title = 'sage-pending'
     if title in ['sage-feature', 'sage-pending', 'sage-wishlist']:
         return None, title[5:]
     if title == 'sage-combinat':
         return None, mapcomponent('combinatorics')
     if title == 'sage-symbolics':
         return None, mapcomponent('symbolics')
+    if title == 'sage-i18n':
+        return None, mapcomponent('translations')
     if re.match('^[0-9]', title):
         title = 'sage-' + title
     if re.fullmatch('sage-[1-9]', title):
         title = title + '.0'
+    # Remap milestones for releases that were canceled/renamed
+    if title == 'sage-2.8.4.3':
+        title = 'sage-2.8.5'
+    elif title == 'sage-3.2.4':
+        title = 'sage-3.3'
+    elif title == 'sage-4.0.3':
+        title = 'sage-4.1'
+    elif title == 'sage-4.1.3':
+        title = 'sage-4.2'
+    elif title == 'sage-4.4.5':
+        title = 'sage-4.5'
+    elif title == 'sage-4.7.3':
+        title = 'sage-4.8'
+    elif title == 'sage-6.11':
+        title = 'sage-7.0'
+    elif title == 'sage-7.7':
+        title = 'sage-8.0'
+
     return title, None
 
 def gh_create_milestone(dest, milestone_data) :
