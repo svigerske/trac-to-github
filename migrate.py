@@ -1581,8 +1581,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'state', 'closed')
         else:
             src_ticket_data.update(first_old_values)
-            if status is None:
-                status = src_ticket_data.get('status')
+            title, status = title_status(src_ticket_data.get('summary'), src_ticket_data.get('status'))
+            tmp_src_ticket_data = copy(src_ticket_data)
             milestone, labels = milestone_labels(tmp_src_ticket_data, status)
 
         issue_state, label = mapstatus(status)
@@ -1596,12 +1596,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 labels.append(add_label)
                 gh_ensure_label(dest, add_label, labelcolor[label_category])
             if labels != oldlabels:
-                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
             return labels
 
-        def change_status(newvalue, oldvalue=None):
-            if oldvalue is None:
-                oldvalue = src_ticket_data.get('status')
+        def change_status(newvalue):
+            oldvalue = src_ticket_data.get('status')
             src_ticket_data['status'] = newvalue
             oldstate, oldlabel = mapstatus(oldvalue)
             newstate, newlabel = mapstatus(newvalue)
@@ -1655,7 +1654,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # we will forget about these old versions and only keep the latest one
                 pass
             elif change_type == "status" :
-                issue_state, labels = change_status(newvalue, oldvalue)
+                issue_state, labels = change_status(newvalue)
             elif change_type == "resolution" :
                 oldresolution = mapresolution(oldvalue)
                 newresolution = mapresolution(newvalue)
@@ -1718,7 +1717,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "description" :
                 if github:
                     issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
-                    gh_update_issue_property(dest, issue, 'description', issue_data['description'])
+                    gh_update_issue_property(dest, issue, 'description', issue_data['description'], **event_data)
                 else:
                     body = '**Description changed:**\n``````diff\n'
                     old_description = trac2markdown(oldvalue, '/issues/', conv_help, False)
@@ -1734,9 +1733,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 title, status = title_status(newvalue)
                 if title != oldtitle:
                     issue_data['title'] = title
-                    gh_update_issue_property(dest, issue, 'title', title, oldval=oldtitle)
+                    gh_update_issue_property(dest, issue, 'title', title, oldval=oldtitle, **event_data)
                 if status is not None:
-                    issue_state, labels = change_status(status, oldstatus)
+                    issue_state, labels = change_status(status)
             elif change_type == "priority" :
                 oldlabel = mappriority(oldvalue)
                 newlabel = mappriority(newvalue)
@@ -1759,7 +1758,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     comment_data['note'] = '**Changing keywords** from "' + ', '.join(oldkeywords) + '" to "' + ', '.join(newkeywords) + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 if labels != oldlabels:
-                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
             else:
                 if oldvalue != newvalue:
                     if change_type in ['branch', 'commit']:
