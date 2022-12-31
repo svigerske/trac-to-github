@@ -2031,8 +2031,8 @@ if __name__ == "__main__":
             #print 'Existing labels:', gh_labels.keys()
         else:
             requester = MigrationArchiveWritingRequester(migration_archive, wiki_export_dir)
-            dest = Repository(requester, None, dict(name="sagetest",
-                                                    url="https://github.com/sagemath/sagetest"), None)
+            dest = Repository(requester, None, dict(name=github_project,
+                                                    url=target_url_issues_repo), None)
             #print(dest.url)
             sleep_after_request = 0
 

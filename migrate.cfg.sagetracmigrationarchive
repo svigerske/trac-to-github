@@ -25,7 +25,7 @@ issues_repo_url: https://github.com/sagemath/sage
 git_repo_url: https://github.com/sagemath/sagetrac-mirror
 
 # project's path
-project_name: username/projectname
+project_name: sagemath/sage
 
 # GitHub access token
 #token : 2190valkrl123c
