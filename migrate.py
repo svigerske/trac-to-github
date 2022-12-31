@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=python fileencoding=utf-8
 '''
+Copyright © 2022
+    Matthias Koeppe
+    Kwankyu Lee
+    Sebastian Oehms
+    Dima Pasechnik
+Modified and extended for the migration of SageMath from Trac to GitHub.
+
 Copyright © 2018-2019
     Stefan Vigerske <svigerske@gams.com>
 This is a modified/extended version of trac-to-gitlab from https://github.com/moimael/trac-to-gitlab.
@@ -11,7 +18,7 @@ Copyright © 2013
     Eric van der Vlist <vdv@dyomedea.com>
     Jens Neuhalfen <http://www.neuhalfen.name/>
 
-This sotfware is free software: you can redistribute it and/or modify
+This software is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -32,7 +39,7 @@ import configparser
 import contextlib
 import ast
 import codecs
-import warnings
+import logging
 from collections import defaultdict
 from copy import copy
 from datetime import datetime
@@ -52,6 +59,8 @@ from markdown.extensions.tables import TableExtension
 
 #import github as gh
 #gh.enable_console_debug_logging()
+
+log = logging.getLogger("trac_to_gh")
 
 """
 What
@@ -87,7 +96,9 @@ labelcolor = {
   'priority' : 'ff0000',
   'severity' : 'ee0000',
   'type' : '008080',
-  'keyword' : 'eeeeee'
+  'keyword' : 'eeeeee',
+  'milestone' : '008080',
+  'resolution' : '008080',
 }
 
 sleep_after_request = 2.0
@@ -153,11 +164,6 @@ add_label = None
 if config.has_option('issues', 'add_label'):
     add_label = config.get('issues', 'add_label')
 
-svngit_mapfile = None
-if config.has_option('source', 'svngitmap') :
-    svngit_mapfile = config.get('source', 'svngitmap')
-svngit_map = None
-
 attachment_export = config.getboolean('attachments', 'export')
 if attachment_export :
     attachment_export_dir = config.get('attachments', 'export_dir')
@@ -189,32 +195,8 @@ matcher_changeset = re.compile(pattern_changeset)
 pattern_changeset2 = r'\[changeset:([a-zA-Z0-9]+)\]'
 matcher_changeset2 = re.compile(pattern_changeset2)
 
-pattern_svnrev1 = r'(?:\bchangeset *)|(?<=\s)\[([0-9]+)\]'
-matcher_svnrev1 = re.compile(pattern_svnrev1)
-
-pattern_svnrev2 = r'\b(?:changeset *)?r([0-9]+)\b'
-matcher_svnrev2 = re.compile(pattern_svnrev2)
-
 gh_labels = dict()
 gh_user = None
-
-def format_changeset_comment(m):
-    if svngit_map is not None and m.group(1) in svngit_map :
-        r = 'In ' + svngit_map[m.group(1)][0][:10]
-    else :
-        if svngit_map is not None :
-            print ('  WARNING: svn revision', m.group(1), 'not given in svn to git mapping')
-        r = 'In changeset ' + m.group(1)
-    r += ':\n> ' + m.group(3).replace('\n', '\n> ')
-    return r
-
-def handle_svnrev_reference(m) :
-    assert svngit_map is not None
-    if m.group(1) in svngit_map :
-        return svngit_map[m.group(1)][0][:10]
-    else :
-        #print '  WARNING: svn revision', m.group(1), 'not given in svn to git mapping'
-        return m.group(0)
 
 # The file wiki_path_conversion_table.txt is created if not exists. If it
 # exists, the table below is constructed from the data in the file.
@@ -356,13 +338,6 @@ def convert_git_link(match):
     import pdb; pdb.set_trace()
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
-    #text = matcher_changeset.sub(format_changeset_comment, text)
-    #text = matcher_changeset2.sub(r'\1', text)
-
-    #if svngit_map is not None :
-    #    text = matcher_svnrev1.sub(handle_svnrev_reference, text)
-    #    text = matcher_svnrev2.sub(handle_svnrev_reference, text)
-
     # Sage-specific normalization
 
     text = re.sub(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
@@ -1073,10 +1048,29 @@ def mapresolution(resolution):
         return None
     return resolution
 
+component_frequency = defaultdict(lambda: 0)
 def mapcomponent(component):
     "Return GitHub label corresponding to Trac ``component``"
     if component == 'PLEASE CHANGE':
         return None
+    component = component.replace('_', ' ').lower()
+    if component in ['solaris', 'cygwin']:
+        component = 'porting: ' + component
+    elif component == 'freebsd':
+        component = 'porting: bsd'
+    elif component == 'aix or hp-ux ports':
+        component = 'porting: aix or hp-ux'
+    elif component == 'experimental package':
+        component = 'packages: experimental'
+    elif component == 'optional packages':
+        component = 'packages: optional'
+    elif component == 'plotting':
+        component = 'graphics'
+    elif component == 'doctest':
+        component = 'doctest coverage'
+    elif component == 'sage-check':
+        component = 'spkg-check'
+    component_frequency[component] += 1
     # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
     return f'component: {component}'
 
@@ -1088,21 +1082,25 @@ def mappriority(priority):
     return priority
 
 def mapstatus(status):
+    "Return a pair: (status, label)"
+    status = status.lower()
     if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'open',
                   'needs_work', 'needs_info', 'needs_info_new', 'positive_review']:
-        return 'open'
+        return 'open', status.replace('_', ' ')
     elif status in ['closed'] :
-        return 'closed'
+        return 'closed', None
     else:
-        warnings.warn("unknown ticket status: " + status)
-        return 'open'
+        log.warning("unknown ticket status: " + status)
+        return 'open', status.replace('_', ' ')
 
 keyword_frequency = defaultdict(lambda: 0)
 def mapkeywords(keywords):
     "Return a pair: (list of keywords for ticket description, list of labels)"
     keep_as_keywords = []
     labels = []
-    for keyword in keywords.replace(';', ',').split(','):
+    keywords = keywords.replace(';', ',')
+    has_comma = ',' in keywords
+    for keyword in keywords.split(','):
         keyword = keyword.strip()
         if not keyword:
             continue
@@ -1113,7 +1111,55 @@ def mapkeywords(keywords):
         else:
             keep_as_keywords.append(keyword)
             keyword_frequency[keyword.lower()] += 1
+            if not has_comma:
+                # Maybe not a phrase but whitespace-separated keywords
+                words = keywords.split()
+                if len(words) > 1:
+                    for word in words:
+                        keyword_frequency[word.lower()] += 1
+
     return keep_as_keywords, labels
+
+milestone_map = {}
+unmapped_milestones = defaultdict(lambda: 0)
+def mapmilestone(title):
+    "Return a pair: (milestone title, label)"
+    title = title.lower()
+    if title in ['sage-duplicate/invalid/wontfix', 'sage-duplicate/invalid', 'sage-duplicate']:
+        return None, 'duplicate/invalid/wontfix'
+    if title == 'sage-wait':
+        title = 'sage-pending'
+    if title in ['sage-feature', 'sage-pending', 'sage-wishlist']:
+        return None, title[5:]
+    if title == 'sage-combinat':
+        return None, mapcomponent('combinatorics')
+    if title == 'sage-symbolics':
+        return None, mapcomponent('symbolics')
+    if title == 'sage-i18n':
+        return None, mapcomponent('translations')
+    if re.match('^[0-9]', title):
+        title = 'sage-' + title
+    if re.fullmatch('sage-[1-9]', title):
+        title = title + '.0'
+    # Remap milestones for releases that were canceled/renamed
+    if title == 'sage-2.8.4.3':
+        title = 'sage-2.8.5'
+    elif title == 'sage-3.2.4':
+        title = 'sage-3.3'
+    elif title == 'sage-4.0.3':
+        title = 'sage-4.1'
+    elif title == 'sage-4.1.3':
+        title = 'sage-4.2'
+    elif title == 'sage-4.4.5':
+        title = 'sage-4.5'
+    elif title == 'sage-4.7.3':
+        title = 'sage-4.8'
+    elif title == 'sage-6.11':
+        title = 'sage-7.0'
+    elif title == 'sage-7.7':
+        title = 'sage-8.0'
+
+    return title, None
 
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
@@ -1128,7 +1174,7 @@ def gh_ensure_label(dest, labelname, labelcolor) :
     labelname = labelname.lower()
     if labelname in gh_labels:
         return
-    print ('Create label %s with color #%s' % (labelname, labelcolor));
+    log.info('Create label "%s" with color #%s' % (labelname, labelcolor));
     gh_label = dest.create_label(labelname, labelcolor);
     gh_labels[labelname] = gh_label;
     sleep(sleep_after_request)
@@ -1159,7 +1205,7 @@ def gh_create_issue(dest, issue_data) :
                                  labels=labels,
                                  **issue_data)
 
-    print("  created issue " + str(gh_issue))
+    log.debug("  created issue " + str(gh_issue))
     sleep(sleep_after_request)
 
     return gh_issue
@@ -1227,15 +1273,24 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     issue.create_comment(note, **comment)
     sleep(sleep_after_request)
 
+def normalize_labels(labels):
+    if 'duplicate/invalid/wontfix' in labels:
+        labels.remove('duplicate/invalid/wontfix')
+        if any(x in labels for x in ['duplicate', 'invalid', 'wontfix']):
+            return
+        labels.append('invalid')
+
 def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     if dest is None : return
 
     if key == 'labels':
         labels = [gh_labels[label.lower()] for label in val if label]
+        normalize_labels(labels)
         if github:
             issue.set_labels(*labels)
         else:
             oldlabels = [gh_labels[label.lower()] for label in oldval if label]
+            normalize_labels(oldlabels)
             for label in oldlabels:
                 if label not in labels:
                     # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#unlabeled
@@ -1280,7 +1335,7 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 
     sleep(sleep_after_request)
 
-unmapped_users = set()
+unmapped_users = defaultdict(lambda: 0)
 
 def gh_username(dest, origname) :
     origname = origname.strip('\u200b')
@@ -1298,7 +1353,7 @@ def gh_username(dest, origname) :
     assert not origname.startswith('@')
     if re.fullmatch('[-A-Za-z._0-9]+', origname):
         # heuristic pattern for valid Trac account name (not an email address or full name or junk)
-        unmapped_users.add(origname)
+        unmapped_users[origname] += 1
     return origname
 
 def gh_user_url(dest, username):
@@ -1361,27 +1416,27 @@ def get_all_tickets(filter_issues):
     return call()
 
 def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
-    milestone_map = {}
-
     conv_help = ConversionHelper(source)
 
     if migrate_milestones:
         for milestone_name in get_all_milestones(source):
             milestone = get_milestone(source, milestone_name)
             title = milestone.pop('name')
-            print("Creating milestone " + title)
-            new_milestone = {
-                'description' : trac2markdown(milestone.pop('description'), '/milestones/', conv_help, False),
-                'title' : title,
-                'state' : 'open' if str(milestone.pop('completed')) == '0'  else 'closed'
-            }
-            due = milestone.pop('due')
-            if due:
-                new_milestone['due_date'] = convert_xmlrpc_datetime(due)
-            if milestone:
-                print(f"Discarded milestone data: {milestone}")
-            milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
-            print(milestone_map[milestone_name])
+            title, label = mapmilestone(title)
+            if title:
+                log.info("Creating milestone " + title)
+                new_milestone = {
+                    'description' : trac2markdown(milestone.pop('description'), '/milestones/', conv_help, False),
+                    'title' : title,
+                    'state' : 'open' if str(milestone.pop('completed')) == '0'  else 'closed'
+                    }
+                due = milestone.pop('due')
+                if due:
+                    new_milestone['due_date'] = convert_xmlrpc_datetime(due)
+                if milestone:
+                    log.warning(f"Discarded milestone data: {milestone}")
+                milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
+                log.debug(milestone_map[milestone_name])
 
     nextticketid = 1
     ticketcount = 0
@@ -1418,7 +1473,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         changelog = get_changeLog(source, src_ticket_id)
 
-        print("\n\n## Migrate ticket #%s (%d changes): %s" % (src_ticket_id, len(changelog), src_ticket_data['summary'][:30]))
+        log.info('Migrating ticket #%s (%3d changes): "%s"' % (src_ticket_id, len(changelog), src_ticket_data['summary'][:50].replace('"', '\'')))
 
         def issue_description(src_ticket_data):
             description_pre = ""
@@ -1494,6 +1549,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         # Process src_ticket_data and remove (using pop) attributes that are processed already.
         # issue_description dumps everything that has not been processed in the description.
 
+        issue_data = {}
+
         labels = []
         if add_label:
             labels.append(add_label)
@@ -1507,8 +1564,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         priority = src_ticket_data.pop('priority', default_priority)
         if priority != default_priority:
-            labels.append(mappriority(priority))
-            gh_ensure_label(dest, priority, labelcolor['priority'])
+            label = mappriority(priority)
+            labels.append(label)
+            gh_ensure_label(dest, label, labelcolor['priority'])
 
         severity = src_ticket_data.pop('severity', 'normal')
         if severity != 'normal' :
@@ -1523,12 +1581,24 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         resolution = mapresolution(src_ticket_data.pop('resolution', None))
         if resolution is not None:
             labels.append(resolution)
-            gh_ensure_label(dest, resolution, labelcolor['type'])
+            gh_ensure_label(dest, resolution, labelcolor['resolution'])
 
         keywords, keyword_labels = mapkeywords(src_ticket_data.get('keywords', ''))
         for label in keyword_labels:
             labels.append(label)
             gh_ensure_label(dest, label, labelcolor['keyword'])
+
+        milestone, label = mapmilestone(src_ticket_data.pop('milestone', None))
+        if milestone and milestone in milestone_map:
+            issue_data['milestone'] = milestone_map[milestone]
+        elif milestone:
+            # Unknown milestone, put it back
+            logging.warning(f'Unknown milestone "{milestone}"')
+            unmapped_milestones[milestone] += 1
+            src_ticket_data['milestone'] = milestone
+        elif label:
+            labels.append(label)
+            gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['milestone'])
 
         def title_status(summary, status=None):
             r"""
@@ -1541,9 +1611,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 keep_phrases = []
                 for phrase in phrases:
                     phrase = phrase.strip()
-                    if re.fullmatch(r'needs review|positive review|needs work', phrase):
-                        status = phrase.replace(' ', '_')
-                    elif re.fullmatch(r'(with)? *(patch|bundl)e?s?|(with)? *spkg', phrase):
+                    if re.fullmatch(r'needs review|(with )?positive review|needs work', phrase):
+                        status = phrase.replace('with ', '').replace(' ', '_')
+                    elif re.fullmatch(r'(with)? *(new|trivial)? *(patch|bundl)e?s?|(with)? *spkg', phrase):
                         pass
                     else:
                         keep_phrases.append(phrase)
@@ -1554,26 +1624,22 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             return summary, status
 
         title, status = title_status(src_ticket_data.pop('summary'))
+        normalize_labels(labels)
+        issue_data['title'] = title
+        issue_data['labels'] = labels
+        #'assignee' : assignee,
 
-        # collect all parameters
-        issue_data = {
-            'title' : title,
-            'labels' : labels,
-            #'assignee' : assignee,
-        }
         if not github:
             issue_data['user'] = gh_username(dest, src_ticket_data.pop('reporter'))
             issue_data['created_at'] = convert_xmlrpc_datetime(time_created)
             issue_data['number'] = int(src_ticket_id)
             # Find closed_at
             for time, author, change_type, oldvalue, newvalue, permanent in reversed(changelog):
-                if change_type == 'status' and mapstatus(newvalue) == 'closed':
-                    issue_data['closed_at'] = convert_xmlrpc_datetime(time)
-                    break
-
-        milestone = src_ticket_data.pop('milestone', None)
-        if milestone and milestone in milestone_map:
-            issue_data['milestone'] = milestone_map[milestone]
+                if change_type == 'status':
+                    state, label = mapstatus(newvalue)
+                    if state == 'closed':
+                        issue_data['closed_at'] = convert_xmlrpc_datetime(time)
+                        break
 
         issue_data['description'] = issue_description(src_ticket_data)
 
@@ -1588,10 +1654,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             src_ticket_data.update(first_old_values)
             if status is None:
                 status = src_ticket_data.pop('status')
-        issue_state = mapstatus(status)
+        issue_state, label = mapstatus(status)
 
         def change_status(newvalue, oldvalue):
-            newstate = mapstatus(newvalue)
+            newstate, newlabel = mapstatus(newvalue)
             if newstate == 'open':
                 # mapstatus maps the various statuses we have in trac
                 # to just 2 statuses in gitlab/github (open or closed),
@@ -1607,11 +1673,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             time, author, change_type, oldvalue, newvalue, permanent = change
             change_time = str(convert_xmlrpc_datetime(time))
             #print(change)
-            print(("  %s by %s (%s -> %s)" % (change_type, author, str(oldvalue)[:40].replace("\n", " "), str(newvalue)[:40].replace("\n", " "))).encode("ascii", "replace"))
+            log.debug("  %s by %s (%s -> %s)" % (change_type, author, str(oldvalue)[:40].replace("\n", " "), str(newvalue)[:40].replace("\n", " ")))
             #assert attachment is None or change_type == "comment", "an attachment must be followed by a comment"
-            if author in ['anonymous', 'Draftmen888'] :
-                print ("  SKIPPING CHANGE BY", author)
-                continue
+            # if author in ['anonymous', 'Draftmen888'] :
+            #     print ("  SKIPPING CHANGE BY", author)
+            #     continue
             user = gh_username(dest, author)
             user_url = gh_user_url(dest, user)
 
@@ -1697,14 +1763,34 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "milestone" :
-                oldvalue=issue_data.get('milestone', GithubObject.NotSet)
-                if newvalue != '' and newvalue in milestone_map:
-                    issue_data['milestone'] = milestone_map[newvalue]
-                elif 'milestone' in issue_data :
-                    del issue_data['milestone']
-                gh_update_issue_property(dest, issue, 'milestone',
-                                         issue_data.get('milestone', GithubObject.NotSet),
-                                         oldval=oldvalue, **event_data)
+                oldmilestone, oldlabel = mapmilestone(oldvalue)
+                newmilestone, newlabel = mapmilestone(newvalue)
+                if oldmilestone and oldmilestone in milestone_map:
+                    oldmilestone = milestone_map[oldmilestone]
+                else:
+                    if oldmilestone:
+                        logging.warning(f'Ignoring unknown milestone "{oldmilestone}"')
+                        unmapped_milestones[oldmilestone] += 1
+                    oldmilestone = GithubObject.NotSet
+                if newmilestone and newmilestone in milestone_map:
+                    newmilestone = milestone_map[newmilestone]
+                else:
+                    if newmilestone:
+                        logging.warning(f'Ignoring unknown milestone "{newmilestone}"')
+                        unmapped_milestones[newmilestone] += 1
+                    newmilestone = GithubObject.NotSet
+                if oldmilestone != newmilestone:
+                    gh_update_issue_property(dest, issue, 'milestone',
+                                             newmilestone, oldval=oldmilestone, **event_data)
+                if oldlabel != newlabel:
+                    oldlabels = copy(labels)
+                    if oldlabel:
+                        with contextlib.suppress(ValueError):
+                            labels.remove(oldlabel)
+                    if newlabel:
+                        labels.append(label)
+                        gh_ensure_label(dest, label, labelcolor['milestone'])
+                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
@@ -1862,6 +1948,13 @@ def convert_wiki(source, dest):
 
 
 if __name__ == "__main__":
+
+    from rich.logging import RichHandler
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+    )
+
     source = client.ServerProxy(trac_url)
 
     github = None
@@ -1883,24 +1976,8 @@ if __name__ == "__main__":
             requester = MigrationArchiveWritingRequester(migration_archive, wiki_export_dir)
             dest = Repository(requester, None, dict(name="sagetest",
                                                     url="https://github.com/sagemath/sagetest"), None)
-            print(dest.url)
+            #print(dest.url)
             sleep_after_request = 0
-
-    if svngit_mapfile is not None :
-        svngit_map = dict()
-        for line in open(svngit_mapfile, 'r') :
-            l = line.split()
-            if len(l) <= 1 :
-                continue
-            assert len(l) >= 2, line
-            githash = l[0]
-            svnrev = l[1][1:]
-            svnbranch = l[2] if len(l) > 2 else 'trunk'
-            #print l[1], l[0]
-            # if already have a svn revision entry from branch trunk, then ignore others
-            if svnrev in svngit_map and svngit_map[svnrev][1] == 'trunk' :
-                continue
-            svngit_map[svnrev] = [githash, svnbranch]
 
     try:
         if must_convert_issues:
@@ -1909,5 +1986,7 @@ if __name__ == "__main__":
         if must_convert_wiki:
             convert_wiki(source, dest)
     finally:
-        print(f'Unmapped users: {sorted(unmapped_users)}')
+        print(f'Unmapped users: {sorted(unmapped_users.items(), key=lambda x: -x[1])}')
         print(f'Unmapped keyword frequencies: {sorted(keyword_frequency.items(), key=lambda x: -x[1])}')
+        print(f'Unmapped milestones: {sorted(unmapped_milestones.items(), key=lambda x: -x[1])}')
+        print(f'Components: {sorted(component_frequency.items(), key=lambda x: -x[1])}')

@@ -1,8 +1,29 @@
+'''
+Copyright © 2022 Matthias Koeppe
+
+This software is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This sotfware is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this library. If not, see <http://www.gnu.org/licenses/>.
+'''
+
 import json
+import logging
 import pathlib
 from urllib.parse import urlparse, urlunparse, urljoin, quote
 from collections import defaultdict
 from copy import copy
+from rich.pretty import pprint, pretty_repr
+
+log = logging.getLogger("trac_to_gh")
 
 # class MigrationArchiveWriter:
 
@@ -41,15 +62,13 @@ class MigrationArchiveWritingRequester:
         self._num_json_by_type = defaultdict(lambda: 0)
 
     def requestJsonAndCheck(self, verb, url, parameters=None, headers=None, input=None):
-        print(f'# {verb=} {url=} {parameters=} {headers=} {input=}')
+        log.debug(f'# {verb} {url} {parameters=} {headers=} input={pretty_repr(input, max_string=60, max_width=200)}')
         parse_result = urlparse(url)
-        # print(parse_result.path)
         endpoint = parse_result.path.split('/')[3:]
         base_url = urlunparse([parse_result.scheme,
                                parse_result.netloc,
                                '/'.join(parse_result.path.split('/')[:3]) + '/',
                                None, None, None])
-        # print(f'{base_url=} {endpoint=}')
         responseHeaders = None
         output = copy(input)
         match verb, endpoint:
@@ -100,7 +119,7 @@ class MigrationArchiveWritingRequester:
                 json_file = self._migration_archive / f'{pluralize(t)}_{id:06}.json'
                 with open(json_file, 'w') as f:
                     f.write(dump)
-                print(f'# Wrote {json_file}')
+                log.debug(f'# Wrote {json_file}')
             else:
                 print(dump)
 
