@@ -1595,7 +1595,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             if add_label:
                 labels.append(add_label)
                 gh_ensure_label(dest, add_label, labelcolor[label_category])
-            if labels != oldlabels:
+            normalize_labels(labels)
+            if set(labels) != set(oldlabels):
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
             return labels
 
