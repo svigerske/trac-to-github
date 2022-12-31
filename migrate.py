@@ -118,6 +118,7 @@ trac_url_dir = os.path.dirname(trac_url)
 trac_url_ticket = os.path.join(trac_url_dir, 'ticket')
 trac_url_wiki = os.path.join(trac_url_dir, 'wiki')
 trac_url_query = os.path.join(trac_url_dir, 'query')
+trac_url_report = os.path.join(trac_url_dir, 'report')
 
 if config.has_option('target', 'issues_repo_url'):
     target_url_issues_repo = config.get('target', 'issues_repo_url')
@@ -253,8 +254,7 @@ RE_NEW_COMMITS = re.compile(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
 RE_LAST_NEW_COMMITS = re.compile(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
 RE_BRANCH_FORCED_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])')
 RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])')
-RE_GIT_SERVER_SRC = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src')
-RE_GIT_SERVER_COMMIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?[?]id=([0-9a-f]+)')
+
 RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
 
 def convert_wiki_link(match):
@@ -267,112 +267,176 @@ def convert_wiki_link(match):
     return match.group(0)
 
 def convert_git_link_diff1(match):
-    #import pdb; pdb.set_trace()
     path = match.group(1)
     hash1 = match.group(2)
     return os.path.join(target_url_git_repo, 'blob', hash1, path)
 
 def convert_git_link_diff2(match):
-    #import pdb; pdb.set_trace()
     path = match.group(1)
     hash1 = match.group(2)
     return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + path)
 
 def convert_git_link_diff3(match):
-    #import pdb; pdb.set_trace()
     hash1 = match.group(1)
     hash2 = match.group(2)
     return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + hash2)
 
 def convert_git_link_diff4(match):
-    #import pdb; pdb.set_trace()
     hash1 = match.group(1)
     return os.path.join(target_url_git_repo, 'commit', hash1)
 
+def convert_git_link_diff5(match):
+    path1 = match.group(1)
+    path2 = match.group(2)
+    hash1 = match.group(3)
+    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + path2)
+
+def convert_git_link_diff6(match):
+    branch = match.group(1)
+    path = match.group(2)
+    return os.path.join(target_url_git_repo, 'compare', path + '...' + branch)
+
+def convert_git_link_diff7(match):
+    branch = match.group(1)
+    return os.path.join(target_url_git_repo, 'commits', branch)
+
+def convert_git_link_diff8(match):
+    branch = match.group(1)
+    return os.path.join(target_url_git_repo, 'commits', branch)
+
 def convert_git_link_commit1(match):
-    #import pdb; pdb.set_trace()
     path = match.group(1)
     hash1 = match.group(2)
     return os.path.join(target_url_git_repo, 'commit', hash1)
 
-def convert_git_link_commit2(match):
-    import pdb; pdb.set_trace()
-    hash1 = match.group(1)
-    hash2 = match.group(2)
-    return os.path.join(target_url_git_repo, 'commit', hash2)
-
 def convert_git_link_commit3(match):
-    #import pdb; pdb.set_trace()
     hash1 = match.group(1)
     return os.path.join(target_url_git_repo, 'commit', hash1)
 
 def convert_git_link_commit4(match):
-    #import pdb; pdb.set_trace()
     path = match.group(1)
     return os.path.join(target_url_git_repo, 'commits', path)
 
+def convert_git_link_commit5(match):
+    path = match.group(1)
+    return os.path.join(target_url_git_repo, 'commit', path)
+
+def convert_git_link_commit6(match):
+    path = match.group(1)
+    branch = match.group(2)
+    hash1 = match.group(3)
+    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + branch)
+
+def convert_git_link_commit7(match):
+    path = match.group(1)
+    hash1 = match.group(2)
+    return os.path.join(target_url_git_repo, 'commit', hash1, path)
+
 def convert_git_link_tree1(match):
-    #import pdb; pdb.set_trace()
     path = match.group(1)
     return os.path.join(target_url_git_repo, 'blob/develop', path)
 
-def convert_git_link_tree2(match):
-    import pdb; pdb.set_trace()
-    path = match.group(1)
-    hash1 = match.group(2)
-    return os.path.join(target_url_git_repo, 'blob', path + hash1)
+def convert_git_link_tree3(match):
+    branch = match.group(1)
+    return os.path.join(target_url_git_repo, 'tree', branch)
 
 def convert_git_link_log1(match):
-    #import pdb; pdb.set_trace()
     path = match.group(1)
     return os.path.join(target_url_git_repo, 'commits', path)
 
-def convert_git_link_log2(match):
-    import pdb; pdb.set_trace()
-    path1 = match.group(1)
-    path2 = match.group(2)
-    path3 = match.group(2)
-    return os.path.join(target_url_git_repo, 'blob', path1, path2, path3)
+def convert_git_link_log3(match):
+    hash1 = match.group(1)
+    hash2 = match.group(2)
+    hash3 = match.group(3)
+    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + hash2)
 
-def convert_git_link(match):
+def convert_git_link_log4(match):
+    path = match.group(1)
+    hash1 = match.group(2)
+    return os.path.join(target_url_git_repo, 'commits', 'develop?after=' + hash1 + '+0' + '&branch=develop'
+                        + '&path%5B%5D=' + '&path%5B%5D='.join(path.split('/')) + '&qualified_name=refs%2Fheads%2Fdevelop')
+
+def convert_git_link_log5(match):
+    path = match.group(1)
+    return os.path.join(target_url_git_repo, 'commits/develop', path)
+
+def convert_git_link_plain(match):
+    path = match.group(1)
+    branch = match.group(2)
+    return os.path.join(target_url_git_repo, 'blob', branch, path)
+
+def convert_git_link_patch(match):
+    hash1 = match.group(1)
+    return os.path.join(target_url_git_repo, 'commit', hash1 + '.patch')
+
+def convert_git_link(match):  # catch all missed git link
     import pdb; pdb.set_trace()
 
-def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
-    # Sage-specific normalization
+def project_specific_normalization(text, conv_help):
 
     text = re.sub(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
     text = re.sub(r'https?://trac\.sagemath\.org/wiki/([/\-\w0-9@:%._+~#=]+)', convert_wiki_link, text)
 
-    # cgit urls
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)',
                   convert_git_link_diff1, text)
-
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)&id2=([0-9a-f]+)',
                   convert_git_link_diff2, text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2?=([0-9a-f]+)&id=([0-9a-f]+)',
                   convert_git_link_diff3, text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([0-9a-f]+)',
                   convert_git_link_diff4, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)',
+                  convert_git_link_diff5, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2=([/\-\w0-9@:%._+~#=]+)&id=([/\-\w0-9@:%._+~#=]+)',
+                  convert_git_link_diff6, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)',
+                  convert_git_link_diff7, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([/\-\w0-9@:%._+~#=]+)',
+                  convert_git_link_diff8, text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)',
                   convert_git_link_commit1, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([0-9a-f]+)&id=([0-9a-f]+)',
-                  convert_git_link_commit2, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commitid=([0-9a-f]+)',  # misspelled
+                  convert_git_link_commit3, text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([0-9a-f]+)',
                   convert_git_link_commit3, text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)',
                   convert_git_link_commit4, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([/\-\w0-9@:%._+~#=]+)',
+                  convert_git_link_commit5, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)',
+                  convert_git_link_commit6, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)',
+                  convert_git_link_commit7, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)',
+                  convert_git_link_commit7, text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/([/\-\w0-9@:%._+~#=]+)',
                   convert_git_link_tree1, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)',
-                  convert_git_link_tree2, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/?\?h=([/\-\w0-9@:%._+~#=]+)',
+                  convert_git_link_tree3, text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?\?h=([/\-\w0-9@:%._+~#=]+)',
                   convert_git_link_log1, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?\?h=([/\-\w0-9@:%._+~#=]+)'
-                  '&qt=range&q=([/\-\w0-9@:%._+~#=]+)..([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_log2, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/(.*)',
-                  convert_git_link, text)
-    # '???', match.group(0))
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?\?q=([0-9a-f]+)..([0-9a-f]+)&h=([0-9a-f]+)&qt=range',
+                  convert_git_link_log3, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)',
+                  convert_git_link_log4, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)',
+                  convert_git_link_log5, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/plain/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)',
+                  convert_git_link_plain, text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/patch/?\?id=([0-9a-f]+)',
+                  convert_git_link_patch, text)
+
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/refs/?', r'{target_url_git_repo}/branches', text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tag/?\?id=([/\-\w0-9@:%._+~#=]+)', r'{target_url_git_repo}/releases/tag/\1', text)
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/src/?', r'{target_url_git_repo}/blob/master/src', text)
+
+    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/(.*)', convert_git_link, text)
+
+    return text
+
+def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
+
+    text = project_specific_normalization(text, conv_help)
 
     # some normalization
     text = re.sub('\r\n', '\n', text)
@@ -830,12 +894,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = text.replace('CLOSING__RIGHT__BRACKET', ']')
     text = text.replace('AT__SIGN__IN__CODE', '@')
 
-    # Sage-specific rewritings
-
+    # Some rewritings
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
-    text = RE_GIT_SERVER_SRC.sub(fr'{target_url_git_repo}/blob/master/src', text)
-    text = RE_GIT_SERVER_COMMIT.sub(fr'{target_url_git_repo}/commit/\1', text)
-    text = RE_TRAC_REPORT.sub(r'[This is the Trac report of id \1 that was inherited from the migration](https://trac.sagemath.org/report/\1)', text)
+    text = RE_TRAC_REPORT.sub(r'[Trac report of id \1 inherited from the migration](%s/\1)' % trac_url_report, text)
 
     def commits_list(match):
         t = '**' + match.group(1) +'**\n'
@@ -864,11 +925,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         t += '</table>\n'
         return t
 
-    try:
-        text = RE_NEW_COMMITS.sub(commits_list, text)
-        text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
-    except Exception:
-        pass
+    text = RE_NEW_COMMITS.sub(commits_list, text)
+    text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
 
     text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
     text = RE_BRANCH_PUSH.sub(r'**\1**', text)
