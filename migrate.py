@@ -978,6 +978,8 @@ def mapcomponent(component):
     # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
     return f'component: {component}'
 
+ignored_values = ['N/A', 'tba', 'tbd', 'closed', 'somebody']
+
 default_priority = 'major'
 def mappriority(priority):
     "Return GitHub label corresponding to Trac ``priority``"
@@ -1432,7 +1434,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             for field, value in src_ticket_data.items():
                 if (not field.startswith('_')
                     and field not in ['changetime', 'time']
-                    and value and value not in ['N/A', 'tba', 'tbd', 'closed', 'somebody']):
+                    and value and value not in ignored_values):
                     field = field.title().replace('_', ' ')
                     description_post += f'\n\n**{field}:** {value}'
 
@@ -1761,6 +1763,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if labels != oldlabels:
                     gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
             else:
+                if oldvalue in ignored_values:
+                    oldvalue = ''
+                if newvalue in ignored_values:
+                    newvalue = ''
                 if oldvalue != newvalue:
                     if change_type in ['branch', 'commit']:
                         if oldvalue:
