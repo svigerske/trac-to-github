@@ -166,11 +166,17 @@ if config.has_option('issues', 'add_label'):
     add_label = config.get('issues', 'add_label')
 
 attachment_export = config.getboolean('attachments', 'export')
-if attachment_export :
+if attachment_export:
     attachment_export_dir = config.get('attachments', 'export_dir')
-    attachment_export_url = config.get('attachments', 'export_url')
-    if not attachment_export_url.endswith('/') :
-        attachment_export_url += '/'
+    if config.has_option('attachments', 'export_url'):
+        attachment_export_url = config.get('attachments', 'export_url')
+        if not attachment_export_url.endswith('/') :
+            attachment_export_url += '/'
+    else:
+        attachment_export_url = target_url_issues_repo
+        if not attachment_export_url.endswith('/') :
+            attachment_export_url += '/'
+        attachment_export_url += 'files/'
 
 must_convert_wiki = config.getboolean('wiki', 'migrate')
 wiki_export_dir = None
@@ -1282,6 +1288,14 @@ def gh_create_issue(dest, issue_data) :
 
     return gh_issue
 
+def attachment_path(src_ticket_id, filename):
+    return 'ticket' + str(src_ticket_id) + '/' + filename
+
+def gh_attachment_url(src_ticket_id, filename):
+    # Example attached to https://github.com/sagemath/trac-to-github/issues/53:
+    # - https://github.com/sagemath/trac-to-github/files/10328066/test_attachment.txt
+    return attachment_export_url + attachment_path(src_ticket_id, filename)
+
 def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     # upload attachement, if there is one
     if 'attachment_name' in comment :
@@ -1293,11 +1307,11 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
                 os.makedirs(dirname)
             # write attachment data to binary file
             open(os.path.join(dirname, filename), 'wb').write(attachment)
-            attachment_url = attachment_export_url + 'ticket' + str(src_ticket_id) + '/' + filename
+            attachment_url = gh_attachment_url(src_ticket_id, filename)
             if github:
                 note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_url, comment['user'], comment['created_at'])
             else:
-                note = ''
+                note = 'Attachment [%s](%s)' % (filename, attachment_url)
                 user_url = gh_user_url(dest, comment['user'])
                 issue.create_attachment(filename,
                                         "application/octet-stream",

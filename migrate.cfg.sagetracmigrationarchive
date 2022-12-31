@@ -1040,9 +1040,9 @@ migrate_milestones: yes
 # Gists are associated with the GitHub user, not the project
 export : yes
 
-export_dir = archive/attachments
 # https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
-export_url = tarball://root/attachments/some-uuid/
+export_dir = archive/attachments
+# export_url is configured automatically based on issues_repo_url
 
 [wiki]
 
