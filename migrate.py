@@ -1085,6 +1085,8 @@ def convert_trac_datetime(dt):
 
 def maptickettype(tickettype):
     "Return GitHub label corresponding to Trac ``tickettype``"
+    if not tickettype:
+        return None
     if tickettype == 'defect':
         return 'bug'
     if tickettype == 'enhancement':
@@ -1132,6 +1134,8 @@ def mapcomponent(component):
     # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
     return f'component: {component}'
 
+ignored_values = ['N/A', 'tba', 'tbd', 'closed', 'somebody']
+
 default_priority = 'major'
 def mappriority(priority):
     "Return GitHub label corresponding to Trac ``priority``"
@@ -1139,12 +1143,20 @@ def mappriority(priority):
         return None
     return priority
 
+default_severity = 'normal'
+def mapseverity(severity):
+    "Return GitHub label corresponding to Trac ``severity``"
+    if severity == default_severity:
+        return None
+    return severity
+
 def mapstatus(status):
     "Return a pair: (status, label)"
     status = status.lower()
-    if status in ['new', 'assigned', 'analyzed', 'reopened', 'needs_review', 'open',
-                  'needs_work', 'needs_info', 'needs_info_new', 'positive_review']:
+    if status in ['needs_review', 'needs_work', 'needs_info', 'positive_review']:
         return 'open', status.replace('_', ' ')
+    elif status in ['new', 'assigned', 'analyzed', 'reopened', 'open', 'needs_info_new']:
+        return 'open', None
     elif status in ['closed'] :
         return 'closed', None
     else:
@@ -1182,6 +1194,8 @@ milestone_map = {}
 unmapped_milestones = defaultdict(lambda: 0)
 def mapmilestone(title):
     "Return a pair: (milestone title, label)"
+    if not title:
+        return None, None
     title = title.lower()
     if title in ['sage-duplicate/invalid/wontfix', 'sage-duplicate/invalid', 'sage-duplicate']:
         return None, 'duplicate/invalid/wontfix'
@@ -1546,7 +1560,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 description_post += '\n\n**Version:** ' + version
 
             # subscribe persons in cc
-            cc = src_ticket_data.pop('cc', '').lower()
+            cc = src_ticket_data.pop('cc', '')
             ccstr = ''
             for person in cc.replace(';', ',').split(',') :
                 person = person.strip()
@@ -1576,7 +1590,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             for field, value in src_ticket_data.items():
                 if (not field.startswith('_')
                     and field not in ['changetime', 'time']
-                    and value and value not in ['N/A', 'tba', 'tbd', 'closed', 'somebody']):
+                    and value and value not in ignored_values):
                     field = field.title().replace('_', ' ')
                     description_post += f'\n\n**{field}:** {value}'
 
@@ -1609,54 +1623,65 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         issue_data = {}
 
-        labels = []
-        if add_label:
-            labels.append(add_label)
+        def milestone_labels(src_ticket_data, status):
+            labels = []
+            if add_label:
+                labels.append(add_label)
 
-        component = src_ticket_data.pop('component', None)
-        if component is not None and component.strip() != '' :
-            label = mapcomponent(component)
+            component = src_ticket_data.pop('component', None)
+            if component is not None and component.strip() != '' :
+                label = mapcomponent(component)
+                if label:
+                    labels.append(label)
+                    gh_ensure_label(dest, label, labelcolor['component'])
+
+            priority = src_ticket_data.pop('priority', default_priority)
+            if priority != default_priority:
+                label = mappriority(priority)
+                labels.append(label)
+                gh_ensure_label(dest, label, labelcolor['priority'])
+
+            severity = src_ticket_data.pop('severity', default_severity)
+            if severity != default_severity:
+                labels.append(severity)
+                gh_ensure_label(dest, severity, labelcolor['severity'])
+
+            tickettype = maptickettype(src_ticket_data.pop('type', None))
+            if tickettype is not None :
+                labels.append(tickettype)
+                gh_ensure_label(dest, tickettype, labelcolor['type'])
+
+            resolution = mapresolution(src_ticket_data.pop('resolution', None))
+            if resolution is not None:
+                labels.append(resolution)
+                gh_ensure_label(dest, resolution, labelcolor['resolution'])
+
+            keywords, keyword_labels = mapkeywords(src_ticket_data.get('keywords', ''))
+            for label in keyword_labels:
+                labels.append(label)
+                gh_ensure_label(dest, label, labelcolor['keyword'])
+
+            milestone, label = mapmilestone(src_ticket_data.pop('milestone', None))
+            if milestone and milestone in milestone_map:
+                milestone = milestone_map[milestone]
+            elif milestone:
+                # Unknown milestone, put it back
+                logging.warning(f'Unknown milestone "{milestone}"')
+                unmapped_milestones[milestone] += 1
+                src_ticket_data['milestone'] = milestone
+                milestone = None
+            elif label:
+                labels.append(label)
+                gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['milestone'])
+
+            status = src_ticket_data.pop('status', status)
+            issue_state, label = mapstatus(status)
             if label:
                 labels.append(label)
-                gh_ensure_label(dest, label, labelcolor['component'])
+                gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['resolution'])
 
-        priority = src_ticket_data.pop('priority', default_priority)
-        if priority != default_priority:
-            label = mappriority(priority)
-            labels.append(label)
-            gh_ensure_label(dest, label, labelcolor['priority'])
-
-        severity = src_ticket_data.pop('severity', 'normal')
-        if severity != 'normal' :
-            labels.append(severity)
-            gh_ensure_label(dest, severity, labelcolor['severity'])
-
-        tickettype = maptickettype(src_ticket_data.pop('type', None))
-        if tickettype is not None :
-            labels.append(tickettype)
-            gh_ensure_label(dest, tickettype, labelcolor['type'])
-
-        resolution = mapresolution(src_ticket_data.pop('resolution', None))
-        if resolution is not None:
-            labels.append(resolution)
-            gh_ensure_label(dest, resolution, labelcolor['resolution'])
-
-        keywords, keyword_labels = mapkeywords(src_ticket_data.get('keywords', ''))
-        for label in keyword_labels:
-            labels.append(label)
-            gh_ensure_label(dest, label, labelcolor['keyword'])
-
-        milestone, label = mapmilestone(src_ticket_data.pop('milestone', None))
-        if milestone and milestone in milestone_map:
-            issue_data['milestone'] = milestone_map[milestone]
-        elif milestone:
-            # Unknown milestone, put it back
-            logging.warning(f'Unknown milestone "{milestone}"')
-            unmapped_milestones[milestone] += 1
-            src_ticket_data['milestone'] = milestone
-        elif label:
-            labels.append(label)
-            gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['milestone'])
+            normalize_labels(labels)
+            return milestone, labels
 
         def title_status(summary, status=None):
             r"""
@@ -1681,14 +1706,18 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     summary = summary[m.end(0):]
             return summary, status
 
-        title, status = title_status(src_ticket_data.pop('summary'))
-        normalize_labels(labels)
+        tmp_src_ticket_data = copy(src_ticket_data)
+
+        title, status = title_status(tmp_src_ticket_data.pop('summary'))
+        milestone, labels = milestone_labels(tmp_src_ticket_data, status)
         issue_data['title'] = title
         issue_data['labels'] = labels
+        if milestone:
+            issue_data['milestone'] = milestone
         #'assignee' : assignee,
 
         if not github:
-            issue_data['user'] = gh_username(dest, src_ticket_data.pop('reporter'))
+            issue_data['user'] = gh_username(dest, tmp_src_ticket_data.pop('reporter'))
             issue_data['created_at'] = convert_xmlrpc_datetime(time_created)
             issue_data['number'] = int(src_ticket_id)
             # Find closed_at
@@ -1699,7 +1728,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                         issue_data['closed_at'] = convert_xmlrpc_datetime(time)
                         break
 
-        issue_data['description'] = issue_description(src_ticket_data)
+        issue_data['description'] = issue_description(tmp_src_ticket_data)
 
         issue = gh_create_issue(dest, issue_data)
 
@@ -1710,21 +1739,34 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'state', 'closed')
         else:
             src_ticket_data.update(first_old_values)
-            if status is None:
-                status = src_ticket_data.pop('status')
+            title, status = title_status(src_ticket_data.get('summary'), src_ticket_data.get('status'))
+            tmp_src_ticket_data = copy(src_ticket_data)
+            milestone, labels = milestone_labels(tmp_src_ticket_data, status)
+
         issue_state, label = mapstatus(status)
 
-        def change_status(newvalue, oldvalue):
+        def update_labels(labels, add_label, remove_label, label_category='type'):
+            oldlabels = copy(labels)
+            if remove_label:
+                with contextlib.suppress(ValueError):
+                    labels.remove(remove_label)
+            if add_label:
+                labels.append(add_label)
+                gh_ensure_label(dest, add_label, labelcolor[label_category])
+            normalize_labels(labels)
+            if set(labels) != set(oldlabels):
+                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
+            return labels
+
+        def change_status(newvalue):
+            oldvalue = src_ticket_data.get('status')
+            src_ticket_data['status'] = newvalue
+            oldstate, oldlabel = mapstatus(oldvalue)
             newstate, newlabel = mapstatus(newvalue)
-            if newstate == 'open':
-                # mapstatus maps the various statuses we have in trac
-                # to just 2 statuses in gitlab/github (open or closed),
-                # so to avoid a loss of information, we add a comment.
-                comment_data['note'] = '**Changing status** from ' + (oldvalue or 'new') + ' to ' + newvalue + '.'
-                gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+            new_labels = update_labels(labels, newlabel, oldlabel)
             if issue_state != newstate :
                 gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
-            return issue_state
+            return issue_state, new_labels
 
         attachment = None
         for change in changelog:
@@ -1771,31 +1813,15 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 # we will forget about these old versions and only keep the latest one
                 pass
             elif change_type == "status" :
-                issue_state = change_status(newvalue, oldvalue)
+                issue_state, labels = change_status(newvalue)
             elif change_type == "resolution" :
-                oldlabels = copy(labels)
                 oldresolution = mapresolution(oldvalue)
-                with contextlib.suppress(ValueError):
-                    labels.remove(oldresolution)
                 newresolution = mapresolution(newvalue)
-                labels.append(newresolution)
-                gh_ensure_label(dest, newresolution, labelcolor['type'])
-                if labels != oldlabels:
-                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                labels = update_labels(labels, newresolution, oldresolution, 'type')
             elif change_type == "component" :
-                oldlabels = copy(labels)
-                if oldvalue != '' :
-                    with contextlib.suppress(ValueError):
-                        label = mapcomponent(oldvalue)
-                        if label:
-                            labels.remove(label)
-                label = mapcomponent(newvalue)
-                if label:
-                    labels.append(label)
-                    gh_ensure_label(dest, label, labelcolor['component'])
-                # comment_data['note'] = 'Changing component from ' + oldvalue + ' to ' + newvalue + '.'
-                # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                oldlabel = mapcomponent(oldvalue)
+                newlabel = mapcomponent(newvalue)
+                labels = update_labels(labels, newlabel, oldlabel, 'component')
             elif change_type == "owner" :
                 oldvalue = gh_username_list(dest, oldvalue)
                 newvalue = gh_username_list(dest, newvalue)
@@ -1840,33 +1866,17 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if oldmilestone != newmilestone:
                     gh_update_issue_property(dest, issue, 'milestone',
                                              newmilestone, oldval=oldmilestone, **event_data)
-                if oldlabel != newlabel:
-                    oldlabels = copy(labels)
-                    if oldlabel:
-                        with contextlib.suppress(ValueError):
-                            labels.remove(oldlabel)
-                    if newlabel:
-                        labels.append(label)
-                        gh_ensure_label(dest, label, labelcolor['milestone'])
-                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                labels = update_labels(labels, newlabel, oldlabel, 'milestone')
             elif change_type == "cc" :
                 pass  # we handle only the final list of CCs (above)
             elif change_type == "type" :
-                oldlabels = copy(labels)
-                if oldvalue != '' :
-                    oldtype = maptickettype(oldvalue)
-                    with contextlib.suppress(ValueError):
-                        labels.remove(oldtype)
+                oldtype = maptickettype(oldvalue)
                 newtype = maptickettype(newvalue)
-                labels.append(newtype)
-                gh_ensure_label(dest, newtype, labelcolor['type'])
-                # comment_data['note'] = 'Changing type from ' + oldvalue + ' to ' + newvalue + '.'
-                # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                labels = update_labels(labels, newtype, oldtype, 'type')
             elif change_type == "description" :
                 if github:
                     issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
-                    gh_update_issue_property(dest, issue, 'description', issue_data['description'])
+                    gh_update_issue_property(dest, issue, 'description', issue_data['description'], **event_data)
                 else:
                     body = '**Description changed:**\n``````diff\n'
                     old_description = trac2markdown(oldvalue, '/issues/', conv_help, False)
@@ -1882,32 +1892,17 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 title, status = title_status(newvalue)
                 if title != oldtitle:
                     issue_data['title'] = title
-                    gh_update_issue_property(dest, issue, 'title', title, oldval=oldtitle)
+                    gh_update_issue_property(dest, issue, 'title', title, oldval=oldtitle, **event_data)
                 if status is not None:
-                    issue_state = change_status(status, oldstatus)
+                    issue_state, labels = change_status(status)
             elif change_type == "priority" :
-                oldlabels = copy(labels)
-                if oldvalue != '' and oldvalue != default_priority:
-                    with contextlib.suppress(ValueError):
-                        labels.remove(mappriority(oldvalue))
-                if newvalue != '' and newvalue != default_priority:
-                    label = mappriority(newvalue)
-                    labels.append(label)
-                    gh_ensure_label(dest, label, labelcolor['priority'])
-                    # comment_data['note'] = 'Changing priority from ' + oldvalue + ' to ' + newvalue + '.'
-                    # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                oldlabel = mappriority(oldvalue)
+                newlabel = mappriority(newvalue)
+                labels = update_labels(labels, newlabel, oldlabel, 'priority')
             elif change_type == "severity" :
-                oldlabels = copy(labels)
-                if oldvalue != '' and oldvalue != 'normal' :
-                    with contextlib.suppress(ValueError):
-                        labels.remove(oldvalue)
-                if newvalue != '' and newvalue != 'normal' :
-                    labels.append(newvalue)
-                    gh_ensure_label(dest, newvalue, labelcolor['severity'])
-                    # comment_data['note'] = 'Changing severity from ' + oldvalue + ' to ' + newvalue + '.'
-                    # gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-                gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                oldlabel = mapseverity(oldvalue)
+                newlabel = mapseverity(newvalue)
+                labels = update_labels(labels, newlabel, oldlabel, 'severity')
             elif change_type == "keywords" :
                 oldlabels = copy(labels)
                 oldkeywords, oldkeywordlabels = mapkeywords(oldvalue)
@@ -1922,8 +1917,12 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     comment_data['note'] = '**Changing keywords** from "' + ', '.join(oldkeywords) + '" to "' + ', '.join(newkeywords) + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 if labels != oldlabels:
-                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels)
+                    gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
             else:
+                if oldvalue in ignored_values:
+                    oldvalue = ''
+                if newvalue in ignored_values:
+                    newvalue = ''
                 if oldvalue != newvalue:
                     if change_type in ['branch', 'commit']:
                         if oldvalue:
