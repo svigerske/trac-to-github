@@ -286,8 +286,9 @@ RE_COMMENT1 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
 RE_COMMENT2 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
 RE_TICKET_COMMENT1 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)\]')
 RE_TICKET_COMMENT2 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
-RE_ATTACHMENT1 = re.compile(r'\[attachment:([^\s\[\]]+)\]')
-RE_ATTACHMENT2 = re.compile(r'attachment:([^\s]+)')
+RE_ATTACHMENT1 = re.compile(r'\[attachment:([^\s\[\]]+)\s*[\s\|]\s*([^\[\]]+)\]')
+RE_ATTACHMENT2 = re.compile(r'\[attachment:([^\s\[\]]+)\]')
+RE_ATTACHMENT3 = re.compile(r'attachment:([^\s]*[^\s.]+)')
 RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
 RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
@@ -431,10 +432,10 @@ def inline_code_snippet(match):
 
 def convert_ticket_attachment(match):
     ticket_id = match.group(1)
-    path = match.group(2)
+    filename = match.group(2)
     if keep_trac_ticket_references:
-        return os.path.join(trac_url_attachment, 'ticket', ticket_id, path)
-    return gh_attachment_url(ticket_id, path)
+        return os.path.join(trac_url_attachment, 'ticket', ticket_id, filename)
+    return gh_attachment_url(ticket_id, filename)
 
 def project_specific_normalization(text, conv_help):
 
@@ -776,6 +777,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             line = RE_ATTACHMENT1.sub(conv_help.ticket_attachment, line)
             line = RE_ATTACHMENT2.sub(conv_help.ticket_attachment, line)
+            line = RE_ATTACHMENT3.sub(conv_help.ticket_attachment, line)
 
             # code surrounded by underline, mistaken as italics by github
             line = RE_UNDERLINED_CODE1.sub(r'`_\1_`', line)
@@ -1046,17 +1048,19 @@ class ConversionHelper:
 
     def ticket_attachment(self, match):
         filename = match.group(1)
-
-        if keep_trac_ticket_references:
+        if len(match.groups()) >= 2:
+            label = match.group(2)
+        else:
             label = 'attachment:' + filename
-            return r'[#%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
+        if keep_trac_ticket_references:
+            return r'[%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
 
         if not re.fullmatch('[-A-Za-z0-9_.]*', filename):
             import pathlib
             from hashlib import md5
             extension = pathlib.Path(filename).suffix
             filename = md5(filename.encode('utf-8')).hexdigest() + extension
-        return os.path.join(self._attachment_path, filename)
+        return r'[%s](%s)' % (label, os.path.join(self._attachment_path, filename))
 
     def ticket_link(self, match):
         """
