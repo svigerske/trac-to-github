@@ -148,22 +148,7 @@ Preview of the converted issues:
 Preview of the converted wiki: https://github.com/sagemath/trac_to_gh/wiki
 
 Switchover day (date to be determined; proposed: Feb 1, 2023):
-1. Make Trac read-only:
-   - Take Trac offline, 
-   - Reconfigure Trac ticket system, Trac wiki to be read-only
-   - Make sure Trac git repo is fully synced to https://github.com/sagemath/sagetrac-mirror and [archive](https://docs.github.com/en/repositories/archiving-a-github-repository) that (= set it to readonly).
-   - Make Trac git repo read-only
-   - Bring Trac online.
-2. Convert all tickets to Issues in a new repo sagemath/sage-temp via a migration archive. (This preserves the ticket numbers as Issue numbers.)
-~~3. Rename sagemath/sagetrac-mirror to sagemath/sagetrac-archive~~
-3. [Archive](https://docs.github.com/en/repositories/archiving-a-github-repository) sagemath/sagetrac-mirror (= set it to readonly).
-~~4. (Optional:) Create a single-branch fork of sagemath/sage-temp called sagemath/sagetrac-mirror and push all branches (or all branches of open tickets) from sagemath/sagetrac-archive to it. Open PRs from [sagemath/sagetrac-mirror](https://github.com/sagemath/sagetrac-mirror) to sagemath/sage-temp for all open tickets with attached branches.~~
-5. Final check that the new repo sagemath/sage-temp is OK.
-6. [Rename](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) [sagemath/sage](https://github.com/sagemath/sage) to sagemath/sage-old.
-7. Rename the new repo sagemath/sage-temp to sagemath/sage. ([Yes, this will work and will break the redirect](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) sagemath/sage -> sagemath/sage-old.)
-8. [Transfer](https://docs.github.com/en/issues/tracking-your-work-with-issues/transferring-an-issue-to-another-repository) the existing (few) issues from sagemath/sage-old to sagemath/sage.
-9. Announce that sagemath/sage is now open for Issues and PRs.
-
+- Steps see https://github.com/sagemath/trac-to-github/issues/73
 
 # Retrieving data from GitHub
 
