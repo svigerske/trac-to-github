@@ -205,6 +205,27 @@ matcher_changeset2 = re.compile(pattern_changeset2)
 gh_labels = dict()
 gh_user = None
 
+closing_commits = {}  # (src_ticket_id, commit) -> closing_commit
+
+def read_closing_commits():
+    # Generated using write-closing-commits.sh
+    if os.path.exists('closing_commits.txt'):
+        with open('closing_commits.txt', 'r') as f:
+            for line_number, line in enumerate(f.readlines(), start=1):
+                if m := re.match('^([0-9a-f]{40}) Merge: ([0-9a-f]{40}) ([0-9a-f]{40}) Trac #([0-9]+):', line):
+                    sha = m.group(1)
+                    parent2_sha = m.group(3)
+                    src_ticket_id = int(m.group(4))
+                    try:
+                        other_sha = closing_commits[src_ticket_id, parent2_sha]
+                    except KeyError:
+                        pass
+                    else:
+                        log.warning(f'closing_commits.txt:{line_number}: multiple commits for ticket #{src_ticket_id} {parent2_sha}: {other_sha}, {sha}')
+                    closing_commits[src_ticket_id, parent2_sha] = sha
+                elif line:
+                    log.warning(f'closing_commits.txt:{line_number}: malformed line')
+
 # The file wiki_path_conversion_table.txt is created if not exists. If it
 # exists, the table below is constructed from the data in the file.
 create_wiki_link_conversion_table = False
@@ -1780,6 +1801,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             milestone, labels = milestone_labels(tmp_src_ticket_data, status)
 
         issue_state, label = mapstatus(status)
+        last_sha = None
 
         def update_labels(labels, add_label, remove_label, label_category='type'):
             oldlabels = copy(labels)
@@ -1801,6 +1823,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             newstate, newlabel = mapstatus(newvalue)
             new_labels = update_labels(labels, newlabel, oldlabel)
             if issue_state != newstate :
+                if newstate == 'closed' and last_sha:
+                    if closing_sha := closing_commits.get((src_ticket_id, last_sha), None):
+                        # commit_id (string) -- The SHA of the commit that referenced this issue.
+                        event_data['commit_id'] = closing_sha
+                        # commit_url (string) -- The GitHub REST API link to the commit that referenced this issue.
                 gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
             return issue_state, new_labels
 
@@ -1964,6 +1991,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                         if oldvalue:
                             oldvalue = github_ref_markdown(oldvalue)
                         if newvalue:
+                            if re.fullmatch('[0-9a-f]{40}', newvalue):
+                                # Store for closing references
+                                last_sha = newvalue
                             newvalue = github_ref_markdown(newvalue)
                     if not oldvalue:
                         comment_data['note'] = f'**{change_type.title()}:** {newvalue}'
@@ -2074,6 +2104,7 @@ if __name__ == "__main__":
 
     try:
         if must_convert_issues:
+            read_closing_commits()
             convert_issues(source, dest, only_issues = only_issues, blacklist_issues = blacklist_issues)
 
         if must_convert_wiki:
