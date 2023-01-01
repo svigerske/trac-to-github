@@ -1928,6 +1928,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 'actor': user_url,
             }
             if change_type == "attachment":
+                if attachment:
+                    logging.warn(f'losing attachment: {attachment}')
                 # The attachment will be described in the next change!
                 attachment = change
             elif change_type == "comment":
