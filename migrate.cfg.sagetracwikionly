@@ -75,6 +75,9 @@ migrate: no
 # Migrate milestones
 migrate_milestones: no
 
+# if no, a trac ticket reference is converted to the corresponding issue reference
+keep_trac_ticket_references: yes
+
 [attachments]
 
 # Export attachement as files to the local filesystem or try to upload them as Gist?

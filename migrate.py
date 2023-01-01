@@ -211,6 +211,20 @@ if os.path.exists('wiki_path_conversion_table.txt'):
 elif must_convert_wiki:
     create_wiki_link_conversion_table = True
 
+RE_CAMELCASE1 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])')
+RE_CAMELCASE2 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$')
+RE_HEADING1 = re.compile(r'^(=)\s(.+)\s=\s*([\#][^\s]*)?')
+RE_HEADING2 = re.compile(r'^(==)\s(.+)\s==\s*([\#][^\s]*)?')
+RE_HEADING3 = re.compile(r'^(===)\s(.+)\s===\s*([\#][^\s]*)?')
+RE_HEADING4 = re.compile(r'^(====)\s(.+)\s====\s*([\#][^\s]*)?')
+RE_HEADING5 = re.compile(r'^(=====)\s(.+)\s=====\s*([\#][^\s]*)?')
+RE_HEADING6 = re.compile(r'^(======)\s(.+)\s======\s*([\#][^\s]*)?')
+RE_HEADING1a = re.compile(r'^(=)\s([^#]+)([\#][^\s]*)?')
+RE_HEADING2a = re.compile(r'^(==)\s([^#]+)([\#][^\s]*)?')
+RE_HEADING3a = re.compile(r'^(===)\s([^#]+)([\#][^\s]*)?')
+RE_HEADING4a = re.compile(r'^(====)\s([^#]+)([\#][^\s]*)?')
+RE_HEADING5a = re.compile(r'^(=====)\s([^#]+)([\#][^\s]*)?')
+RE_HEADING6a = re.compile(r'^(======)\s([^#]+)([\#][^\s]*)?')
 RE_SUPERSCRIPT1 = re.compile(r'\^([^\s]+?)\^')
 RE_SUBSCRIPT1 = re.compile(r',,([^\s]+?),,')
 RE_IMAGE1 = re.compile(r'\[\[Image\(source:([^(]+)\)\]\]')
@@ -239,14 +253,18 @@ RE_TICKET1 = re.compile(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket)
 RE_TICKET2 = re.compile(r'\#([1-9]\d{0,4})')
 RE_COMMENT1 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
 RE_COMMENT2 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
-RE_TICKET_COMMENT1 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
-RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
-RE_RULE = re.compile(r'^[-]{4,}\s*')
-RE_CAMELCASE1 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])')
-RE_CAMELCASE2 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$')
+RE_TICKET_COMMENT1 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)\]')
+RE_TICKET_COMMENT2 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
 RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
+RE_CODE_SNIPPET = re.compile(r'(?<!`){{{(.*?)}}}')
+RE_GITHUB_MENTION1 = re.compile('(?<=\s)@([a-zA-Z][a-zA-Z.]*)')
+RE_GITHUB_MENTION2 = re.compile('^@([a-zA-Z][a-zA-Z.]*)')
+RE_RULE = re.compile(r'^[-]{4,}\s*')
+RE_NO_CAMELCASE = re.compile(r'\!(([A-Z][a-z0-9]+){2,})')
+RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
+RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
 RE_COMMIT_LIST1 = re.compile(r'\|\[(.+?)\]\((.*)\)\|<code>(.*?)</code>\|')
 RE_COMMIT_LIST2 = re.compile(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|')
 RE_COMMIT_LIST3 = re.compile(r'\|(.*?)\|(.*?)\|')
@@ -254,8 +272,6 @@ RE_NEW_COMMITS = re.compile(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
 RE_LAST_NEW_COMMITS = re.compile(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
 RE_BRANCH_FORCED_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])')
 RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])')
-
-RE_TRAC_REPORT = re.compile(r'\[report:([0-9]+)\s*(.*?)\]')
 
 def convert_wiki_link(match):
     trac_path = match.group(1)
@@ -372,6 +388,14 @@ def convert_git_link_patch(match):
 def convert_git_link(match):  # catch all missed git link
     import pdb; pdb.set_trace()
 
+def inline_code_snippet(match):
+    code = match.group(1)
+    code = code.replace('@', 'AT__SIGN__IN__CODE')
+    if '`' in code:
+        return '<code>' + code.replace('`', r'\`') + '</code>'
+    else:
+        return '`' + code + '`'
+
 def project_specific_normalization(text, conv_help):
 
     text = re.sub(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
@@ -429,6 +453,7 @@ def project_specific_normalization(text, conv_help):
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/refs/?', r'{target_url_git_repo}/branches', text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tag/?\?id=([/\-\w0-9@:%._+~#=]+)', r'{target_url_git_repo}/releases/tag/\1', text)
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/src/?', r'{target_url_git_repo}/blob/master/src', text)
+    text = re.sub(r'comment:(\d+):ticket:(\d+)', r'ticket:\2#comment:\1', text)
 
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/(.*)', convert_git_link, text)
 
@@ -487,19 +512,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         non_blank_previous_line = bool(line)
         line = text_lines.pop()
 
-        # heading
-        line = re.sub(r'^(=)\s(.+)\s=\s*([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(==)\s(.+)\s==\s*([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(===)\s(.+)\s===\s*([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(====)\s(.+)\s====\s*([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(=====)\s(.+)\s=====\s*([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(======)\s(.+)\s======\s*([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(=)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(==)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(===)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(====)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(=====)\s([^#]+)([\#][^\s]*)?', heading_replace, line)
-        line = re.sub(r'^(======)\s([^#]+)([\#][^\s]*)?' , heading_replace, line)
 
         # cut quote prefix
         if line.startswith(quote_prefix):
@@ -660,6 +672,22 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = new_line
 
         if not (in_code or in_html):
+
+            # heading
+            line = re.sub(r'^(\s*)# ', r'\1\# ', line)  # first fix unintended heading
+            line = RE_HEADING1.sub(heading_replace, line)
+            line = RE_HEADING2.sub(heading_replace, line)
+            line = RE_HEADING3.sub(heading_replace, line)
+            line = RE_HEADING4.sub(heading_replace, line)
+            line = RE_HEADING5.sub(heading_replace, line)
+            line = RE_HEADING6.sub(heading_replace, line)
+            line = RE_HEADING1a.sub(heading_replace, line)
+            line = RE_HEADING2a.sub(heading_replace, line)
+            line = RE_HEADING3a.sub(heading_replace, line)
+            line = RE_HEADING4a.sub(heading_replace, line)
+            line = RE_HEADING5a.sub(heading_replace, line)
+            line = RE_HEADING6a.sub(heading_replace, line)
+
             line = RE_SUPERSCRIPT1.sub(r'<sup>\1</sup>', line)  # superscript ^abc^
             line = RE_SUBSCRIPT1.sub(r'<sub>\1</sub>', line)  # subscript ,,abc,,
 
@@ -697,22 +725,14 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_COMMENT2.sub(r'OPENING__LEFT__BRACKETcomment:\1CLOSING__RIGHT__BRACKET(#comment%3A\1)', line)
 
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
+            line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
 
             # code surrounded by underline, mistaken as italics by github
             line = RE_UNDERLINED_CODE1.sub(r'`_\1_`', line)
             line = RE_UNDERLINED_CODE2.sub(r'`_\1_`', line)
             line = RE_UNDERLINED_CODE3.sub(r'`_\1_`', line)
 
-            # inline code snippets
-            def inline_code_snippet(match):
-                code = match.group(1)
-                code = code.replace('@', 'AT__SIGN__IN__CODE')
-                if '`' in code:
-                    return '<code>' + code.replace('`', r'\`') + '</code>'
-                else:
-                    return '`' + code + '`'
-
-            line = re.sub(r'(?<!`){{{(.*?)}}}', inline_code_snippet, line)
+            line = RE_CODE_SNIPPET.sub(inline_code_snippet, line)
 
             def github_mention(match):
                 trac_user = match.group(1)
@@ -723,8 +743,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 return '`@`' + trac_user
 
             # to avoid unintended github mention
-            line = re.sub('(?<=\s)@([a-zA-Z][a-zA-Z.]*)', github_mention, line)
-            line = re.sub('^@([a-zA-Z][a-zA-Z.]*)', github_mention, line)
+            line = RE_GITHUB_MENTION1.sub(github_mention, line)
+            line = RE_GITHUB_MENTION2.sub(github_mention, line)
 
             if RE_RULE.match(line):
                 if not a or not a[-1].strip():
@@ -732,7 +752,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 else:
                     line = '\n---'
 
-            line = re.sub(r'\!(([A-Z][a-z0-9]+){2,})', r'\1', line)  # no CamelCase wiki link because of leading "!"
+            line = RE_NO_CAMELCASE.sub(r'\1', line)  # no CamelCase wiki link because of leading "!"
 
             # convert a trac table to a github table
             if line.startswith('||'):
@@ -872,8 +892,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 table_text = '\n'.join(table)
                 if 'OPENING__PROCESSOR__TD' in table_text:
                     html = markdown.markdown(table_text, extensions=[TableExtension(use_align_attribute=True)])
-                    html = re.sub('OPENING__PROCESSOR__TD', r'<div align="left">', html)
-                    html = re.sub('CLOSING__PROCESSOR__TD', r'</div>', html)
+                    html = html.replace('OPENING__PROCESSOR__TD', r'<div align="left">')
+                    html = html.replace('CLOSING__PROCESSOR__TD', r'</div>')
                 else:
                     html = table_text
                 line = html.replace('NEW__LINE', '\n') + '\n' + line
@@ -951,10 +971,8 @@ class ConversionHelper:
 
         self._pagenames_splitted = pagenames_splitted
         self._pagenames_not_splitted = pagenames_not_splitted
-        self._keep_trac_ticket_references = False
+        self._keep_trac_ticket_references = config.getboolean('issues', 'keep_trac_ticket_references')
         self._attachment_path = ''
-        if config.has_option('source', 'keep_trac_ticket_references') :
-            self._keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
 
     def set_path(self, pagename):
         """
@@ -977,11 +995,9 @@ class ConversionHelper:
         """
         ticket = match.groups()[0]
         if self._keep_trac_ticket_references:
-            # as long as the ticket themselves have not been migrated they should reference to the original place
             return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
-        else:
-            # leave them as is
-            return r'#%s' % ticket
+        issue = ticket
+        return r'#%s' % ticket
 
     def ticket_comment_link(self, match):
         """
@@ -990,12 +1006,13 @@ class ConversionHelper:
         """
         ticket = match.group(1)
         comment = match.group(2)
-        if self._keep_trac_ticket_references:
-            # as long as the ticket themselves have not been migrated they should reference to the original place
-            return r'[#%s comment:%s](%s/%s#comment:%s)' % (ticket, comment, trac_url_ticket, ticket, comment)
+        if len(match.groups()) < 3:
+            label = '#{} comment:{}'.format(ticket, comment)
         else:
-            # leave them as is
-            return r'ticket:%s#comment:%s' % (ticket, comment)
+            label = match.group(3)
+        if self._keep_trac_ticket_references:
+            return r'[%s](%s/%s#comment:%s)' % (label, trac_url_ticket, ticket, comment)
+        return r'[%s](%s/issues/%s#comment:%s)' % (label, target_url_issues_repo, ticket, comment)
 
     def wiki_image(self, match):
         """
