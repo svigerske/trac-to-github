@@ -1289,6 +1289,11 @@ def gh_create_issue(dest, issue_data) :
     return gh_issue
 
 def attachment_path(src_ticket_id, filename):
+    if not re.fullmatch('[-A-Za-z0-9_.]*', filename):
+        import pathlib
+        from hashlib import md5
+        extension = pathlib.Path(filename).suffix
+        filename = md5(filename.encode('utf-8')).hexdigest() + extension
     return 'ticket' + str(src_ticket_id) + '/' + filename
 
 def gh_attachment_url(src_ticket_id, filename):
