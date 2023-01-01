@@ -13,6 +13,54 @@ url: https://trac.sagemath.org/xmlrpc
 # optional path to trac instance used to convert some attachments
 # path: /path/to/trac/instance
 
+# if no, a trac ticket reference is converted to the corresponding issue reference
+keep_trac_ticket_references: yes
+
+[issues]
+
+# Should we migrate the issues (default = yes)
+migrate: yes
+
+# If defined, import only these issues
+# only_issues: [ 30000, 30001 ]
+#only_issues: [5601,]
+
+# If defined, do not import these issues
+# blacklist_issues: [ 268, 843 ]
+
+# If defined, then this is added to the ticket query string to trac
+#filter_issues: max=50&order=id&page=1&desc=False
+#filter_issues: max=2796&order=id&page=2
+
+# Add a label to all migrated issues
+# add_label: Websites
+
+# Keywords to migrate to labels (all others go to the issue description)
+keywords_to_labels: {'beginner': 'good first issue'}
+
+# Migrate milestones
+migrate_milestones: yes
+
+[attachments]
+
+# Export attachement as files to the local filesystem or try to upload them as Gist?
+# Gist only allows text files, so binary attachments will be lost
+# Gists are associated with the GitHub user, not the project
+export : yes
+
+# https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
+export_dir = archive/attachments
+# export_url is configured automatically based on issues_repo_url
+
+[wiki]
+
+migrate : no
+
+#url: https://github.com/sagemath/sage/wiki
+url: https://github.com/sagemath/trac_to_gh/wiki
+
+export_dir: wiki
+
 [target]
 
 # URL of the GitHub web API (default: https://api.github.com)
@@ -1007,51 +1055,3 @@ usernames = {
  'arattan': None,
  'joskarsson': None,
  'shahuwang': None}
-
-[issues]
-
-# Should we migrate the issues (default = yes)
-migrate: yes
-
-# If defined, import only these issues
-# only_issues: [ 30000, 30001 ]
-#only_issues: [5601,]
-
-# If defined, do not import these issues
-# blacklist_issues: [ 268, 843 ]
-
-# If defined, then this is added to the ticket query string to trac
-#filter_issues: max=50&order=id&page=1&desc=False
-#filter_issues: max=2796&order=id&page=2
-
-# Add a label to all migrated issues
-# add_label: Websites
-
-# Keywords to migrate to labels (all others go to the issue description)
-keywords_to_labels: {'beginner': 'good first issue'}
-
-# Migrate milestones
-migrate_milestones: yes
-
-# if no, a trac ticket reference is converted to the corresponding issue reference
-keep_trac_ticket_references: yes
-
-[attachments]
-
-# Export attachement as files to the local filesystem or try to upload them as Gist?
-# Gist only allows text files, so binary attachments will be lost
-# Gists are associated with the GitHub user, not the project
-export : yes
-
-# https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
-export_dir = archive/attachments
-# export_url is configured automatically based on issues_repo_url
-
-[wiki]
-
-migrate : no
-
-#url: https://github.com/sagemath/sage/wiki
-url: https://github.com/sagemath/trac_to_gh/wiki
-
-export_dir: wiki

@@ -119,6 +119,9 @@ trac_url_ticket = os.path.join(trac_url_dir, 'ticket')
 trac_url_wiki = os.path.join(trac_url_dir, 'wiki')
 trac_url_query = os.path.join(trac_url_dir, 'query')
 trac_url_report = os.path.join(trac_url_dir, 'report')
+trac_url_attachment = os.path.join(trac_url_dir, 'attachment')
+
+keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
 
 if config.has_option('target', 'issues_repo_url'):
     target_url_issues_repo = config.get('target', 'issues_repo_url')
@@ -162,6 +165,7 @@ except ValueError:
     keywords_to_labels = ast.literal_eval(config.get('issues', 'keywords_to_labels'))
 migrate_milestones = config.getboolean('issues', 'migrate_milestones')
 add_label = None
+
 if config.has_option('issues', 'add_label'):
     add_label = config.get('issues', 'add_label')
 
@@ -282,6 +286,8 @@ RE_COMMENT1 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
 RE_COMMENT2 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
 RE_TICKET_COMMENT1 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)\]')
 RE_TICKET_COMMENT2 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
+RE_ATTACHMENT1 = re.compile(r'\[attachment:([^\s\[\]]+)\]')
+RE_ATTACHMENT2 = re.compile(r'attachment:([^\s]+)')
 RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
 RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
@@ -423,10 +429,24 @@ def inline_code_snippet(match):
     else:
         return '`' + code + '`'
 
+def convert_ticket_attachment(match):
+    ticket_id = match.group(1)
+    path = match.group(2)
+    if keep_trac_ticket_references:
+        return os.path.join(trac_url_attachment, 'ticket', ticket_id, path)
+    return gh_attachment_url(ticket_id, path)
+
 def project_specific_normalization(text, conv_help):
 
     text = re.sub(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
     text = re.sub(r'https?://trac\.sagemath\.org/wiki/([/\-\w0-9@:%._+~#=]+)', convert_wiki_link, text)
+
+    text = re.sub(r'https?://trac\.sagemath\.org/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)',
+                  convert_ticket_attachment, text)
+    text = re.sub(r'https?://trac\.sagemath\.org/sage_trac/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)',
+                  convert_ticket_attachment, text)
+    text = re.sub(r'https?://trac\.sagemath\.org/sage_trac/raw-attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)',
+                  convert_ticket_attachment, text)
 
     text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)',
                   convert_git_link_diff1, text)
@@ -754,6 +774,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
             line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
 
+            line = RE_ATTACHMENT1.sub(conv_help.ticket_attachment, line)
+            line = RE_ATTACHMENT2.sub(conv_help.ticket_attachment, line)
+
             # code surrounded by underline, mistaken as italics by github
             line = RE_UNDERLINED_CODE1.sub(r'`_\1_`', line)
             line = RE_UNDERLINED_CODE2.sub(r'`_\1_`', line)
@@ -998,12 +1021,11 @@ class ConversionHelper:
 
         self._pagenames_splitted = pagenames_splitted
         self._pagenames_not_splitted = pagenames_not_splitted
-        self._keep_trac_ticket_references = config.getboolean('issues', 'keep_trac_ticket_references')
         self._attachment_path = ''
 
-    def set_path(self, pagename):
+    def set_wikipage_paths(self, pagename):
         """
-        Set paths from pagename
+        Set paths from the wiki pagename
         """
         gh_pagename = ' '.join(pagename.split('/'))
         self._attachment_path = gh_pagename  #  attachment_path for the wiki_image method
@@ -1015,13 +1037,34 @@ class ConversionHelper:
                 f.write(self._trac_wiki_path + ' ' + self._wiki_path)
                 f.write('\n')
 
+    def set_ticket_paths(self, ticket_id):
+        """
+        Set paths from the ticket id.
+        """
+        self._ticket_id = ticket_id
+        self._attachment_path = os.path.join(attachment_export_url, 'ticket' + str(ticket_id))
+
+    def ticket_attachment(self, match):
+        filename = match.group(1)
+
+        if keep_trac_ticket_references:
+            label = 'attachment:' + filename
+            return r'[#%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
+
+        if not re.fullmatch('[-A-Za-z0-9_.]*', filename):
+            import pathlib
+            from hashlib import md5
+            extension = pathlib.Path(filename).suffix
+            filename = md5(filename.encode('utf-8')).hexdigest() + extension
+        return os.path.join(self._attachment_path, filename)
+
     def ticket_link(self, match):
         """
         Return a formatted string that replaces the match object found by re
         in the case of a Trac ticket link.
         """
         ticket = match.groups()[0]
-        if self._keep_trac_ticket_references:
+        if keep_trac_ticket_references:
             return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
         issue = ticket
         return r'#%s' % ticket
@@ -1037,7 +1080,7 @@ class ConversionHelper:
             label = '#{} comment:{}'.format(ticket, comment)
         else:
             label = match.group(3)
-        if self._keep_trac_ticket_references:
+        if keep_trac_ticket_references:
             return r'[%s](%s/%s#comment:%s)' % (label, trac_url_ticket, ticket, comment)
         return r'[%s](%s/issues/%s#comment:%s)' % (label, target_url_issues_repo, ticket, comment)
 
@@ -1604,6 +1647,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         log.info('Migrating ticket #%s (%3d changes): "%s"' % (src_ticket_id, len(changelog), src_ticket_data['summary'][:50].replace('"', '\'')))
 
+        conv_help.set_ticket_paths(src_ticket_id)
+
         def issue_description(src_ticket_data):
             description_pre = ""
             description_post = ""
@@ -2048,7 +2093,7 @@ def convert_wiki(source, dest):
         # Github wiki does not have folder structure
         gh_pagename = ' '.join(pagename.split('/'))
 
-        conv_help.set_path(pagename)
+        conv_help.set_wikipage_paths(pagename)
         converted = trac2markdown(page, os.path.dirname('/wiki/%s' % gh_pagename), conv_help)
 
         attachments = []
