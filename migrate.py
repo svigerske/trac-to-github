@@ -1570,6 +1570,23 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             description_pre = ""
             description_post = ""
 
+            dependencies = src_ticket_data.pop('dependencies', '')
+            other_deps = []
+            for dep in dependencies.replace(';', ' ').replace(',', ' ').split():
+                dep = dep.strip()
+                if m := re.fullmatch('#?([0-9]+)', dep):
+                    # Use this phrase, used by various dependency managers:
+                    # https://www.dpulls.com/
+                    # https://github.com/z0al/dependent-issues
+                    # https://github.com/gregsdennis/dependencies-action/pull/5
+                    description_post += f'\n\nDepends on #{m.group(1)}'
+                elif dep:
+                    # some free form remark in Dependencies
+                    other_deps.append(dep)
+            if other_deps:
+                # put it back
+                src_ticket_data['dependencies'] = dependencies
+
             owner = gh_username_list(dest, src_ticket_data.pop('owner', None))
             if owner:
                 description_post += '\n\n**Assignee:** ' + owner

@@ -70,6 +70,10 @@ See also: https://trac.sagemath.org/ticket/30363
       - [marking as duplicate](https://docs.github.com/en/issues/tracking-your-work-with-issues/marking-issues-or-pull-requests-as-a-duplicate), 
       - "Labels" "duplicate", "invalid", "wontfix", or
       - closing with a comment.
+    - **Dependencies**: Use the phrase "Depends on ", followed by the Issue or PR reference.
+      Repeat this in separate lines if there is more than one dependency.
+      This format is understood by various dependency managers: See https://www.dpulls.com/,
+      https://github.com/z0al/dependent-issues, https://github.com/gregsdennis/dependencies-action/pull/5
 
 - For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
   - Create a new local branch based on `upstream/develop`
