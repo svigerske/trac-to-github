@@ -1405,8 +1405,10 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
             # write attachment data to binary file
             open(os.path.join(dirname, filename), 'wb').write(attachment)
             attachment_url = gh_attachment_url(src_ticket_id, filename)
-            note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_url, comment['user'], comment['created_at'])
-            if not github:
+            if github:
+                note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_url, comment['user'], comment['created_at'])
+            else:
+                note = '**Attachment:** [%s](%s)' % (filename, attachment_url)
                 user_url = gh_user_url(dest, comment['user'])
                 a = issue.create_attachment(filename,
                                             "application/octet-stream",
