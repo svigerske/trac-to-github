@@ -288,7 +288,10 @@ RE_TICKET_COMMENT1 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)
 RE_TICKET_COMMENT2 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_ATTACHMENT1 = re.compile(r'\[attachment:([^\s\|]+)[\s\|](.+)\]')
 RE_ATTACHMENT2 = re.compile(r'\[attachment:([^\s]+)\]')
-RE_ATTACHMENT3 = re.compile(r'(?<=\s)attachment:([^\s]*[^\s.]+)')
+RE_ATTACHMENT3 = re.compile(r'(?<=\s)attachment:([^\s]+)\.\s')
+RE_ATTACHMENT4 = re.compile(r'^attachment:([^\s]+)\.\s')
+RE_ATTACHMENT5 = re.compile(r'(?<=\s)attachment:([^\s]+)')
+RE_ATTACHMENT6 = re.compile(r'^attachment:([^\s]+)')
 RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
 RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
@@ -778,6 +781,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_ATTACHMENT1.sub(conv_help.ticket_attachment, line)
             line = RE_ATTACHMENT2.sub(conv_help.ticket_attachment, line)
             line = RE_ATTACHMENT3.sub(conv_help.ticket_attachment, line)
+            line = RE_ATTACHMENT4.sub(conv_help.ticket_attachment, line)
+            line = RE_ATTACHMENT5.sub(conv_help.ticket_attachment, line)
+            line = RE_ATTACHMENT6.sub(conv_help.ticket_attachment, line)
 
             # code surrounded by underline, mistaken as italics by github
             line = RE_UNDERLINED_CODE1.sub(r'`_\1_`', line)
@@ -1052,6 +1058,7 @@ class ConversionHelper:
             label = match.group(2)
         else:
             label = 'attachment:' + filename
+
         if keep_trac_ticket_references:
             return r'[%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
 
