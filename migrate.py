@@ -2072,6 +2072,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                                 # Store for closing references
                                 last_sha = newvalue
                             newvalue = github_ref_markdown(newvalue)
+                    change_type = change_type.replace('_', ' ')
                     if not oldvalue:
                         comment_data['note'] = f'**{change_type.title()}:** {newvalue}'
                     else:
