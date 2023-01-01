@@ -107,8 +107,8 @@ class MigrationArchiveWritingRequester:
                 output['type'] = 'attachment'
                 output['issue'] = urljoin(base_url, f'issues/{issue}')
                 # https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
-                extension = pathlib.Path(input['asset_name']).suffix
-                url = f'https://github.com/assets/some-id/some-uuid{extension}'  # FIXME
+                attachment_path = '/'.join(urlparse(input['asset_url']).path.split('/')[2:])
+                url = urljoin(base_url, f'files/{attachment_path}')
         if isinstance(output, dict):
             output['url'] = url
             dump = json.dumps(output, sort_keys=True, indent=4)

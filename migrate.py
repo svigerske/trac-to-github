@@ -1313,16 +1313,16 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
             # write attachment data to binary file
             open(os.path.join(dirname, filename), 'wb').write(attachment)
             attachment_url = gh_attachment_url(src_ticket_id, filename)
-            if github:
-                note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_url, comment['user'], comment['created_at'])
-            else:
-                note = 'Attachment [%s](%s)' % (filename, attachment_url)
+            note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_url, comment['user'], comment['created_at'])
+            if not github:
                 user_url = gh_user_url(dest, comment['user'])
-                issue.create_attachment(filename,
-                                        "application/octet-stream",
-                                        attachment_url,
-                                        user=user_url,
-                                        created_at=comment['created_at'])
+                a = issue.create_attachment(filename,
+                                            "application/octet-stream",
+                                            user=user_url,
+                                            asset_url="tarball://root/attachments/" + attachment_path(src_ticket_id, filename),
+                                            created_at=comment['created_at'])
+                assert attachment_url == a.url, f'{attachment_url} != {a.url}'
+
         elif gh_user is not None:
             if dest is None : return
             gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
@@ -1334,7 +1334,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
                 note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['user'], comment['created_at'])
             except UnicodeDecodeError :
                 note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['user'], comment['created_at'])
-                print ('  LOSING ATTACHMENT', filename, 'in issue', issue.number)
+                logging.warning('losing attachment', filename, 'in issue', issue.number)
             sleep(sleep_after_attachment)
         else:
             note = 'Attachment'
