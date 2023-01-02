@@ -1394,10 +1394,12 @@ def gh_attachment_url(src_ticket_id, filename):
     return attachment_export_url + attachment_path(src_ticket_id, filename)
 
 def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
-    # upload attachement, if there is one
-    if 'attachment_name' in comment :
-        filename = comment.pop('attachment_name')
-        attachment = comment.pop('attachment')
+    preamble = ''
+    attachments = comment.pop('attachments', [])
+    # upload attachments, if there are any
+    for attachment in attachments:
+        filename = attachment['attachment_name']
+        attachment = attachment['attachment']
         if attachment_export:
             dirname = os.path.join(attachment_export_dir, 'ticket' + str(src_ticket_id))
             if not os.path.isdir(dirname) :
@@ -1432,17 +1434,17 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
             sleep(sleep_after_attachment)
         else:
             note = 'Attachment'
-    else :
-        if github:
-            note = 'Comment by %s created at %s' % (comment.pop('user'), comment.pop('created_at'))
-        else:
-            note = ''
+        if preamble:
+            preamble += '\n\n'
+        preamble += note
 
-    body = comment.pop('note', '')
-    if body:
-        if note:
-            note += '\n\n'
-        note += body
+    if not preamble and github:
+        preamble = 'Comment by %s created at %s' % (comment.pop('user'), comment.pop('created_at'))
+
+    note = comment.pop('note', '')
+    if preamble and note:
+        preamble += '\n\n'
+    note = preamble + note
 
     if comment_id:
         anchor = f"<a id='comment:{comment_id}'></a>"
@@ -1906,7 +1908,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'state', newstate, **event_data)
             return issue_state, new_labels
 
-        attachment = None
+        attachments = []
         for change in changelog:
             time, author, change_type, oldvalue, newvalue, permanent = change
             change_time = str(convert_xmlrpc_datetime(time))
@@ -1928,24 +1930,20 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 'actor': user_url,
             }
             if change_type == "attachment":
-                if attachment:
-                    logging.warn(f'losing attachment: {attachment}')
-                # The attachment will be described in the next change!
-                attachment = change
+                # The attachment may be described in the next comment
+                attachments.append({'attachment': get_ticket_attachment(source, src_ticket_id, newvalue).data,
+                                    'attachment_name': newvalue})
             elif change_type == "comment":
                 # oldvalue is here either x or y.x, where x is the number of this comment and y is the number of the comment that is replied to
                 m = re.match('([0-9]+.)?([0-9]+)', oldvalue)
                 x = m and m.group(2)
                 desc = newvalue.strip();
-                if desc == '' and attachment is None :
+                if not desc and not attachments:
                     # empty description and not description of attachment
                     continue
                 comment_data['note'] = trac2markdown(desc, '/issues/', conv_help, False)
-
-                if attachment is not None :
-                    comment_data['attachment_name'] = attachment[4]  # name of attachment
-                    comment_data['attachment'] = get_ticket_attachment(source, src_ticket_id, attachment[4]).data
-                    attachment = None
+                comment_data['attachments'] = attachments
+                attachments = []
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id, comment_id=x)
             elif change_type.startswith("_comment") :
                 # this is an old version of a comment, which has been edited later (given in previous change),
@@ -2079,7 +2077,10 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                         comment_data['note'] = f'**Changing {change_type}** from "{oldvalue}" to "{newvalue}".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
-        #assert attachment is None
+        if attachments:
+            comment_data['attachments'] = attachments
+            attachments = []
+            gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
         ticketcount += 1
         if ticketcount % 10 == 0 and sleep_after_10tickets > 0 :
