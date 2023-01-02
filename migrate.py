@@ -570,7 +570,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         non_blank_previous_line = bool(line)
         line = text_lines.pop()
 
-
         # cut quote prefix
         if line.startswith(quote_prefix):
             line = line[len(quote_prefix):]
@@ -584,9 +583,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
         if not (in_code or in_html):
             # quote
-            m = re.match('^(>[>\s]*)', line)
+            m = re.match('^(>\s(?:>\s)*)', line)
             if m:
-                prefix = m.group(0)
+                prefix = m.group(1)
                 l = len(prefix)
             else:
                 prefix = ''
