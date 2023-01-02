@@ -48,6 +48,10 @@ See also: https://trac.sagemath.org/ticket/30363
       git remote add upstream https://github.com/sagemath/sage.git   # https
       git remote add upstream git@github.com:sagemath/sage.git       # ssh
       ```
+   - In order to be able to fetch branches from existing Trac tickets, also set up the following (read-only) remote:
+     ```
+     git remote add trac https://github.com/sagemath/sagetrac-mirror.git
+     ```
   - (Of course, you can give arbitrary names to your git remotes, but `origin` and `upstream` are the established defaults, which will make it easier to use tools such as the GitHub command-line tools.)
 
 - For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
