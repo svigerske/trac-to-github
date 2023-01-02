@@ -570,7 +570,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         non_blank_previous_line = bool(line)
         line = text_lines.pop()
 
-
         # cut quote prefix
         if line.startswith(quote_prefix):
             line = line[len(quote_prefix):]
@@ -579,17 +578,19 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 text_lines.append(quote_prefix + '}}}')
                 continue
 
-            line = '\n' + line
+            if line:
+                a.append('')  # effectively insert a blank line when quote depth decreases
             quote_prefix = ''
 
         if not (in_code or in_html):
             # quote
-            m = re.match('^(>[>\s]*)', line)
+            prefix = ''
+            m = re.match('^((?:>\s)*>\s)', line)
             if m:
-                prefix = m.group(0)
-                l = len(prefix)
-            else:
-                prefix = ''
+                prefix += m.group(1)
+            m = re.match('^(>[>\s]*)', line[len(prefix):])
+            if m:
+                prefix += m.group(1)
             quote_prefix += prefix
             line = line[len(prefix):]
 
