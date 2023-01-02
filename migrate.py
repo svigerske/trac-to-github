@@ -1260,7 +1260,7 @@ def mapstatus(status):
     status = status.lower()
     if status in ['needs_review', 'needs_work', 'needs_info', 'positive_review']:
         return 'open', status.replace('_', ' ')
-    elif status in ['new', 'assigned', 'analyzed', 'reopened', 'open', 'needs_info_new']:
+    elif status in ['', 'new', 'assigned', 'analyzed', 'reopened', 'open', 'needs_info_new']:
         return 'open', None
     elif status in ['closed'] :
         return 'closed', None
