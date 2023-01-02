@@ -440,73 +440,80 @@ def convert_ticket_attachment(match):
         return os.path.join(trac_url_attachment, 'ticket', ticket_id, filename)
     return gh_attachment_url(ticket_id, filename)
 
+
+RE_SAGE_TICKET1 = re.compile(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?')
+RE_SAGE_TICKET2 = re.compile(r'https?://trac\.sagemath\.org/sage_trac/ticket/(\d+)')
+RE_SAGE_WIKI1= re.compile(r'https?://trac\.sagemath\.org/wiki/([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_ATTACHMENT1 = re.compile(r'https?://trac\.sagemath\.org/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_ATTACHMENT2 = re.compile(r'https?://trac\.sagemath\.org/sage_trac/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_ATTACHMENT3= re.compile(r'https?://trac\.sagemath\.org/sage_trac/raw-attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_DIFF1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)')
+RE_SAGE_GIT_DIFF2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)&id2=([0-9a-f]+)')
+RE_SAGE_GIT_DIFF3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2?=([0-9a-f]+)&id=([0-9a-f]+)')
+RE_SAGE_GIT_DIFF4 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([0-9a-f]+)')
+RE_SAGE_GIT_DIFF5 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)')
+RE_SAGE_GIT_DIFF6 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2=([/\-\w0-9@:%._+~#=]+)&id=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_DIFF7 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_DIFF8 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_COMMIT1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)')
+RE_SAGE_GIT_COMMIT2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commitid=([0-9a-f]+)')
+RE_SAGE_GIT_COMMIT3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([0-9a-f]+)')
+RE_SAGE_GIT_COMMIT4 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_COMMIT5 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_COMMIT6 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)')
+RE_SAGE_GIT_COMMIT7 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)')
+RE_SAGE_GIT_COMMIT8 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)')
+RE_SAGE_GIT_TREE1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_TREE2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/?\?h=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_TREE3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src/?')
+RE_SAGE_GIT_LOG1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?\?h=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_LOG2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?\?q=([0-9a-f]+)..([0-9a-f]+)&h=([0-9a-f]+)&qt=range')
+RE_SAGE_GIT_LOG3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)')
+RE_SAGE_GIT_LOG4 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_PLAIN1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/plain/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT_PATCH1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/patch/?\?id=([0-9a-f]+)')
+RE_SAGE_GIT_REFS1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/refs/?')
+RE_SAGE_GIT_TAG1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tag/?\?id=([/\-\w0-9@:%._+~#=]+)')
+RE_SAGE_GIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/(.*)')
+RE_SAGE_WRONG_FORMAT1 = re.compile(r'comment:(\d+):ticket:(\d+)')
+
 def project_specific_normalization(text, conv_help):
 
-    text = re.sub(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?', r'ticket:\1#comment:\2', text)
-    text = re.sub(r'https?://trac\.sagemath\.org/wiki/([/\-\w0-9@:%._+~#=]+)', convert_wiki_link, text)
-
-    text = re.sub(r'https?://trac\.sagemath\.org/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)',
-                  convert_ticket_attachment, text)
-    text = re.sub(r'https?://trac\.sagemath\.org/sage_trac/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)',
-                  convert_ticket_attachment, text)
-    text = re.sub(r'https?://trac\.sagemath\.org/sage_trac/raw-attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)',
-                  convert_ticket_attachment, text)
-
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)',
-                  convert_git_link_diff1, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)&id2=([0-9a-f]+)',
-                  convert_git_link_diff2, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2?=([0-9a-f]+)&id=([0-9a-f]+)',
-                  convert_git_link_diff3, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([0-9a-f]+)',
-                  convert_git_link_diff4, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)',
-                  convert_git_link_diff5, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2=([/\-\w0-9@:%._+~#=]+)&id=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_diff6, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_diff7, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_diff8, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)',
-                  convert_git_link_commit1, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commitid=([0-9a-f]+)',  # misspelled
-                  convert_git_link_commit3, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([0-9a-f]+)',
-                  convert_git_link_commit3, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_commit4, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_commit5, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)',
-                  convert_git_link_commit6, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)',
-                  convert_git_link_commit7, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)',
-                  convert_git_link_commit7, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_tree1, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/?\?h=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_tree3, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?\?h=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_log1, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?\?q=([0-9a-f]+)..([0-9a-f]+)&h=([0-9a-f]+)&qt=range',
-                  convert_git_link_log3, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)',
-                  convert_git_link_log4, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_log5, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/plain/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)',
-                  convert_git_link_plain, text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/patch/?\?id=([0-9a-f]+)',
-                  convert_git_link_patch, text)
-
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/refs/?', r'{target_url_git_repo}/branches', text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tag/?\?id=([/\-\w0-9@:%._+~#=]+)', r'{target_url_git_repo}/releases/tag/\1', text)
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/tree/src/?', r'{target_url_git_repo}/blob/master/src', text)
-    text = re.sub(r'comment:(\d+):ticket:(\d+)', r'ticket:\2#comment:\1', text)
-
-    text = re.sub(r'https?://git\.sagemath\.org/sage\.git/(.*)', convert_git_link, text)
+    text = RE_SAGE_TICKET1.sub(r'ticket:\1#comment:\2', text)
+    text = RE_SAGE_TICKET2.sub(r'%s/issues/\1' % target_url_issues_repo, text)
+    text = RE_SAGE_WIKI1.sub(convert_wiki_link, text)
+    text = RE_SAGE_ATTACHMENT1.sub(convert_ticket_attachment, text)
+    text = RE_SAGE_ATTACHMENT2.sub(convert_ticket_attachment, text)
+    text = RE_SAGE_ATTACHMENT3.sub(convert_ticket_attachment, text)
+    text = RE_SAGE_GIT_DIFF1.sub(convert_git_link_diff1, text)
+    text = RE_SAGE_GIT_DIFF2.sub(convert_git_link_diff2, text)
+    text = RE_SAGE_GIT_DIFF3.sub(convert_git_link_diff3, text)
+    text = RE_SAGE_GIT_DIFF4.sub(convert_git_link_diff4, text)
+    text = RE_SAGE_GIT_DIFF5.sub(convert_git_link_diff5, text)
+    text = RE_SAGE_GIT_DIFF6.sub(convert_git_link_diff6, text)
+    text = RE_SAGE_GIT_DIFF7.sub(convert_git_link_diff7, text)
+    text = RE_SAGE_GIT_DIFF8.sub(convert_git_link_diff8, text)
+    text = RE_SAGE_GIT_COMMIT1.sub(convert_git_link_commit1, text)
+    text = RE_SAGE_GIT_COMMIT2.sub(convert_git_link_commit3, text)  # misspelled
+    text = RE_SAGE_GIT_COMMIT3.sub(convert_git_link_commit3, text)
+    text = RE_SAGE_GIT_COMMIT4.sub(convert_git_link_commit4, text)
+    text = RE_SAGE_GIT_COMMIT5.sub(convert_git_link_commit5, text)
+    text = RE_SAGE_GIT_COMMIT6.sub(convert_git_link_commit6, text)
+    text = RE_SAGE_GIT_COMMIT7.sub(convert_git_link_commit7, text)
+    text = RE_SAGE_GIT_COMMIT8.sub(convert_git_link_commit7, text)
+    text = RE_SAGE_GIT_TREE1.sub(convert_git_link_tree1, text)
+    text = RE_SAGE_GIT_TREE2.sub(convert_git_link_tree3, text)
+    text = RE_SAGE_GIT_TREE3.sub(r'%s/blob/master/src' % target_url_git_repo, text)
+    text = RE_SAGE_GIT_LOG1.sub(convert_git_link_log1, text)
+    text = RE_SAGE_GIT_LOG2.sub(convert_git_link_log3, text)
+    text = RE_SAGE_GIT_LOG3.sub(convert_git_link_log4, text)
+    text = RE_SAGE_GIT_LOG4.sub(convert_git_link_log5, text)
+    text = RE_SAGE_GIT_PLAIN1.sub(convert_git_link_plain, text)
+    text = RE_SAGE_GIT_PATCH1.sub(convert_git_link_patch, text)
+    text = RE_SAGE_GIT_REFS1.sub(r'%s/branches' % target_url_git_repo, text)
+    text = RE_SAGE_GIT_TAG1.sub(r'%s/releases/tag/\1' % target_url_git_repo, text)
+    text = RE_SAGE_GIT.sub(convert_git_link, text)  # catch all missed
+    text = RE_SAGE_WRONG_FORMAT1.sub(r'ticket:\2#comment:\1', text)
 
     return text
 
