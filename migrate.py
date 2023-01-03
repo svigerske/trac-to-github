@@ -1146,14 +1146,14 @@ class IssuesConversionHelper:
                 link = wiki_path_conversion_table[link]
             else:
                 link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wikis/' + link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
         elif pagename in self._pagenames_not_splitted:
             link = pagename_ori.replace(' ', '')
             if link in wiki_path_conversion_table:
                 link = wiki_path_conversion_table[link]
             else:
                 link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wikis/' + link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
         else:
             # we assume that this is a Trac macro like TicketQuery
             macro_split = pagename.split('(')
