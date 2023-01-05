@@ -440,6 +440,18 @@ def convert_ticket_attachment(match):
         return os.path.join(trac_url_attachment, 'ticket', ticket_id, filename)
     return gh_attachment_url(ticket_id, filename)
 
+def convert_replying_to(match):
+    comment_id = match.group(1)
+    trac_user = match.group(2)
+    if trac_user in users_map:
+        github_user = users_map[trac_user]
+        if github_user:
+            name = github_user
+        else:
+            name = trac_user
+    else:
+        name = trac_user
+    return 'Replying to [comment:{} {}]'.format(comment_id, name)
 
 RE_SAGE_TICKET1 = re.compile(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?')
 RE_SAGE_TICKET2 = re.compile(r'https?://trac\.sagemath\.org/sage_trac/ticket/(\d+)')
@@ -476,6 +488,7 @@ RE_SAGE_GIT_REFS1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/refs/?')
 RE_SAGE_GIT_TAG1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tag/?\?id=([/\-\w0-9@:%._+~#=]+)')
 RE_SAGE_GIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/(.*)')
 RE_SAGE_WRONG_FORMAT1 = re.compile(r'comment:(\d+):ticket:(\d+)')
+RE_SAGE_REPLYING_TO = re.compile(r'Replying to \[comment:(\d+)\s([\-\w0-9@._]+)\]')
 
 def project_specific_normalization(text, conv_help):
 
@@ -514,6 +527,7 @@ def project_specific_normalization(text, conv_help):
     text = RE_SAGE_GIT_TAG1.sub(r'%s/releases/tag/\1' % target_url_git_repo, text)
     text = RE_SAGE_GIT.sub(convert_git_link, text)  # catch all missed
     text = RE_SAGE_WRONG_FORMAT1.sub(r'ticket:\2#comment:\1', text)
+    text = RE_SAGE_REPLYING_TO.sub(convert_replying_to, text)
 
     return text
 
