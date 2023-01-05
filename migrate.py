@@ -442,15 +442,13 @@ def convert_ticket_attachment(match):
 
 def convert_replying_to(match):
     comment_id = match.group(1)
-    trac_user = match.group(2)
-    if trac_user in users_map:
-        github_user = users_map[trac_user]
-        if github_user:
-            name = github_user
-        else:
-            name = trac_user
+    username = match.group(2)
+    name = convert_trac_username(username)
+    if name:  # github username
+        name = '@' + name
     else:
-        name = trac_user
+        name = username
+
     return 'Replying to [comment:{} {}]'.format(comment_id, name)
 
 RE_SAGE_TICKET1 = re.compile(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?')
@@ -815,12 +813,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_CODE_SNIPPET.sub(inline_code_snippet, line)
 
             def github_mention(match):
-                trac_user = match.group(1)
-                if trac_user in users_map:
-                    github_user = users_map[trac_user]
-                    if github_user:
-                        return '@' + github_user
-                return '`@`' + trac_user
+                username = match.group(1)
+                github_username = convert_trac_username(username)
+                if github_username:
+                    return '@' + github_username
+                else:
+                    return '`@`' + username
 
             # to avoid unintended github mention
             line = RE_GITHUB_MENTION1.sub(github_mention, line)
@@ -1700,23 +1698,29 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 
 unmapped_users = defaultdict(lambda: 0)
 
-def gh_username(dest, origname) :
+def convert_trac_username(origname):
     origname = origname.strip('\u200b')
     if origname.startswith('gh-'):
-        return '@' + origname[3:]
+        return origname[3:]
     if origname.startswith('github/'):
         # example: https://trac.sagemath.org/ticket/17999
-        return '@' + origname[7:]
+        return origname[7:]
     if origname.startswith('gh:'):
         # example: https://trac.sagemath.org/ticket/24876
-        return '@' + origname[3:]
+        return origname[3:]
     gh_name = users_map.get(origname, None)
     if gh_name:
-        return '@' + gh_name
+        return gh_name
     assert not origname.startswith('@')
     if re.fullmatch('[-A-Za-z._0-9]+', origname):
         # heuristic pattern for valid Trac account name (not an email address or full name or junk)
         unmapped_users[origname] += 1
+    return None
+
+def gh_username(dest, origname):
+    github_name = convert_trac_username(origname)
+    if github_name:
+        return '@' + github_name
     return origname
 
 def gh_user_url(dest, username):
