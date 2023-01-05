@@ -440,6 +440,16 @@ def convert_ticket_attachment(match):
         return os.path.join(trac_url_attachment, 'ticket', ticket_id, filename)
     return gh_attachment_url(ticket_id, filename)
 
+def convert_replying_to(match):
+    comment_id = match.group(1)
+    username = match.group(2)
+    name = convert_trac_username(username)
+    if name:  # github username
+        name = '@' + name
+    else:
+        name = username
+
+    return 'Replying to [comment:{} {}]'.format(comment_id, name)
 
 RE_SAGE_TICKET1 = re.compile(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?')
 RE_SAGE_TICKET2 = re.compile(r'https?://trac\.sagemath\.org/sage_trac/ticket/(\d+)')
@@ -476,6 +486,7 @@ RE_SAGE_GIT_REFS1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/refs/?')
 RE_SAGE_GIT_TAG1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tag/?\?id=([/\-\w0-9@:%._+~#=]+)')
 RE_SAGE_GIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/(.*)')
 RE_SAGE_WRONG_FORMAT1 = re.compile(r'comment:(\d+):ticket:(\d+)')
+RE_SAGE_REPLYING_TO = re.compile(r'Replying to \[comment:(\d+)\s([\-\w0-9@._]+)\]')
 
 def project_specific_normalization(text, conv_help):
 
@@ -514,6 +525,7 @@ def project_specific_normalization(text, conv_help):
     text = RE_SAGE_GIT_TAG1.sub(r'%s/releases/tag/\1' % target_url_git_repo, text)
     text = RE_SAGE_GIT.sub(convert_git_link, text)  # catch all missed
     text = RE_SAGE_WRONG_FORMAT1.sub(r'ticket:\2#comment:\1', text)
+    text = RE_SAGE_REPLYING_TO.sub(convert_replying_to, text)
 
     return text
 
@@ -801,12 +813,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_CODE_SNIPPET.sub(inline_code_snippet, line)
 
             def github_mention(match):
-                trac_user = match.group(1)
-                if trac_user in users_map:
-                    github_user = users_map[trac_user]
-                    if github_user:
-                        return '@' + github_user
-                return '`@`' + trac_user
+                username = match.group(1)
+                github_username = convert_trac_username(username)
+                if github_username:
+                    return '@' + github_username
+                else:
+                    return '`@`' + username
 
             # to avoid unintended github mention
             line = RE_GITHUB_MENTION1.sub(github_mention, line)
@@ -1686,23 +1698,29 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 
 unmapped_users = defaultdict(lambda: 0)
 
-def gh_username(dest, origname) :
+def convert_trac_username(origname):
     origname = origname.strip('\u200b')
     if origname.startswith('gh-'):
-        return '@' + origname[3:]
+        return origname[3:]
     if origname.startswith('github/'):
         # example: https://trac.sagemath.org/ticket/17999
-        return '@' + origname[7:]
+        return origname[7:]
     if origname.startswith('gh:'):
         # example: https://trac.sagemath.org/ticket/24876
-        return '@' + origname[3:]
+        return origname[3:]
     gh_name = users_map.get(origname, None)
     if gh_name:
-        return '@' + gh_name
+        return gh_name
     assert not origname.startswith('@')
     if re.fullmatch('[-A-Za-z._0-9]+', origname):
         # heuristic pattern for valid Trac account name (not an email address or full name or junk)
         unmapped_users[origname] += 1
+    return None
+
+def gh_username(dest, origname):
+    github_name = convert_trac_username(origname)
+    if github_name:
+        return '@' + github_name
     return origname
 
 def gh_user_url(dest, username):
