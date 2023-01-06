@@ -57,6 +57,9 @@ from migration_archive_writer import MigrationArchiveWritingRequester
 import markdown
 from markdown.extensions.tables import TableExtension
 
+from rich.console import Console
+from rich.table import Table
+
 #import github as gh
 #gh.enable_console_debug_logging()
 
@@ -2328,6 +2331,73 @@ def convert_wiki(source, dest):
             print ('  Retrying with UTF-8 encoding')
             codecs.open(outfile, 'w', 'utf-8').write(converted)
 
+def output_unmapped_users(data):
+    table = Table(title="Unmapped users")
+    table.add_column("Username", justify="right", style="cyan", no_wrap=True)
+    table.add_column("Frequency", style="magenta")
+
+    for key, frequency in data:
+        table.add_row(key, str(frequency))
+
+    console = Console()
+    console.print(table)
+
+    # The file is created if not exists
+    if not os.path.exists('unmapped_users.txt'):
+        with open('unmapped_users.txt', 'a') as f:
+            for key, frequency in data:
+                f.write(' '.join([key, str(frequency)]) +'\n')
+
+def output_unmapped_milestones(data):
+    table = Table(title="Unmapped milestones")
+    table.add_column("Milestone", justify="right", style="cyan", no_wrap=True)
+    table.add_column("Frequency", style="magenta")
+
+    for key, frequency in data:
+        table.add_row(key, str(frequency))
+
+    console = Console()
+    console.print(table)
+
+    # The file is created if not exists
+    if not os.path.exists('unmapped_milestones.txt'):
+        with open('unmapped_milestones.txt', 'a') as f:
+            for key, frequency in data:
+                f.write(' '.join([key, str(frequency)]) +'\n')
+
+def output_keyword_frequency(data):
+    table = Table(title="Keyword frequency")
+    table.add_column("Keyword", justify="right", style="cyan", no_wrap=True)
+    table.add_column("Frequency", style="magenta")
+
+    for key, frequency in data:
+        table.add_row(key, str(frequency))
+
+    console = Console()
+    console.print(table)
+
+    # The file is created if not exists
+    if not os.path.exists('keyword_frequency.txt'):
+        with open('keyword_frequency.txt', 'a') as f:
+            for key, frequency in data:
+                f.write(' '.join([key, str(frequency)]) +'\n')
+
+def output_component_frequency(data):
+    table = Table(title="Component frequency")
+    table.add_column("Component", justify="right", style="cyan", no_wrap=True)
+    table.add_column("Frequency", style="magenta")
+
+    for keyword, frequency in data:
+        table.add_row(keyword, str(frequency))
+
+    console = Console()
+    console.print(table)
+
+    # The file is created if not exists
+    if not os.path.exists('component_frequency.txt'):
+        with open('component_frequency.txt', 'a') as f:
+            for key, frequency in data:
+                f.write(' '.join([key, str(frequency)]) +'\n')
 
 if __name__ == "__main__":
 
@@ -2369,7 +2439,7 @@ if __name__ == "__main__":
         if must_convert_wiki:
             convert_wiki(source, dest)
     finally:
-        print(f'Unmapped users: {sorted(unmapped_users.items(), key=lambda x: -x[1])}')
-        print(f'Unmapped keyword frequencies: {sorted(keyword_frequency.items(), key=lambda x: -x[1])}')
-        print(f'Unmapped milestones: {sorted(unmapped_milestones.items(), key=lambda x: -x[1])}')
-        print(f'Components: {sorted(component_frequency.items(), key=lambda x: -x[1])}')
+        output_unmapped_users(sorted(unmapped_users.items(), key=lambda x: -x[1]))
+        output_unmapped_milestones(sorted(unmapped_milestones.items(), key=lambda x: -x[1]))
+        output_keyword_frequency(sorted(keyword_frequency.items(), key=lambda x: -x[1]))
+        output_component_frequency(sorted(component_frequency.items(), key=lambda x: -x[1]))
