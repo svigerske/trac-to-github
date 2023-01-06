@@ -3,3 +3,7 @@ wiki
 trac_cache
 archive
 __pycache__
+keyword_frequency.txt
+unmapped_users.txt
+unmapped_milestones.txt
+component_frequency.txt
