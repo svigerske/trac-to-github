@@ -561,10 +561,9 @@ def commits_list(match):
 
 def github_mention(match):
     username = match.group(1)
-    if not username in ignored_values:
-        github_username = convert_trac_username(username)
-        if github_username:
-            return '@' + github_username
+    github_username = convert_trac_username(username)
+    if github_username:
+        return '@' + github_username
     return '`@`' + username
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
@@ -1701,6 +1700,8 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 unmapped_users = defaultdict(lambda: 0)
 
 def convert_trac_username(origname):
+    if origname in ignored_values:
+        return None
     origname = origname.strip('\u200b')
     if origname.startswith('gh-'):
         return origname[3:]
