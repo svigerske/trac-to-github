@@ -299,8 +299,8 @@ RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
 RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
 RE_CODE_SNIPPET = re.compile(r'(?<!`){{{(.*?)}}}')
-RE_GITHUB_MENTION1 = re.compile('(?<=\s)@([a-zA-Z][a-zA-Z.]*)')
-RE_GITHUB_MENTION2 = re.compile('^@([a-zA-Z][a-zA-Z.]*)')
+RE_GITHUB_MENTION1 = re.compile('(?<=\s)@([a-zA-Z][a-zA-Z0-9.]*[a-zA-Z0-9])')
+RE_GITHUB_MENTION2 = re.compile('^@([a-zA-Z][a-zA-Z0-9.]*[a-zA-Z0-9])')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
 RE_NO_CAMELCASE = re.compile(r'\!(([A-Z][a-z0-9]+){2,})')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
@@ -532,6 +532,40 @@ def project_specific_normalization(text, conv_help):
 
     return text
 
+def commits_list(match):
+    t = '**' + match.group(1) +'**\n'
+    t += '<table>'
+    for c in match.group(2).split('\n')[2:]:  # the first two are blank header
+        if not c:
+            continue
+        m = RE_COMMIT_LIST1.match(c)
+        if m:
+            commit_id = m.group(1)
+            commit_url = m.group(2)
+            commit_msg = m.group(3).replace('\`', '`')
+            t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
+        else:
+            m = RE_COMMIT_LIST2.match(c)
+            if m:
+                commit_id = m.group(1)
+                commit_url = m.group(2)
+                commit_msg = m.group(3)
+                t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
+            else: # unusual format
+                m = RE_COMMIT_LIST3.match(c)
+                commit_id = m.group(1)
+                commit_msg = m.group(2)
+                t += r'<tr><td>{}</td><td><code>{}</code></td></tr>'.format(commit_id, commit_msg)
+    t += '</table>\n'
+    return t
+
+def github_mention(match):
+    username = match.group(1)
+    github_username = convert_trac_username(username)
+    if github_username:
+        return '@' + github_username
+    return '`@`' + username
+
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     text = project_specific_normalization(text, conv_help)
@@ -746,7 +780,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = new_line
 
         if not (in_code or in_html):
-
             # heading
             line = re.sub(r'^(\s*)# ', r'\1\# ', line)  # first fix unintended heading
             line = RE_HEADING1.sub(heading_replace, line)
@@ -814,14 +847,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_UNDERLINED_CODE3.sub(r'`_\1_`', line)
 
             line = RE_CODE_SNIPPET.sub(inline_code_snippet, line)
-
-            def github_mention(match):
-                username = match.group(1)
-                github_username = convert_trac_username(username)
-                if github_username:
-                    return '@' + github_username
-                else:
-                    return '`@`' + username
 
             # to avoid unintended github mention
             line = RE_GITHUB_MENTION1.sub(github_mention, line)
@@ -998,33 +1023,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     # Some rewritings
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
     text = RE_TRAC_REPORT.sub(r'[Trac report of id \1 inherited from the migration](%s/\1)' % trac_url_report, text)
-
-    def commits_list(match):
-        t = '**' + match.group(1) +'**\n'
-        t += '<table>'
-        for c in match.group(2).split('\n')[2:]:  # the first two are blank header
-            if not c:
-                continue
-            m = RE_COMMIT_LIST1.match(c)
-            if m:
-                commit_id = m.group(1)
-                commit_url = m.group(2)
-                commit_msg = m.group(3).replace('\`', '`')
-                t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
-            else:
-                m = RE_COMMIT_LIST2.match(c)
-                if m:
-                    commit_id = m.group(1)
-                    commit_url = m.group(2)
-                    commit_msg = m.group(3)
-                    t += r'<tr><td><a href="{}">{}</a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
-                else: # unusual format
-                    m = RE_COMMIT_LIST3.match(c)
-                    commit_id = m.group(1)
-                    commit_msg = m.group(2)
-                    t += r'<tr><td>{}</td><td><code>{}</code></td></tr>'.format(commit_id, commit_msg)
-        t += '</table>\n'
-        return t
 
     text = RE_NEW_COMMITS.sub(commits_list, text)
     text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
@@ -1702,6 +1700,8 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 unmapped_users = defaultdict(lambda: 0)
 
 def convert_trac_username(origname):
+    if origname in ignored_values:
+        return None
     origname = origname.strip('\u200b')
     if origname.startswith('gh-'):
         return origname[3:]
