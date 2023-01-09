@@ -1,0 +1,451 @@
+[
+  {
+    "type": "organization",
+    "url": "https://github.com/sagemath",
+    "login": "sagemath",
+    "name": "Sage Mathematical Software System",
+    "description": "",
+    "website": "https://www.sagemath.org/",
+    "location": "Earth, Solar System, Milky Way Galaxy, Local Group, Virgo Supercluster, Universe",
+    "email": "982721+sagemath@users.noreply.github.com",
+    "members": [
+      {
+        "user": "https://github.com/roed314",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/ellisonbg",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/swenson",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/fperez",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/mikecroucher",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/lawrennd",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/kiwifb",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/minrk",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/jasongrout",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/haraldschilly",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/samuela",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/wbhart",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/takluyver",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/saraedum",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/mwhansen",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/robertwb",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/nthiery",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/embray",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/serge-sans-paille",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/vbraun",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/egourgoulhon",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/rwst",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/marcinofulus",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/dandrake",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/williamstein",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/ppurka",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/dimpase",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/jpflori",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/defeo",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/malb",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/jwbober",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/ohanar",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/nchauvat",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/fcayre",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/martinra",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/mmasdeu",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/kcrisman",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/pbrunet",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/novoselt",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/tkluck",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/drvinceknight",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/rasmi",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/v2e",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/miguelmarco",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/wdecker",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/slel",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/JohnCremona",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/anneschilling",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/VivianePons",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/jdemeyer",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/hav3n",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/IanHawke",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/kohlhase",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/mezzarobba",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/fangohr",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/tobiasdiez",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/fchapoton",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/videlec",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/alex-konovalov",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/stevelinton",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/ekinozman",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/gastineau",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/hivert",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/gouarin",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/mkoeppe",
+        "role": "admin",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/KBelabas",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/simon-king-jena",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/jgdumas",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/Shadlova",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/ClementPernet",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/kliem",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/ChamanAgrawal",
+        "role": "direct_member",
+        "state": "active"
+      },
+      {
+        "user": "https://github.com/sagemathadmins",
+        "role": "direct_member",
+        "state": "active"
+      }
+    ],
+    "owners_team": null,
+    "webhooks": [
+
+    ],
+    "created_at": "2011-08-16T05:04:03Z",
+    "member_privileges": {
+      "default_repository_permission": "none",
+      "members_can_create_public_repositories": true,
+      "members_can_create_private_repositories": true,
+      "members_can_create_internal_repositories": false,
+      "members_can_invite_outside_collaborators": true,
+      "allows_private_repository_forking": false,
+      "members_can_create_pages": true,
+      "members_can_change_repo_visibility": true,
+      "members_can_delete_repositories": true,
+      "members_can_delete_issues": false,
+      "display_commenter_full_name_setting_enabled": false,
+      "readers_can_create_discussions": true,
+      "members_can_create_teams": true,
+      "members_can_view_dependency_insights": true
+    },
+    "repository_defaults": {
+      "repository_default_branch": "main",
+      "commit_signoff": false,
+      "repository_labels": [
+        {
+          "name": "bug",
+          "description": "Something isn't working",
+          "color": "d73a4a"
+        },
+        {
+          "name": "documentation",
+          "description": "Improvements or additions to documentation",
+          "color": "0075ca"
+        },
+        {
+          "name": "duplicate",
+          "description": "This issue or pull request already exists",
+          "color": "cfd3d7"
+        },
+        {
+          "name": "enhancement",
+          "description": "New feature or request",
+          "color": "a2eeef"
+        },
+        {
+          "name": "good first issue",
+          "description": "Good for newcomers",
+          "color": "7057ff"
+        },
+        {
+          "name": "help wanted",
+          "description": "Extra attention is needed",
+          "color": "008672"
+        },
+        {
+          "name": "invalid",
+          "description": "This doesn't seem right",
+          "color": "e4e669"
+        },
+        {
+          "name": "question",
+          "description": "Further information is requested",
+          "color": "d876e3"
+        },
+        {
+          "name": "wontfix",
+          "description": "This will not be worked on",
+          "color": "ffffff"
+        }
+      ]
+    }
+  }
+]
