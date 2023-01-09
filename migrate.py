@@ -2116,6 +2116,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             comment_data = {
                 'created_at': convert_trac_datetime(change_time),
                 'user': user,
+                'formatter': 'markdown',
             }
             event_data = {
                 'created_at': convert_trac_datetime(change_time),

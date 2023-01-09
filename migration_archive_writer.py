@@ -74,9 +74,11 @@ class MigrationArchiveWritingRequester:
         match verb, endpoint:
             case 'POST', ['labels']:
                 output['type'] = 'label'
+                output['repository'] = base_url[:-1]  # strip final /
                 url = urljoin(base_url, 'labels/' + quote(input['name']))
             case 'POST', ['milestones']:
                 output['type'] = 'milestone'
+                output['repository'] = base_url[:-1]  # strip final /
                 url = urljoin(base_url, 'milestones/' + quote(input['title']))
             case 'POST', ['issues']:
                 # Create a new issue
@@ -106,6 +108,7 @@ class MigrationArchiveWritingRequester:
             case 'POST', ['issues', issue, 'attachments']:
                 # Create an attachment
                 output['type'] = 'attachment'
+                output['repository'] = base_url[:-1]  # strip final /
                 output['issue'] = urljoin(base_url, f'issues/{issue}')
                 # https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
                 attachment_path = '/'.join(urlparse(input['asset_url']).path.split('/')[2:])
