@@ -87,6 +87,7 @@ class MigrationArchiveWritingRequester:
                 else:
                     self._num_issues += 1
                 issue = self._num_issues
+                output['repository'] = base_url[:-1]  # strip final /
                 url = urljoin(base_url, f'issues/{issue}')
             case 'POST', ['issues', issue, 'comments']:
                 # Create an issue comment
