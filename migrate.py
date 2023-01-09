@@ -1635,24 +1635,25 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     issue.create_comment(note, **comment)
     sleep(sleep_after_request)
 
-def normalize_labels(labels):
+def normalize_labels(dest, labels):
     if 'duplicate/invalid/wontfix' in labels:
         labels.remove('duplicate/invalid/wontfix')
         if any(x in labels for x in ['duplicate', 'invalid', 'wontfix']):
             return
         labels.append('invalid')
+        gh_ensure_label(dest, 'invalid', labelcolor['milestone'])
 
 def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     if dest is None : return
 
     if key == 'labels':
         labels = [gh_labels[label.lower()] for label in val if label]
-        normalize_labels(labels)
+        normalize_labels(dest, labels)
         if github:
             issue.set_labels(*labels)
         else:
             oldlabels = [gh_labels[label.lower()] for label in oldval if label]
-            normalize_labels(oldlabels)
+            normalize_labels(dest, oldlabels)
             for label in oldlabels:
                 if label not in labels:
                     # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#unlabeled
@@ -1997,7 +1998,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 labels.append(label)
                 gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['resolution'])
 
-            normalize_labels(labels)
+            normalize_labels(dest, labels)
             return milestone, labels
 
         def title_status(summary, status=None):
@@ -2071,7 +2072,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             if add_label:
                 labels.append(add_label)
                 gh_ensure_label(dest, add_label, labelcolor[label_category])
-            normalize_labels(labels)
+            normalize_labels(dest, labels)
             if set(labels) != set(oldlabels):
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
             return labels
