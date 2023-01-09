@@ -1543,9 +1543,15 @@ def gh_create_issue(dest, issue_data) :
         if user_url:
             issue_data['user'] = user_url
 
+    assignee = issue_data.pop('assignee', GithubObject.NotSet)
+    if assignee is GithubObject.NotSet:
+        assignees = []
+    else:
+        assignees = [assignee]
+
     gh_issue = dest.create_issue(issue_data.pop('title'),
                                  description,
-                                 assignee=issue_data.pop('assignee', GithubObject.NotSet),
+                                 assignee=assignee, assignees=assignees,
                                  milestone=issue_data.pop('milestone', GithubObject.NotSet),
                                  labels=labels,
                                  **issue_data)
@@ -2037,7 +2043,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if not github:
             issue_data['user'] = gh_username(dest, tmp_src_ticket_data.pop('reporter'))
             issue_data['created_at'] = convert_xmlrpc_datetime(time_created)
+            issue_data['updated_at'] = convert_xmlrpc_datetime(time_changed)
             issue_data['number'] = int(src_ticket_id)
+            issue_data['reactions'] = []
             # Find closed_at
             for time, author, change_type, oldvalue, newvalue, permanent in reversed(changelog):
                 if change_type == 'status':

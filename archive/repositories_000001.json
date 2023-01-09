@@ -1,0 +1,156 @@
+[
+  {
+    "type": "repository",
+    "url": "https://github.com/sagemath/sage",
+    "owner": "https://github.com/sagemath",
+    "name": "sage",
+    "description": "Mirror of the Sage source tree -- please do not submit PRs here -- everything must be submitted via https://trac.sagemath.org/, though this may change soon! (see https://trac.sagemath.org/ticket/30363)",
+    "website": "https://www.sagemath.org",
+    "private": false,
+    "has_issues": true,
+    "has_wiki": true,
+    "has_downloads": true,
+    "is_archived": false,
+    "labels": [
+    ],
+    "collaborators": [
+      {
+        "user": "https://github.com/kini",
+        "permission": "admin"
+      },
+      {
+        "user": "https://github.com/sageb0t",
+        "permission": "write"
+      }
+    ],
+    "created_at": "2012-06-08T10:11:02Z",
+    "git_url": "tarball://root/repositories/sagemath/sage.git",
+    "default_branch": "develop",
+    "webhooks": [
+      {
+        "payload_url": "http://trac.sagemath.org:12000",
+        "content_type": "json",
+        "event_types": [
+          "*"
+        ],
+        "enable_ssl_verification": true,
+        "active": true
+      },
+      {
+        "payload_url": "https://zenodo.org/api/hooks/receivers/github/events/?access_token=AMAwn07RJWHlZ05lyxWKNZlYg0kQqSwkzezMDDqkk7yos7b8rcbdmYAwO6Qz",
+        "content_type": "json",
+        "event_types": [
+          "release"
+        ],
+        "enable_ssl_verification": true,
+        "active": true
+      }
+    ],
+    "page": null,
+    "public_keys": [
+
+    ],
+    "repository_topics": [
+      {
+        "topic_url": "https://www.python.org/",
+        "topic_name": "python",
+        "repository": "https://github.com/sagemath/sage",
+        "creator": "https://github.com/williamstein",
+        "state": "created",
+        "created_at": "2017-03-03T04:59:27.000-05:00",
+        "updated_at": "2022-09-18T13:54:13.000-04:00"
+      },
+      {
+        "topic_url": null,
+        "topic_name": "science",
+        "repository": "https://github.com/sagemath/sage",
+        "creator": "https://github.com/williamstein",
+        "state": "created",
+        "created_at": "2020-09-30T09:39:54.000-04:00",
+        "updated_at": "2022-09-18T13:54:13.000-04:00"
+      },
+      {
+        "topic_url": null,
+        "topic_name": "math",
+        "repository": "https://github.com/sagemath/sage",
+        "creator": "https://github.com/williamstein",
+        "state": "created",
+        "created_at": "2017-03-03T04:59:23.000-05:00",
+        "updated_at": "2022-09-18T13:54:13.000-04:00"
+      },
+      {
+        "topic_url": null,
+        "topic_name": "algorithms",
+        "repository": "https://github.com/sagemath/sage",
+        "creator": "https://github.com/williamstein",
+        "state": "created",
+        "created_at": "2017-03-03T04:59:39.000-05:00",
+        "updated_at": "2022-09-18T13:54:13.000-04:00"
+      },
+      {
+        "topic_url": null,
+        "topic_name": "computer-algebra",
+        "repository": "https://github.com/sagemath/sage",
+        "creator": "https://github.com/williamstein",
+        "state": "created",
+        "created_at": "2020-09-30T09:35:49.000-04:00",
+        "updated_at": "2022-09-18T13:54:14.000-04:00"
+      },
+      {
+        "topic_url": null,
+        "topic_name": "mathematics",
+        "repository": "https://github.com/sagemath/sage",
+        "creator": "https://github.com/williamstein",
+        "state": "created",
+        "created_at": "2017-03-03T04:59:33.000-05:00",
+        "updated_at": "2022-09-18T13:54:14.000-04:00"
+      },
+      {
+        "topic_url": null,
+        "topic_name": "sage",
+        "repository": "https://github.com/sagemath/sage",
+        "creator": "https://github.com/williamstein",
+        "state": "created",
+        "created_at": "2017-03-03T04:59:25.000-05:00",
+        "updated_at": "2022-09-18T13:54:14.000-04:00"
+      }
+    ],
+    "security_and_analysis": {
+      "dependency_graph": true,
+      "vulnerability_alerts": true,
+      "vulnerability_updates": true,
+      "advanced_security": false,
+      "token_scanning": false,
+      "token_scanning_push_protection": false
+    },
+    "autolinks": [
+
+    ],
+    "general_settings": {
+      "template": false,
+      "allow_forking": true,
+      "sponsorships": true,
+      "projects": false,
+      "discussions": false,
+      "merge_commit": true,
+      "squash_merge": true,
+      "rebase_merge": true,
+      "auto_merge": false,
+      "delete_branch_heads": false,
+      "update_branch": false,
+      "git_lfs_in_archives": false
+    },
+    "actions_general_settings": {
+      "actions_disabled": false,
+      "allows_all_actions": true,
+      "allows_local_actions_only": false,
+      "allows_github_owned_actions": false,
+      "allows_verified_actions": false,
+      "allows_specific_actions_patterns": false,
+      "patterns": [
+
+      ]
+    },
+    "wiki_url": "tarball://root/repositories/sagemath/sage.wiki.git"
+  }
+]
