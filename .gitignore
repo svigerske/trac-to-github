@@ -2,8 +2,10 @@ migrate.cfg
 wiki
 trac_cache
 /archive/*.json
+/archive/attachments
 !/archive/schema.json
 !/archive/repositories_*.json
+!/archive/organizations_*.json
 __pycache__
 keyword_frequency.txt
 unmapped_users.txt
