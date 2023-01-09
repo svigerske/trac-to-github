@@ -118,7 +118,9 @@ class MigrationArchiveWritingRequester:
                 id = self._num_json_by_type[t]
                 json_file = self._migration_archive / f'{pluralize(t)}_{id:06}.json'
                 with open(json_file, 'w') as f:
+                    f.write("[\n")
                     f.write(dump)
+                    f.write("]\n")
                 log.debug(f'# Wrote {json_file}')
             else:
                 print(dump)
