@@ -42,6 +42,7 @@ import codecs
 import logging
 import mimetypes
 import types
+import gzip
 from collections import defaultdict
 from copy import copy
 from datetime import datetime
@@ -1582,8 +1583,8 @@ def gh_attachment_url(src_ticket_id, filename):
 def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, comment=None):
     note = None
     if attachment_export:
-        a_path = attachment_path(src_ticket_id, filename)
         if github:
+            a_path = attachment_path(src_ticket_id, filename)
             local_filename = os.path.join(attachment_export_dir, 'attachments', a_path)
         else:
             match mimetypes.guess_type(filename):
@@ -1593,13 +1594,21 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                     pass
                 case mimetype:
                     pass
-            if isinstance(mimetype, str) and mimetype.startswith("image/"):
+            # supported types from bbs-exporter-1.5.5/lib/bbs_exporter/attachment_exporter/content_type.rb:
+            if mimetype in ['image/gif', 'image/jpeg', 'image/png']:
                 dirname = 'attachments'
                 create = issue.create_attachment
             else:
-                # Cannot make it an "attachment"
+                # Cannot make it an "attachment"(?)
+                if mimetype not in ['text/plain', 'application/gzip', 'application/zip']:
+                    # Replace by a gzipped file
+                    if attachment:
+                        attachment['attachment'] = gzip.compress(attachment['attachment'])
+                    filename += ".gz"
+                    mimetype = 'application/gzip'
                 dirname = 'files'
                 create = dest.create_repository_file
+            a_path = attachment_path(src_ticket_id, filename)
             local_filename = os.path.join(migration_archive, dirname, a_path)
         if github or not attachment:
             def create(asset_name, asset_content_type, asset_url, **kwds):
