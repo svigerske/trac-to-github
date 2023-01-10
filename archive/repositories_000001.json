@@ -4,7 +4,7 @@
     "url": "https://github.com/sagemath/sage",
     "owner": "https://github.com/sagemath",
     "name": "sage",
-    "description": "Mirror of the Sage source tree -- please do not submit PRs here -- everything must be submitted via https://trac.sagemath.org/, though this may change soon! (see https://trac.sagemath.org/ticket/30363)",
+    "description": "Preview of the import of Trac tickets using https://github.com/sagemath/trac-to-github",
     "website": "https://www.sagemath.org",
     "private": false,
     "has_issues": true,
