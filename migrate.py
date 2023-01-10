@@ -1595,7 +1595,9 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                 case mimetype:
                     pass
             # supported types from bbs-exporter-1.5.5/lib/bbs_exporter/attachment_exporter/content_type.rb:
-            if mimetype in ['image/gif', 'image/jpeg', 'image/png']:
+            if mimetype in []: # ['image/gif', 'image/jpeg', 'image/png']:
+                # attachment URLs are rewritten to "/storage/user" paths, links broken.
+                # so we just do everything via repository_file, not attachement
                 dirname = 'attachments'
                 create = issue.create_attachment
             else:
