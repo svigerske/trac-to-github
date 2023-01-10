@@ -2462,6 +2462,20 @@ if __name__ == "__main__":
         if must_convert_wiki:
             convert_wiki(source, dest)
     finally:
+        if must_convert_issues and not github:
+            # Patch in labels
+            dest._requester.requestJsonAndCheck(
+                "PATCH",
+                f"{dest.url}",
+                input={"labels":
+                       [{"url": label.url,
+                         "name": label.name,
+                         "color": label.color,
+                         "description": label.description if label.description is not GithubObject.NotSet else None,
+                         "created_at": None,
+                         }
+                        for label in gh_labels.values()]}
+            )
         output_unmapped_users(sorted(unmapped_users.items(), key=lambda x: -x[1]))
         output_unmapped_milestones(sorted(unmapped_milestones.items(), key=lambda x: -x[1]))
         output_keyword_frequency(sorted(keyword_frequency.items(), key=lambda x: -x[1]))

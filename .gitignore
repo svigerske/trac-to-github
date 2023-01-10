@@ -4,7 +4,6 @@ trac_cache
 /archive/*.json
 /archive/attachments
 !/archive/schema.json
-!/archive/repositories_*.json
 !/archive/organizations_*.json
 /map-ghe.csv
 /SECRETS

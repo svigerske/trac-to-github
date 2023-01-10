@@ -120,6 +120,11 @@ class MigrationArchiveWritingRequester:
                 output['emails'] = []
                 # output['name'] = ....   # can get if needed
                 url = f"https://github.com/{login}"
+            case 'PATCH', [org, repo]:
+                with open(self._migration_archive / f'repositories_000001.json.in', "r") as f:
+                    repos = json.load(f)
+                repos[0].update(input)
+                output = repos[0]
         if isinstance(output, dict):
             output['url'] = url
             dump = json.dumps(output, sort_keys=True, indent=4)
