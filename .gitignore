@@ -3,6 +3,7 @@ wiki
 trac_cache
 /archive/*.json
 /archive/attachments
+/archive/files
 !/archive/schema.json
 !/archive/organizations_*.json
 /map-ghe.csv
