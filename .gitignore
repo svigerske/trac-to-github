@@ -6,6 +6,8 @@ trac_cache
 !/archive/schema.json
 !/archive/repositories_*.json
 !/archive/organizations_*.json
+/map-ghe.csv
+/SECRETS
 __pycache__
 keyword_frequency.txt
 unmapped_users.txt
