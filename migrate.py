@@ -40,6 +40,8 @@ import contextlib
 import ast
 import codecs
 import logging
+import mimetypes
+import types
 from collections import defaultdict
 from copy import copy
 from datetime import datetime
@@ -49,6 +51,7 @@ from time import sleep
 from roman import toRoman
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
+from github.Attachment import Attachment
 from github.NamedUser import NamedUser
 from github.Repository import Repository
 from github.GithubException import IncompletableObject
@@ -1573,49 +1576,81 @@ def attachment_path(src_ticket_id, filename):
 def gh_attachment_url(src_ticket_id, filename):
     # Example attached to https://github.com/sagemath/trac-to-github/issues/53:
     # - https://github.com/sagemath/trac-to-github/files/10328066/test_attachment.txt
-    return attachment_export_url + attachment_path(src_ticket_id, filename)
+    a, local_filename, note = gh_create_attachment(None, None, filename, src_ticket_id, None)
+    return a.url
+
+def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, comment=None):
+    note = None
+    if attachment_export:
+        a_path = attachment_path(src_ticket_id, filename)
+        if github:
+            local_filename = os.path.join(attachment_export_dir, 'attachments', a_path)
+        else:
+            match mimetypes.guess_type(filename):
+                case (None, encoding):
+                    mimetype = "application/octet-stream"
+                case (mimetype, encoding):
+                    pass
+                case mimetype:
+                    pass
+            if isinstance(mimetype, str) and mimetype.startswith("image/"):
+                dirname = 'attachments'
+                create = issue.create_attachment
+            else:
+                # Cannot make it an "attachment"
+                dirname = 'files'
+                create = dest.create_repository_file
+            local_filename = os.path.join(migration_archive, dirname, a_path)
+        if github or not attachment:
+            def create(asset_name, asset_content_type, asset_url, **kwds):
+                # Only create the record locally
+                return Attachment(dest._requester, None, {'url': attachment_export_url + a_path},
+                                  completed=True)
+
+        os.makedirs(os.path.dirname(local_filename), exist_ok=True)
+
+        if github:
+            user = None
+            asset_url = None
+        else:
+            user = comment and gh_user_url(dest, comment['user'])
+            asset_url = "tarball://root/" + dirname + "/" + a_path
+
+        a = create(filename, mimetype, asset_url,
+                   user=user, created_at=comment.get('created_at'))
+
+        if comment:
+            if github:
+                note = 'Attachment [%s](%s) by %s created at %s' % (filename, a.url, comment['user'], comment['created_at'])
+            else:
+                note = '**Attachment:** [%s](%s)' % (filename, a.url)
+
+    elif gh_user is not None:
+        if dest is None : return
+        gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
+        filecontent = InputFileContent(attachment)
+        try :
+            gist = gh_user.create_gist(False,
+                                       { gistname : filecontent },
+                                       'Attachment %s to issue #%d created by %s at %s' % (filename, issue.number, comment['user'], comment['created_at']) )
+            note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['user'], comment['created_at'])
+        except UnicodeDecodeError :
+            note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['user'], comment['created_at'])
+            logging.warning('losing attachment', filename, 'in issue', issue.number)
+        sleep(sleep_after_attachment)
+    else:
+        note = 'Attachment'
+    return a, local_filename, note
 
 def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     preamble = ''
     attachments = comment.pop('attachments', [])
     # upload attachments, if there are any
     for attachment in attachments:
-        filename = attachment['attachment_name']
-        attachment = attachment['attachment']
-        if attachment_export:
-            dirname = os.path.join(attachment_export_dir, 'ticket' + str(src_ticket_id))
-            if not os.path.isdir(dirname) :
-                os.makedirs(dirname)
-            # write attachment data to binary file
-            open(os.path.join(dirname, filename), 'wb').write(attachment)
-            attachment_url = gh_attachment_url(src_ticket_id, filename)
-            if github:
-                note = 'Attachment [%s](%s) by %s created at %s' % (filename, attachment_url, comment['user'], comment['created_at'])
-            else:
-                note = '**Attachment:** [%s](%s)' % (filename, attachment_url)
-                user_url = gh_user_url(dest, comment['user'])
-                a = issue.create_attachment(filename,
-                                            "application/octet-stream",
-                                            user=user_url,
-                                            asset_url="tarball://root/attachments/" + attachment_path(src_ticket_id, filename),
-                                            created_at=comment['created_at'])
-                assert attachment_url == a.url, f'{attachment_url} != {a.url}'
-
-        elif gh_user is not None:
-            if dest is None : return
-            gistname = dest.name + ' issue ' + str(issue.number) + ' attachment ' + filename
-            filecontent = InputFileContent(attachment)
-            try :
-                gist = gh_user.create_gist(False,
-                                           { gistname : filecontent },
-                                           'Attachment %s to issue #%d created by %s at %s' % (filename, issue.number, comment['user'], comment['created_at']) )
-                note = 'Attachment [%s](%s) by %s created at %s' % (filename, gist.files[gistname].raw_url, comment['user'], comment['created_at'])
-            except UnicodeDecodeError :
-                note = 'Binary attachment %s by %s created at %s lost by Trac to GitHub conversion.' % (filename, comment['user'], comment['created_at'])
-                logging.warning('losing attachment', filename, 'in issue', issue.number)
-            sleep(sleep_after_attachment)
-        else:
-            note = 'Attachment'
+        a, local_filename, note = gh_create_attachment(dest, issue, attachment['attachment_name'],
+                                                       src_ticket_id, attachment, comment=comment)
+        # write attachment data to binary file
+        open(local_filename, 'wb').write(attachment['attachment'])
         if preamble:
             preamble += '\n\n'
         preamble += note

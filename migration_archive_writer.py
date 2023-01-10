@@ -112,7 +112,12 @@ class MigrationArchiveWritingRequester:
                 output['issue'] = urljoin(base_url, f'issues/{issue}')
                 # https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
                 attachment_path = '/'.join(urlparse(input['asset_url']).path.split('/')[2:])
-                url = urljoin(base_url, f'files/{attachment_path}')
+                url = urljoin(base_url, f'attachments/{attachment_path}')
+            case 'POST', [org, repo, 'files']:
+                output['type'] = 'repository_file'
+                output['repository'] = base_url[:-1]  # strip final /
+                file_path = '/'.join(urlparse(input['file_url']).path.split('/')[2:])
+                url = urljoin(base_url, f'files/{file_path}')
             case 'GET', ['users', login]:
                 output = {}
                 output['type'] = 'user'
