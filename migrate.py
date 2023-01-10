@@ -1776,6 +1776,7 @@ def gh_user_url(dest, username):
     elif re.fullmatch('[-A-Za-z._0-9]+', username):
         # heuristic pattern for valid Trac account name (not an email address or junk)
         # Use this URL as the id (this is current best guess what a mannequin user would look like)
+        username = username.replace('.', '-').replace('_', '-').strip('-')
         username = f'sagetrac-{username}'
     else:
         return None
