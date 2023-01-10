@@ -64,7 +64,7 @@ class MigrationArchiveWritingRequester:
     def requestJsonAndCheck(self, verb, url, parameters=None, headers=None, input=None):
         log.debug(f'# {verb} {url} {parameters=} {headers=} input={pretty_repr(input, max_string=60, max_width=200)}')
         parse_result = urlparse(url)
-        endpoint = parse_result.path.split('/')[3:]
+        endpoint = parse_result.path.split('/')[1:]
         base_url = urlunparse([parse_result.scheme,
                                parse_result.netloc,
                                '/'.join(parse_result.path.split('/')[:3]) + '/',
@@ -72,15 +72,15 @@ class MigrationArchiveWritingRequester:
         responseHeaders = None
         output = copy(input)
         match verb, endpoint:
-            case 'POST', ['labels']:
+            case 'POST', [org, repo, 'labels']:
                 output['type'] = 'label'
                 output['repository'] = base_url[:-1]  # strip final /
                 url = urljoin(base_url, 'labels/' + quote(input['name']))
-            case 'POST', ['milestones']:
+            case 'POST', [org, repo, 'milestones']:
                 output['type'] = 'milestone'
                 output['repository'] = base_url[:-1]  # strip final /
                 url = urljoin(base_url, 'milestones/' + quote(input['title']))
-            case 'POST', ['issues']:
+            case 'POST', [org, repo, 'issues']:
                 # Create a new issue
                 output['type'] = 'issue'
                 if 'number' in input:
@@ -91,21 +91,21 @@ class MigrationArchiveWritingRequester:
                 issue = self._num_issues
                 output['repository'] = base_url[:-1]  # strip final /
                 url = urljoin(base_url, f'issues/{issue}')
-            case 'POST', ['issues', issue, 'comments']:
+            case 'POST', [org, repo, 'issues', issue, 'comments']:
                 # Create an issue comment
                 output['type'] = 'issue_comment'
                 output['issue'] = urljoin(base_url, f'issues/{issue}')
                 self._num_issue_comments += 1
                 id = self._num_issue_comments
                 url = urljoin(base_url, f'issues/{issue}#issuecomment-{id}')
-            case 'POST', ['issues', issue, 'events']:
+            case 'POST', [org, repo, 'issues', issue, 'events']:
                 # Create an issue event
                 output['type'] = 'issue_event'
                 output['issue'] = urljoin(base_url, f'issues/{issue}')
                 self._num_issue_events += 1
                 id = self._num_issue_events
                 url = urljoin(base_url, f'issues/{issue}#event-{id}')
-            case 'POST', ['issues', issue, 'attachments']:
+            case 'POST', [org, repo, 'issues', issue, 'attachments']:
                 # Create an attachment
                 output['type'] = 'attachment'
                 output['repository'] = base_url[:-1]  # strip final /
@@ -113,6 +113,13 @@ class MigrationArchiveWritingRequester:
                 # https://github.github.com/enterprise-migrations/#/./2.1-export-archive-format?id=attachment
                 attachment_path = '/'.join(urlparse(input['asset_url']).path.split('/')[2:])
                 url = urljoin(base_url, f'files/{attachment_path}')
+            case 'GET', ['users', login]:
+                output = {}
+                output['type'] = 'user'
+                output['login'] = login
+                output['emails'] = []
+                # output['name'] = ....   # can get if needed
+                url = f"https://github.com/{login}"
         if isinstance(output, dict):
             output['url'] = url
             dump = json.dumps(output, sort_keys=True, indent=4)

@@ -49,6 +49,7 @@ from time import sleep
 from roman import toRoman
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
+from github.NamedUser import NamedUser
 from github.Repository import Repository
 from github.GithubException import IncompletableObject
 
@@ -1733,14 +1734,26 @@ def gh_username(dest, origname):
         return '@' + github_name
     return origname
 
+gh_users = {}
 def gh_user_url(dest, username):
     if username.startswith('@'):
-        return f'https://github.com/{username[1:]}'
-    if re.fullmatch('[-A-Za-z._0-9]+', username):
+        username = username[1:]
+    elif re.fullmatch('[-A-Za-z._0-9]+', username):
         # heuristic pattern for valid Trac account name (not an email address or junk)
         # Use this URL as the id (this is current best guess what a mannequin user would look like)
-        return f'https://github.com/sagetrac-{username}'
-    return None
+        username = f'sagetrac-{username}'
+    else:
+        return None
+    try:
+        return gh_users[username].url
+    except KeyError:
+        headers, data = dest._requester.requestJsonAndCheck(
+            "GET", f"/users/{username}"
+        )
+        gh_users[username] = NamedUser(
+            dest._requester, headers, data, completed=True
+        )
+        return gh_users[username].url
 
 def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tba']):
     "Split and transform comma- separated lists of names"
