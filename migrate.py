@@ -1739,7 +1739,7 @@ def gh_user_url(dest, username):
     if re.fullmatch('[-A-Za-z._0-9]+', username):
         # heuristic pattern for valid Trac account name (not an email address or junk)
         # Use this URL as the id (this is current best guess what a mannequin user would look like)
-        return f'https://trac.sagemath.org/admin/accounts/users/{username}'
+        return f'https://github.com/sagetrac-{username}'
     return None
 
 def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tba']):
