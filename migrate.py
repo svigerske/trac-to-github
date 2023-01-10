@@ -1594,6 +1594,9 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                     pass
                 case mimetype:
                     pass
+            if filename.endswith('.log'):
+                # Python thinks it's text/plain.
+                mimetype = 'text/x-log'
             # supported types from bbs-exporter-1.5.5/lib/bbs_exporter/attachment_exporter/content_type.rb:
             if mimetype in []: # ['image/gif', 'image/jpeg', 'image/png']:
                 # attachment URLs are rewritten to "/storage/user" paths, links broken.
@@ -1602,7 +1605,7 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                 create = issue.create_attachment
             else:
                 # Cannot make it an "attachment"(?)
-                if mimetype not in ['text/plain', 'application/gzip', 'application/zip']:
+                if mimetype not in ['text/plain', 'text/x-log', 'application/gzip', 'application/zip']:
                     # Replace by a gzipped file
                     if attachment:
                         attachment['attachment'] = gzip.compress(attachment['attachment'])
