@@ -155,7 +155,7 @@ class MigrationArchiveWritingRequester:
                     return dir / f'{issue}.md'
 
                 match verb, endpoint:
-                    case 'POST', ['issues']:
+                    case 'POST', [org, repo, 'issues']:
                         with open(issue_wiki_file(), 'w') as f:
                             title = output['title']
                             f.write(f'# Issue {issue}: {title}\n\n')
@@ -163,7 +163,7 @@ class MigrationArchiveWritingRequester:
                             f.write(f'```json\n{dump}\n```\n')
                             f.write(output['body'])
                             f.write('\n')
-                    case 'POST', ['issues', issue, _]:
+                    case 'POST', [org, repo, 'issues', issue, _]:
                         with open(issue_wiki_file(), 'a') as f:
                             f.write('\n\n\n---\n\n')
                             f.write(f'{json_file}:\n')
