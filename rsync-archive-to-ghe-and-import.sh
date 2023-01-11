@@ -20,7 +20,7 @@ rsync $RSYNC_OPTIONS --delete --rsh='ssh -p122' -a archive map-ghe.csv admin@$HO
 # import
 time ssh -p 122 admin@$HOST_IP "set -x;
     (cd $REMOTE_WORK_DIR/archive && tar cfz - .) > archive.tgz &&
-    ghe-migrator prepare archive.tgz -g $GUID &&
+    (ghe-migrator list | grep -q $GUID || ghe-migrator prepare archive.tgz -g $GUID) &&
     ghe-migrator map -i $REMOTE_WORK_DIR/map-ghe.csv -g $GUID &&
     if ghe-migrator import archive.tgz -g $GUID  -u mkoeppe -p $IMPORT_TOKEN; then
         ghe-migrator audit -g $GUID;
