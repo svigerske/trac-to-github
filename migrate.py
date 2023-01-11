@@ -1577,7 +1577,9 @@ def attachment_path(src_ticket_id, filename):
 def gh_attachment_url(src_ticket_id, filename):
     # Example attached to https://github.com/sagemath/trac-to-github/issues/53:
     # - https://github.com/sagemath/trac-to-github/files/10328066/test_attachment.txt
-    a, local_filename, note = gh_create_attachment(None, None, filename, src_ticket_id, None)
+    #
+    # FIXME: This uses the global variable dest
+    a, local_filename, note = gh_create_attachment(dest, None, filename, src_ticket_id, None)
     return a.url
 
 def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, comment=None):
@@ -1612,7 +1614,8 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                     filename += ".gz"
                     mimetype = 'application/gzip'
                 dirname = 'files'
-                create = dest.create_repository_file
+                if dest:
+                    create = dest.create_repository_file
             a_path = attachment_path(src_ticket_id, filename)
             local_filename = os.path.join(migration_archive, dirname, a_path)
         if github or not attachment:
@@ -1631,7 +1634,7 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
             asset_url = "tarball://root/" + dirname + "/" + a_path
 
         a = create(filename, mimetype, asset_url,
-                   user=user, created_at=comment.get('created_at'))
+                   user=user, created_at=comment and comment.get('created_at'))
 
         if comment:
             if github:
