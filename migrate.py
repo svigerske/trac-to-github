@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=python fileencoding=utf-8
 '''
-Copyright © 2022
-    Matthias Koeppe
-    Kwankyu Lee
-    Sebastian Oehms
-    Dima Pasechnik
+Copyright © 2022 Matthias Koeppe
+                 Kwankyu Lee
+                 Sebastian Oehms
+                 Dima Pasechnik
+
 Modified and extended for the migration of SageMath from Trac to GitHub.
 
-Copyright © 2018-2019
-    Stefan Vigerske <svigerske@gams.com>
+Copyright © 2018-2019 Stefan Vigerske <svigerske@gams.com>
+
 This is a modified/extended version of trac-to-gitlab from https://github.com/moimael/trac-to-gitlab.
 It has been adapted to fit the needs of a specific Trac to GitLab conversion.
 Then it has been adapted to fit the needs to another Trac to GitHub conversion.
 
-Copyright © 2013
-    Eric van der Vlist <vdv@dyomedea.com>
-    Jens Neuhalfen <http://www.neuhalfen.name/>
+Copyright © 2013 Eric van der Vlist <vdv@dyomedea.com>
+                 Jens Neuhalfen <http://www.neuhalfen.name/>
 
 This software is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -69,26 +68,6 @@ from rich.table import Table
 #gh.enable_console_debug_logging()
 
 log = logging.getLogger("trac_to_gh")
-
-"""
-What
-=====
-
- This script migrates issues from trac to github.
-
-License
-========
-
- License: http://www.wtfpl.net/
-
-Requirements
-==============
-
- * Python 2, xmlrpclib, requests
- * Trac with xmlrpc plugin enabled
- * PyGithub
-
-"""
 
 default_config = {
     'migrate' : 'true',
@@ -202,17 +181,8 @@ if config.has_option('source', 'default_multilines') :
     # trac2markdown
     default_multilines = config.getboolean('source', 'default_multilines')
 
-
 from diskcache import Cache
 cache = Cache('trac_cache', size_limit=int(20e9))
-
-
-#pattern_changeset = r'(?sm)In \[changeset:"([^"/]+?)(?:/[^"]+)?"\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
-pattern_changeset = r'(?sm)In \[changeset:"[0-9]+" ([0-9]+)\]:\n\{\{\{(\n#![^\n]+)?\n(.*?)\n\}\}\}'
-matcher_changeset = re.compile(pattern_changeset)
-
-pattern_changeset2 = r'\[changeset:([a-zA-Z0-9]+)\]'
-matcher_changeset2 = re.compile(pattern_changeset2)
 
 gh_labels = dict()
 gh_user = None
@@ -497,7 +467,6 @@ RE_SAGE_WRONG_FORMAT1 = re.compile(r'comment:(\d+):ticket:(\d+)')
 RE_SAGE_REPLYING_TO = re.compile(r'Replying to \[comment:(\d+)\s([\-\w0-9@._]+)\]')
 
 def project_specific_normalization(text, conv_help):
-
     text = RE_SAGE_TICKET1.sub(r'ticket:\1#comment:\2', text)
     text = RE_SAGE_TICKET2.sub(r'%s/issues/\1' % target_url_issues_repo, text)
     text = RE_SAGE_WIKI1.sub(convert_wiki_link, text)
@@ -534,7 +503,6 @@ def project_specific_normalization(text, conv_help):
     text = RE_SAGE_GIT.sub(convert_git_link, text)  # catch all missed
     text = RE_SAGE_WRONG_FORMAT1.sub(r'ticket:\2#comment:\1', text)
     text = RE_SAGE_REPLYING_TO.sub(convert_replying_to, text)
-
     return text
 
 def commits_list(match):
@@ -572,7 +540,6 @@ def github_mention(match):
     return '`@`' + username
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
-
     text = project_specific_normalization(text, conv_help)
 
     # some normalization
@@ -839,12 +806,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
             line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
 
-            line = RE_ATTACHMENT1.sub(conv_help.ticket_attachment, line)
-            line = RE_ATTACHMENT2.sub(conv_help.ticket_attachment, line)
-            line = RE_ATTACHMENT3.sub(conv_help.ticket_attachment, line)
-            line = RE_ATTACHMENT4.sub(conv_help.ticket_attachment, line)
-            line = RE_ATTACHMENT5.sub(conv_help.ticket_attachment, line)
-            line = RE_ATTACHMENT6.sub(conv_help.ticket_attachment, line)
+            line = RE_ATTACHMENT1.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT2.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT3.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT4.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT5.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT6.sub(conv_help.attachment, line)
 
             # code surrounded by underline, mistaken as italics by github
             line = RE_UNDERLINED_CODE1.sub(r'`_\1_`', line)
@@ -1028,171 +995,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     # Some rewritings
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
     text = RE_TRAC_REPORT.sub(r'[Trac report of id \1 inherited from the migration](%s/\1)' % trac_url_report, text)
-
     text = RE_NEW_COMMITS.sub(commits_list, text)
     text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
-
     text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
     text = RE_BRANCH_PUSH.sub(r'**\1**', text)
 
     return text
-
-
-class IssuesConversionHelper:
-    """
-    A class that provides conversion methods that depend on information collected
-    at startup, such as Wiki page names and configuration flags.
-    """
-    def __init__(self, source):
-        """
-        The Python constructor collects all the necessary information.
-        """
-        pagenames = source.wiki.getAllPages()
-        pagenames_splitted = []
-        for p in pagenames:
-            pagenames_splitted += p.split('/')
-        pagenames_not_splitted = [p for p in pagenames if not p in pagenames_splitted]
-
-        self._pagenames_splitted = pagenames_splitted
-        self._pagenames_not_splitted = pagenames_not_splitted
-        self._attachment_path = ''
-
-    def set_wikipage_paths(self, pagename):
-        """
-        Set paths from the wiki pagename
-        """
-        gh_pagename = ' '.join(pagename.split('/'))
-        self._attachment_path = gh_pagename  #  attachment_path for the wiki_image method
-        self._trac_wiki_path = pagename.replace(' ', '%20')
-        self._wiki_path = gh_pagename.replace(' ', '-')
-
-        if create_wiki_link_conversion_table:
-            with open('wiki_path_conversion_table.txt', "a") as f:
-                f.write(self._trac_wiki_path + ' ' + self._wiki_path)
-                f.write('\n')
-
-    def set_ticket_paths(self, ticket_id):
-        """
-        Set paths from the ticket id.
-        """
-        self._ticket_id = ticket_id
-        self._attachment_path = os.path.join(attachment_export_url, 'ticket' + str(ticket_id))
-
-    def ticket_attachment(self, match):
-        filename = match.group(1)
-        if len(match.groups()) >= 2:
-            label = match.group(2)
-        else:
-            label = 'attachment:' + filename
-
-        if keep_trac_ticket_references:
-            return r'[%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
-
-        if not re.fullmatch('[-A-Za-z0-9_.]*', filename):
-            import pathlib
-            from hashlib import md5
-            extension = pathlib.Path(filename).suffix
-            filename = md5(filename.encode('utf-8')).hexdigest() + extension
-        return r'[%s](%s)' % (label, os.path.join(self._attachment_path, filename))
-
-    def ticket_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a Trac ticket link.
-        """
-        ticket = match.groups()[0]
-        if keep_trac_ticket_references:
-            return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
-        issue = ticket
-        return r'#%s' % ticket
-
-    def ticket_comment_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a Trac ticket comment link.
-        """
-        ticket = match.group(1)
-        comment = match.group(2)
-        if len(match.groups()) < 3:
-            label = '#{} comment:{}'.format(ticket, comment)
-        else:
-            label = match.group(3)
-        if keep_trac_ticket_references:
-            return r'[%s](%s/%s#comment:%s)' % (label, trac_url_ticket, ticket, comment)
-        return r'[%s](%s/issues/%s#comment:%s)' % (label, target_url_issues_repo, ticket, comment)
-
-    def wiki_image(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a wiki link to an attached image.
-        """
-        mg = match.groups()
-        filename = os.path.join(self._attachment_path, mg[0])
-        if len(mg) > 1:
-            return r'<img src="%s" width=%s>' % (filename, mg[1])
-        else:
-            return r'<img src="%s">' % filename
-
-    def wiki_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a link to a wiki page.
-        """
-        mg = match.groups()
-        pagename = mg[0]
-        if len(mg) > 1:
-            display = mg[1]
-            if not display:
-                display = pagename
-        else:
-            display = pagename
-
-        # take care of section references
-        pagename_sect = pagename.split('#')
-        pagename_ori = pagename
-        if len(pagename_sect) > 1:
-            pagename = pagename_sect[0]
-            if not display:
-                display = pagename_sect[1]
-
-        if pagename.startswith('http'):
-            link = pagename_ori.strip()
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
-        elif pagename in self._pagenames_splitted:
-            link = pagename_ori.replace(' ', '')
-            if link in wiki_path_conversion_table:
-                link = wiki_path_conversion_table[link]
-            else:
-                link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
-        elif pagename in self._pagenames_not_splitted:
-            link = pagename_ori.replace(' ', '')
-            if link in wiki_path_conversion_table:
-                link = wiki_path_conversion_table[link]
-            else:
-                link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
-        else:
-            # we assume that this is a Trac macro like TicketQuery
-            macro_split = pagename.split('(')
-            macro = macro_split[0]
-            args = None
-            if len(macro_split) > 1:
-                args =  macro_split[1]
-            display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
-            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
-            if args:
-                return r'OPENING__LEFT__BRACKET%s called with arguments (%s)CLOSING__RIGHT__BRACKET(%s)' % (display, args, link)
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
-
-    def camelcase_wiki_link(self, match):
-        """
-        Return a formatted string that replaces the match object found by re
-        in the case of a link to a wiki page recognized from CamelCase.
-        """
-        if match.group(1) in self._pagenames_splitted:
-            return self.wiki_link(match)
-        return match.group(0)
 
 
 class WikiConversionHelper:
@@ -1228,22 +1036,12 @@ class WikiConversionHelper:
                 f.write(self._trac_wiki_path + ' ' + self._wiki_path)
                 f.write('\n')
 
-    def set_ticket_paths(self, ticket_id):
-        """
-        Set paths from the ticket id.
-        """
-        self._ticket_id = ticket_id
-        self._attachment_path = os.path.join(attachment_export_url, 'ticket' + str(ticket_id))
-
-    def ticket_attachment(self, match):
+    def attachment(self, match):
         filename = match.group(1)
         if len(match.groups()) >= 2:
             label = match.group(2)
         else:
             label = 'attachment:' + filename
-
-        if keep_trac_ticket_references:
-            return r'[%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
 
         if not re.fullmatch('[-A-Za-z0-9_.]*', filename):
             import pathlib
@@ -1342,6 +1140,88 @@ class WikiConversionHelper:
         if match.group(1) in self._pagenames_splitted:
             return self.wiki_link(match)
         return match.group(0)
+
+
+class IssuesConversionHelper(WikiConversionHelper):
+    """
+    A class that provides conversion methods that depend on information collected
+    at startup, such as Wiki page names and configuration flags.
+    """
+    def set_ticket_paths(self, ticket_id):
+        """
+        Set paths from the ticket id.
+        """
+        self._ticket_id = ticket_id
+        self._attachment_path = os.path.join(attachment_export_url, 'ticket' + str(ticket_id))
+
+    def attachment(self, match):
+        filename = match.group(1)
+        if len(match.groups()) >= 2:
+            label = match.group(2)
+        else:
+            label = 'attachment:' + filename
+
+        if keep_trac_ticket_references:
+            return r'[%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
+
+        if not re.fullmatch('[-A-Za-z0-9_.]*', filename):
+            import pathlib
+            from hashlib import md5
+            extension = pathlib.Path(filename).suffix
+            filename = md5(filename.encode('utf-8')).hexdigest() + extension
+        return r'[%s](%s)' % (label, os.path.join(self._attachment_path, filename))
+
+    def wiki_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a link to a wiki page.
+        """
+        mg = match.groups()
+        pagename = mg[0]
+        if len(mg) > 1:
+            display = mg[1]
+            if not display:
+                display = pagename
+        else:
+            display = pagename
+
+        # take care of section references
+        pagename_sect = pagename.split('#')
+        pagename_ori = pagename
+        if len(pagename_sect) > 1:
+            pagename = pagename_sect[0]
+            if not display:
+                display = pagename_sect[1]
+
+        if pagename.startswith('http'):
+            link = pagename_ori.strip()
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+        elif pagename in self._pagenames_splitted:
+            link = pagename_ori.replace(' ', '')
+            if link in wiki_path_conversion_table:
+                link = wiki_path_conversion_table[link]
+            else:
+                link = pagename_ori.replace(' ', '-')
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
+        elif pagename in self._pagenames_not_splitted:
+            link = pagename_ori.replace(' ', '')
+            if link in wiki_path_conversion_table:
+                link = wiki_path_conversion_table[link]
+            else:
+                link = pagename_ori.replace(' ', '-')
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
+        else:
+            # we assume that this is a Trac macro like TicketQuery
+            macro_split = pagename.split('(')
+            macro = macro_split[0]
+            args = None
+            if len(macro_split) > 1:
+                args =  macro_split[1]
+            display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
+            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
+            if args:
+                return r'OPENING__LEFT__BRACKET%s called with arguments (%s)CLOSING__RIGHT__BRACKET(%s)' % (display, args, link)
+            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
 
 
 def github_ref_url(ref):
@@ -1681,7 +1561,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     note = preamble + note
 
     if comment_id:
-        anchor = f"<a id='comment:{comment_id}'></a>"
+        anchor = f"<a id='comment:{comment_id}'>**Comment {comment_id}:**</a>"
         note = anchor + '\n' + note
 
     if dest is None : return
