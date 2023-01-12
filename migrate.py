@@ -1974,6 +1974,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     summary = '[' + ', '.join(keep_phrases) + '] ' + summary[m.end(0):]
                 else:
                     summary = summary[m.end(0):]
+            if not summary:
+                summary = "No title"
             return summary, status
 
         tmp_src_ticket_data = copy(src_ticket_data)
