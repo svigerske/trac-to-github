@@ -2124,20 +2124,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
         issue = gh_create_issue(dest, issue_data)
 
-        if github:
-            status = src_ticket_data.pop('status')
-            if status in ['closed']:
-                # sometimes a ticket is already closed at creation, so close issue
-                gh_update_issue_property(dest, issue, 'state', 'closed')
-        else:
-            src_ticket_data.update(first_old_values)
-            title, status = title_status(src_ticket_data.get('summary'), src_ticket_data.get('status'))
-            tmp_src_ticket_data = copy(src_ticket_data)
-            milestone, labels = milestone_labels(tmp_src_ticket_data, status)
-
-        issue_state, label = mapstatus(status)
-        last_sha = None
-
         def update_labels(labels, add_label, remove_label, label_category='type'):
             oldlabels = copy(labels)
             if remove_label:
@@ -2150,6 +2136,34 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             if set(labels) != set(oldlabels):
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
             return labels
+
+        if github:
+            status = src_ticket_data.pop('status')
+            if status in ['closed']:
+                # sometimes a ticket is already closed at creation, so close issue
+                gh_update_issue_property(dest, issue, 'state', 'closed')
+        else:
+            src_ticket_data.update(first_old_values)
+            title, status = title_status(src_ticket_data.get('summary'), src_ticket_data.get('status'))
+            tmp_src_ticket_data = copy(src_ticket_data)
+            milestone, labels = milestone_labels(tmp_src_ticket_data, status)
+
+            # Create issue events for initial labels & milestone
+            user = gh_username(dest, tmp_src_ticket_data.get('reporter'))
+            user_url = gh_user_url(dest, user)
+            event_data = {
+                'created_at': convert_xmlrpc_datetime(time_created),
+                'actor': user_url,
+            }
+            if milestone:
+                gh_update_issue_property(dest, issue, 'milestone', milestone, None, **event_data)
+            for label in labels:
+                update_labels([], label, None)
+
+        issue_state, label = mapstatus(status)
+        if label and label not in labels:
+            update_labels([], label, None)
+        last_sha = None
 
         def change_status(newvalue):
             oldvalue = src_ticket_data.get('status')
