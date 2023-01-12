@@ -55,6 +55,7 @@ from github.Attachment import Attachment
 from github.NamedUser import NamedUser
 from github.Repository import Repository
 from github.GithubException import IncompletableObject
+from enum import Enum
 
 from migration_archive_writer import MigrationArchiveWritingRequester
 
@@ -101,24 +102,69 @@ else :
     config.read('migrate.cfg')
 
 trac_url = config.get('source', 'url')
-trac_url_dir = os.path.dirname(trac_url)
-trac_url_ticket = os.path.join(trac_url_dir, 'ticket')
-trac_url_wiki = os.path.join(trac_url_dir, 'wiki')
-trac_url_query = os.path.join(trac_url_dir, 'query')
-trac_url_report = os.path.join(trac_url_dir, 'report')
-trac_url_attachment = os.path.join(trac_url_dir, 'attachment')
+
+cgit_url = None
+if config.has_option('source', 'cgit_url'):
+     cgit_url = config.get('source', 'cgit_url')
+
+milestone_prefix_from = ''
+if config.has_option('source', 'milestone_prefix'):
+     milestone_prefix_from = config.get('source', 'milestone_prefix')
+
+trac_path = None
+if config.has_option('source', 'path') :
+    trac_path = config.get('source', 'path')
 
 keep_trac_ticket_references = config.getboolean('source', 'keep_trac_ticket_references')
+
+class subdir(Enum):
+    """
+    Enum for subdirectories of `trac_url_dir`
+    """
+    def optional_path(self):
+        """
+        Return the optional path for this sub directory
+        according to `trac_path`
+        """
+        if trac_path:
+            return os.path.join(trac_path, self.value)
+
+    ticket = 'ticket'
+    wiki = 'wiki'
+    query = 'query'
+    report = 'report'
+    attachment = 'attachment'
+    raw_attachment = 'raw-attachment'
+    attachment_ticket = 'attachment/ticket'
+    raw_attachment_ticket = 'raw-attachment/ticket'
+    root = ''
+
+class cgit_cmd(Enum):
+    """
+    Enum for git commands used in the cgit web interface.
+    """
+    commit = 'commit'
+    diff = 'diff'
+    tree = 'tree'
+    log = 'log'
+    tag = 'tag'
+    refs = 'refs'
+    plain = 'plain'
+    patch = 'patch'
+    default = ''
+
+trac_url_dir = os.path.dirname(trac_url)
+trac_url_ticket = os.path.join(trac_url_dir, subdir.ticket.value)
+trac_url_wiki = os.path.join(trac_url_dir, subdir.wiki.value)
+trac_url_query = os.path.join(trac_url_dir, subdir.query.value)
+trac_url_report = os.path.join(trac_url_dir, subdir.report.value)
+trac_url_attachment = os.path.join(trac_url_dir, subdir.attachment.value)
 
 if config.has_option('target', 'issues_repo_url'):
     target_url_issues_repo = config.get('target', 'issues_repo_url')
     target_url_git_repo = config.get('target', 'git_repo_url')
 if config.has_option('wiki', 'url'):
     target_url_wiki = config.get('wiki', 'url')
-
-trac_path = None
-if config.has_option('source', 'path') :
-    trac_path = config.get('source', 'path')
 
 github_api_url = config.get('target', 'url')
 github_token = None
@@ -136,6 +182,15 @@ if config.has_option('target', 'migration_archive'):
     migration_archive = config.get('target', 'migration_archive')
 
 users_map = ast.literal_eval(config.get('target', 'usernames'))
+
+unknown_users_prefix = ''
+if config.has_option('target', 'unknown_users_prefix'):
+    unknown_users_prefix = config.get('target', 'unknown_users_prefix')
+
+milestone_prefix_to = ''
+if config.has_option('target', 'milestone_prefix'):
+     milestone_prefix_to = config.get('target', 'milestone_prefix')
+
 must_convert_issues = config.getboolean('issues', 'migrate')
 only_issues = None
 if config.has_option('issues', 'only_issues'):
@@ -151,6 +206,19 @@ try:
 except ValueError:
     keywords_to_labels = ast.literal_eval(config.get('issues', 'keywords_to_labels'))
 migrate_milestones = config.getboolean('issues', 'migrate_milestones')
+
+milestones_to_labels = {}
+if config.has_option('issues', 'milestones_to_labels'):
+    milestones_to_labels = ast.literal_eval(config.get('issues', 'milestones_to_labels'))
+
+canceled_milestones = {}
+if config.has_option('issues', 'canceled_milestones'):
+    canceled_milestones = ast.literal_eval(config.get('issues', 'canceled_milestones'))
+
+components_to_labels = {}
+if config.has_option('issues', 'components_to_labels'):
+    components_to_labels = ast.literal_eval(config.get('issues', 'components_to_labels'))
+
 add_label = None
 
 if config.has_option('issues', 'add_label'):
@@ -288,135 +356,271 @@ RE_LAST_NEW_COMMITS = re.compile(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(
 RE_BRANCH_FORCED_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])')
 RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])')
 
-def convert_wiki_link(match):
-    trac_path = match.group(1)
 
-    if trac_path in wiki_path_conversion_table:
-        wiki_path = wiki_path_conversion_table[trac_path]
-        return os.path.join(target_url_wiki, wiki_path)
+class CodeTag:
+    """
+    Handler for code protectors.
+    """
+    def replace(self, text):
+        """
+        Return the given string with protection tags replaced by their proper counterparts.
+        """
+        text = text.replace(self.tag, self._code)
+        return text
 
-    return match.group(0)
+    def __init__(self, tag, code):
+        self.tag = tag
+        self._code = code
 
-def convert_git_link_diff1(match):
-    path = match.group(1)
-    hash1 = match.group(2)
-    return os.path.join(target_url_git_repo, 'blob', hash1, path)
+at_sign = CodeTag('AT__SIGN__IN__CODE', '@')
 
-def convert_git_link_diff2(match):
-    path = match.group(1)
-    hash1 = match.group(2)
-    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + path)
+class Brackets:
+    """
+    Handler for bracket protectors.
+    """
+    def replace(self, text):
+        """
+        Return the given string with protection tags replaced by their proper counterparts.
+        """
+        text = text.replace(self.open, self._open_bracket)
+        text = text.replace(self.close, self._close_bracket)
+        return text
 
-def convert_git_link_diff3(match):
-    hash1 = match.group(1)
-    hash2 = match.group(2)
-    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + hash2)
+    def __init__(self, open_tag, close_tag, open_bracket, close_bracket):
+        self.open = open_tag
+        self.close = close_tag
+        self._open_bracket = open_bracket
+        self._close_bracket = close_bracket
 
-def convert_git_link_diff4(match):
-    hash1 = match.group(1)
-    return os.path.join(target_url_git_repo, 'commit', hash1)
+link_displ = Brackets('OPENING__LEFT__BRACKET', 'CLOSING__RIGHT__BRACKET', '[', ']')
+proc_code = Brackets('OPENING__PROCESSOR__CODE', 'CLOSING__PROCESSOR__CODE', '```', '```')
+proc_td = Brackets('OPENING__PROCESSOR__TD', 'CLOSING__PROCESSOR__TD', r'<div align="left">', r'</div>')
 
-def convert_git_link_diff5(match):
-    path1 = match.group(1)
-    path2 = match.group(2)
-    hash1 = match.group(3)
-    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + path2)
+class SourceUrlConversionHelper:
+    """
+    Conversion helper for pattern involving url-data from source configuration.
+    """
+    class regex(Enum):
+        pass
 
-def convert_git_link_diff6(match):
-    branch = match.group(1)
-    path = match.group(2)
-    return os.path.join(target_url_git_repo, 'compare', path + '...' + branch)
+    def __init__(self, url):
+        self._re = {}
+        if not url:
+            # path might be optional dependend on configuration
+            return
+        for reg in self.regex:
+            expr, path, argument = reg.value
+            if isinstance(path, Enum):
+                path = path.value
+            if path is None:
+                # path might be optional dependend on configuration
+                continue
+            path = os.path.join(url, path)
+            self._re[reg] = re.compile(r'%s%s' % (self._url_pattern(path), expr))
 
-def convert_git_link_diff7(match):
-    branch = match.group(1)
-    return os.path.join(target_url_git_repo, 'commits', branch)
+    def _url_pattern(self, url):
+        pattern = url.replace('https', 'https?')
+        pattern = pattern.replace('.', '\\.')
+        return pattern
 
-def convert_git_link_diff8(match):
-    branch = match.group(1)
-    return os.path.join(target_url_git_repo, 'commits', branch)
+    def sub(self, text):
+        if not len(self._re):
+            # all expressions are optional and not activ
+            return text
+        for reg in self._re.keys():
+            expr, path, argument = reg.value
+            text = self._re[reg].sub(argument, text)
+        return text
 
-def convert_git_link_commit1(match):
-    path = match.group(1)
-    hash1 = match.group(2)
-    return os.path.join(target_url_git_repo, 'commit', hash1)
 
-def convert_git_link_commit3(match):
-    hash1 = match.group(1)
-    return os.path.join(target_url_git_repo, 'commit', hash1)
+class TracUrlConversionHelper(SourceUrlConversionHelper):
+    """
+    Conversion helper for pattern involving the Trac url.
+    """
+    class regex(Enum):
+        """
+        """
+        def convert_wiki_link(match):
+            trac_path = match.group(1)
 
-def convert_git_link_commit4(match):
-    path = match.group(1)
-    return os.path.join(target_url_git_repo, 'commits', path)
+            if trac_path in wiki_path_conversion_table:
+                wiki_path = wiki_path_conversion_table[trac_path]
+                return os.path.join(target_url_wiki, wiki_path)
+            return match.group(0)
 
-def convert_git_link_commit5(match):
-    path = match.group(1)
-    return os.path.join(target_url_git_repo, 'commit', path)
+        def convert_ticket_attachment(match):
+            ticket_id = match.group(1)
+            filename = match.group(2)
+            if keep_trac_ticket_references:
+                return os.path.join(trac_url_attachment, 'ticket', ticket_id, filename)
+            return gh_attachment_url(ticket_id, filename)
 
-def convert_git_link_commit6(match):
-    path = match.group(1)
-    branch = match.group(2)
-    hash1 = match.group(3)
-    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + branch)
+        TICKET1 = [r'/(\d+)#comment:(\d+)?', subdir.ticket, r'ticket:\1#comment:\2']
+        TICKET2 = [r'/(\d+)', subdir.ticket.optional_path(), r'%s/issues/\1' % target_url_issues_repo]
+        WIKI1= [r'/([/\-\w0-9@:%._+~#=]+)', subdir.wiki, convert_wiki_link]
+        ATTACHMENT1 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.attachment_ticket, convert_ticket_attachment]
+        ATTACHMENT2 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.attachment_ticket.optional_path(), convert_ticket_attachment]
+        ATTACHMENT3 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.raw_attachment_ticket.optional_path(), convert_ticket_attachment]
 
-def convert_git_link_commit7(match):
-    path = match.group(1)
-    hash1 = match.group(2)
-    return os.path.join(target_url_git_repo, 'commit', hash1, path)
+class CgitConversionHelper(SourceUrlConversionHelper):
+    """
+    Conversion helper for pattern involving the cgit web interface.
+    """
+    class regex(Enum):
+        """
+        """
+        def convert_git_link_diff1(match):
+            path = match.group(1)
+            hash1 = match.group(2)
+            return os.path.join(target_url_git_repo, 'blob', hash1, path)
 
-def convert_git_link_tree1(match):
-    path = match.group(1)
-    return os.path.join(target_url_git_repo, 'blob/develop', path)
+        def convert_git_link_diff2(match):
+            path = match.group(1)
+            hash1 = match.group(2)
+            return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + path)
 
-def convert_git_link_tree3(match):
-    branch = match.group(1)
-    return os.path.join(target_url_git_repo, 'tree', branch)
+        def convert_git_link_diff3(match):
+            hash1 = match.group(1)
+            hash2 = match.group(2)
+            return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + hash2)
 
-def convert_git_link_log1(match):
-    path = match.group(1)
-    return os.path.join(target_url_git_repo, 'commits', path)
+        def convert_git_link_diff4(match):
+            hash1 = match.group(1)
+            return os.path.join(target_url_git_repo, 'commit', hash1)
 
-def convert_git_link_log3(match):
-    hash1 = match.group(1)
-    hash2 = match.group(2)
-    hash3 = match.group(3)
-    return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + hash2)
+        def convert_git_link_diff5(match):
+            path1 = match.group(1)
+            path2 = match.group(2)
+            hash1 = match.group(3)
+            return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + path2)
 
-def convert_git_link_log4(match):
-    path = match.group(1)
-    hash1 = match.group(2)
-    return os.path.join(target_url_git_repo, 'commits', 'develop?after=' + hash1 + '+0' + '&branch=develop'
-                        + '&path%5B%5D=' + '&path%5B%5D='.join(path.split('/')) + '&qualified_name=refs%2Fheads%2Fdevelop')
+        def convert_git_link_diff6(match):
+            branch = match.group(1)
+            path = match.group(2)
+            return os.path.join(target_url_git_repo, 'compare', path + '...' + branch)
 
-def convert_git_link_log5(match):
-    path = match.group(1)
-    return os.path.join(target_url_git_repo, 'commits/develop', path)
+        def convert_git_link_diff7(match):
+            branch = match.group(1)
+            return os.path.join(target_url_git_repo, 'commits', branch)
 
-def convert_git_link_plain(match):
-    path = match.group(1)
-    branch = match.group(2)
-    return os.path.join(target_url_git_repo, 'blob', branch, path)
+        def convert_git_link_diff8(match):
+            branch = match.group(1)
+            return os.path.join(target_url_git_repo, 'commits', branch)
 
-def convert_git_link_patch(match):
-    hash1 = match.group(1)
-    return os.path.join(target_url_git_repo, 'commit', hash1 + '.patch')
+        def convert_git_link_commit1(match):
+            path = match.group(1)
+            hash1 = match.group(2)
+            return os.path.join(target_url_git_repo, 'commit', hash1)
 
-def convert_git_link(match):  # catch all missed git link
-    import pdb; pdb.set_trace()
+        def convert_git_link_commit3(match):
+            hash1 = match.group(1)
+            return os.path.join(target_url_git_repo, 'commit', hash1)
+
+        def convert_git_link_commit4(match):
+            path = match.group(1)
+            return os.path.join(target_url_git_repo, 'commits', path)
+
+        def convert_git_link_commit5(match):
+            path = match.group(1)
+            return os.path.join(target_url_git_repo, 'commit', path)
+
+        def convert_git_link_commit6(match):
+            path = match.group(1)
+            branch = match.group(2)
+            hash1 = match.group(3)
+            return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + branch)
+
+        def convert_git_link_commit7(match):
+            path = match.group(1)
+            hash1 = match.group(2)
+            return os.path.join(target_url_git_repo, 'commit', hash1, path)
+
+        def convert_git_link_tree1(match):
+            path = match.group(1)
+            return os.path.join(target_url_git_repo, 'blob/develop', path)
+
+        def convert_git_link_tree2(match):
+            branch = match.group(1)
+            return os.path.join(target_url_git_repo, 'tree', branch)
+
+        def convert_git_link_log1(match):
+            path = match.group(1)
+            return os.path.join(target_url_git_repo, 'commits', path)
+
+        def convert_git_link_log3(match):
+            hash1 = match.group(1)
+            hash2 = match.group(2)
+            hash3 = match.group(3)
+            return os.path.join(target_url_git_repo, 'compare', hash1 + '...' + hash2)
+
+        def convert_git_link_log4(match):
+            path = match.group(1)
+            hash1 = match.group(2)
+            return os.path.join(target_url_git_repo, 'commits', 'develop?after=' + hash1 + '+0' + '&branch=develop'
+                                + '&path%5B%5D=' + '&path%5B%5D='.join(path.split('/')) + '&qualified_name=refs%2Fheads%2Fdevelop')
+
+        def convert_git_link_log5(match):
+            path = match.group(1)
+            return os.path.join(target_url_git_repo, 'commits/develop', path)
+
+        def convert_git_link_plain(match):
+            path = match.group(1)
+            branch = match.group(2)
+            return os.path.join(target_url_git_repo, 'blob', branch, path)
+
+        def convert_git_link_patch(match):
+            hash1 = match.group(1)
+            return os.path.join(target_url_git_repo, 'commit', hash1 + '.patch')
+
+        def convert_git_link(match):  # catch all missed git link
+            import pdb; pdb.set_trace()
+
+        DIFF1 = [r'/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)', cgit_cmd.diff, convert_git_link_diff1]
+        DIFF2 = [r'/?\?h=([/\-\w0-9@:%._+~#=]+)&id2=([0-9a-f]+)', cgit_cmd.diff, convert_git_link_diff2]
+        DIFF3 = [r'/?\?id2?=([0-9a-f]+)&id=([0-9a-f]+)', cgit_cmd.diff, convert_git_link_diff3]
+        DIFF4 = [r'/?\?id=([0-9a-f]+)', cgit_cmd.diff, convert_git_link_diff4]
+        DIFF5 = [r'/?([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)', cgit_cmd.diff, convert_git_link_diff5]
+        DIFF6 = [r'/?\?id2=([/\-\w0-9@:%._+~#=]+)&id=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.diff, convert_git_link_diff6]
+        DIFF7 = [r'/?\?h=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.diff, convert_git_link_diff7]
+        DIFF8 = [r'/?\?id=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.diff, convert_git_link_diff8]
+
+        COMMIT1 = [r'/?\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)', cgit_cmd.commit, convert_git_link_commit1]
+        COMMIT2 = [r'id=([0-9a-f]+)', cgit_cmd.commit, convert_git_link_commit3] # misspelled
+        COMMIT3 = [r'/?\?id=([0-9a-f]+)', cgit_cmd.commit, convert_git_link_commit3]
+        COMMIT4 = [r'/?\?h=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.commit, convert_git_link_commit4]
+        COMMIT5 = [r'/?\?id=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.commit, convert_git_link_commit5]
+        COMMIT6 = [r'/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)', cgit_cmd.commit, convert_git_link_commit6]
+        COMMIT7 = [r'/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)', cgit_cmd.commit, convert_git_link_commit7]
+        COMMIT8 = [r'/([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)', cgit_cmd.commit, convert_git_link_commit7]
+
+        TREE1 = [r'/([/\-\w0-9@:%._+~#=]+)', cgit_cmd.tree, convert_git_link_tree1]
+        TREE2 = [r'/?\?h=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.tree, convert_git_link_tree2]
+        TREE3 = [r'/src/?', cgit_cmd.tree, r'%s/blob/master/src' % target_url_git_repo]
+
+        LOG1 = [r'/?\?h=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.log, convert_git_link_log1]
+        LOG2 = [r'/?\?q=([0-9a-f]+)..([0-9a-f]+)&h=([0-9a-f]+)&qt=range', cgit_cmd.log, convert_git_link_log3]
+        LOG3 = [r'/?([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)', cgit_cmd.log, convert_git_link_log4]
+        LOG4 = [r'/?([/\-\w0-9@:%._+~#=]+)', cgit_cmd.log, convert_git_link_log5]
+
+        PLAIN1 = [r'/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.plain, convert_git_link_plain]
+        PATCH1 = [r'/?\?id=([0-9a-f]+)', cgit_cmd.patch, convert_git_link_patch]
+        REFS1 = [r'/?', cgit_cmd.refs, r'%s/branches' % target_url_git_repo]
+        TAG1 = [r'/?\?id=([/\-\w0-9@:%._+~#=]+)', cgit_cmd.tag, r'%s/releases/tag/\1' % target_url_git_repo]
+        DEF = [r'/(.*)', cgit_cmd.default, convert_git_link] # catch all missed
+
+trac_url_conv_help = TracUrlConversionHelper(trac_url_dir)
+cgit_conv_help = CgitConversionHelper(cgit_url)
+
+RE_WRONG_FORMAT1 = re.compile(r'comment:(\d+):ticket:(\d+)')
+RE_REPLYING_TO = re.compile(r'Replying to \[comment:(\d+)\s([\-\w0-9@._]+)\]')
 
 def inline_code_snippet(match):
     code = match.group(1)
-    code = code.replace('@', 'AT__SIGN__IN__CODE')
+    code = code.replace('@', at_sign.tag)
     if '`' in code:
         return '<code>' + code.replace('`', r'\`') + '</code>'
     else:
         return '`' + code + '`'
-
-def convert_ticket_attachment(match):
-    ticket_id = match.group(1)
-    filename = match.group(2)
-    if keep_trac_ticket_references:
-        return os.path.join(trac_url_attachment, 'ticket', ticket_id, filename)
-    return gh_attachment_url(ticket_id, filename)
 
 def convert_replying_to(match):
     comment_id = match.group(1)
@@ -428,82 +632,6 @@ def convert_replying_to(match):
         name = username
 
     return 'Replying to [comment:{} {}]'.format(comment_id, name)
-
-RE_SAGE_TICKET1 = re.compile(r'https?://trac\.sagemath\.org/ticket/(\d+)#comment:(\d+)?')
-RE_SAGE_TICKET2 = re.compile(r'https?://trac\.sagemath\.org/sage_trac/ticket/(\d+)')
-RE_SAGE_WIKI1= re.compile(r'https?://trac\.sagemath\.org/wiki/([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_ATTACHMENT1 = re.compile(r'https?://trac\.sagemath\.org/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_ATTACHMENT2 = re.compile(r'https?://trac\.sagemath\.org/sage_trac/attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_ATTACHMENT3= re.compile(r'https?://trac\.sagemath\.org/sage_trac/raw-attachment/ticket/(\d+)/([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_DIFF1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)')
-RE_SAGE_GIT_DIFF2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)&id2=([0-9a-f]+)')
-RE_SAGE_GIT_DIFF3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2?=([0-9a-f]+)&id=([0-9a-f]+)')
-RE_SAGE_GIT_DIFF4 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([0-9a-f]+)')
-RE_SAGE_GIT_DIFF5 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)')
-RE_SAGE_GIT_DIFF6 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id2=([/\-\w0-9@:%._+~#=]+)&id=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_DIFF7 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?h=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_DIFF8 = re.compile(r'https?://git\.sagemath\.org/sage\.git/diff/?\?id=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_COMMIT1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)')
-RE_SAGE_GIT_COMMIT2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commitid=([0-9a-f]+)')
-RE_SAGE_GIT_COMMIT3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([0-9a-f]+)')
-RE_SAGE_GIT_COMMIT4 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?h=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_COMMIT5 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/?\?id=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_COMMIT6 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)&id=([0-9a-f]+)')
-RE_SAGE_GIT_COMMIT7 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?id=([0-9a-f]+)')
-RE_SAGE_GIT_COMMIT8 = re.compile(r'https?://git\.sagemath\.org/sage\.git/commit/([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)')
-RE_SAGE_GIT_TREE1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_TREE2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/?\?h=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_TREE3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tree/src/?')
-RE_SAGE_GIT_LOG1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?\?h=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_LOG2 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?\?q=([0-9a-f]+)..([0-9a-f]+)&h=([0-9a-f]+)&qt=range')
-RE_SAGE_GIT_LOG3 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)\?h=([0-9a-f]+)')
-RE_SAGE_GIT_LOG4 = re.compile(r'https?://git\.sagemath\.org/sage\.git/log/?([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_PLAIN1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/plain/([/\-\w0-9@:%._+~#=]+)\?h=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT_PATCH1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/patch/?\?id=([0-9a-f]+)')
-RE_SAGE_GIT_REFS1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/refs/?')
-RE_SAGE_GIT_TAG1 = re.compile(r'https?://git\.sagemath\.org/sage\.git/tag/?\?id=([/\-\w0-9@:%._+~#=]+)')
-RE_SAGE_GIT = re.compile(r'https?://git\.sagemath\.org/sage\.git/(.*)')
-RE_SAGE_WRONG_FORMAT1 = re.compile(r'comment:(\d+):ticket:(\d+)')
-RE_SAGE_REPLYING_TO = re.compile(r'Replying to \[comment:(\d+)\s([\-\w0-9@._]+)\]')
-
-def project_specific_normalization(text, conv_help):
-    text = RE_SAGE_TICKET1.sub(r'ticket:\1#comment:\2', text)
-    text = RE_SAGE_TICKET2.sub(r'%s/issues/\1' % target_url_issues_repo, text)
-    text = RE_SAGE_WIKI1.sub(convert_wiki_link, text)
-    text = RE_SAGE_ATTACHMENT1.sub(convert_ticket_attachment, text)
-    text = RE_SAGE_ATTACHMENT2.sub(convert_ticket_attachment, text)
-    text = RE_SAGE_ATTACHMENT3.sub(convert_ticket_attachment, text)
-    text = RE_SAGE_GIT_DIFF1.sub(convert_git_link_diff1, text)
-    text = RE_SAGE_GIT_DIFF2.sub(convert_git_link_diff2, text)
-    text = RE_SAGE_GIT_DIFF3.sub(convert_git_link_diff3, text)
-    text = RE_SAGE_GIT_DIFF4.sub(convert_git_link_diff4, text)
-    text = RE_SAGE_GIT_DIFF5.sub(convert_git_link_diff5, text)
-    text = RE_SAGE_GIT_DIFF6.sub(convert_git_link_diff6, text)
-    text = RE_SAGE_GIT_DIFF7.sub(convert_git_link_diff7, text)
-    text = RE_SAGE_GIT_DIFF8.sub(convert_git_link_diff8, text)
-    text = RE_SAGE_GIT_COMMIT1.sub(convert_git_link_commit1, text)
-    text = RE_SAGE_GIT_COMMIT2.sub(convert_git_link_commit3, text)  # misspelled
-    text = RE_SAGE_GIT_COMMIT3.sub(convert_git_link_commit3, text)
-    text = RE_SAGE_GIT_COMMIT4.sub(convert_git_link_commit4, text)
-    text = RE_SAGE_GIT_COMMIT5.sub(convert_git_link_commit5, text)
-    text = RE_SAGE_GIT_COMMIT6.sub(convert_git_link_commit6, text)
-    text = RE_SAGE_GIT_COMMIT7.sub(convert_git_link_commit7, text)
-    text = RE_SAGE_GIT_COMMIT8.sub(convert_git_link_commit7, text)
-    text = RE_SAGE_GIT_TREE1.sub(convert_git_link_tree1, text)
-    text = RE_SAGE_GIT_TREE2.sub(convert_git_link_tree3, text)
-    text = RE_SAGE_GIT_TREE3.sub(r'%s/blob/master/src' % target_url_git_repo, text)
-    text = RE_SAGE_GIT_LOG1.sub(convert_git_link_log1, text)
-    text = RE_SAGE_GIT_LOG2.sub(convert_git_link_log3, text)
-    text = RE_SAGE_GIT_LOG3.sub(convert_git_link_log4, text)
-    text = RE_SAGE_GIT_LOG4.sub(convert_git_link_log5, text)
-    text = RE_SAGE_GIT_PLAIN1.sub(convert_git_link_plain, text)
-    text = RE_SAGE_GIT_PATCH1.sub(convert_git_link_patch, text)
-    text = RE_SAGE_GIT_REFS1.sub(r'%s/branches' % target_url_git_repo, text)
-    text = RE_SAGE_GIT_TAG1.sub(r'%s/releases/tag/\1' % target_url_git_repo, text)
-    text = RE_SAGE_GIT.sub(convert_git_link, text)  # catch all missed
-    text = RE_SAGE_WRONG_FORMAT1.sub(r'ticket:\2#comment:\1', text)
-    text = RE_SAGE_REPLYING_TO.sub(convert_replying_to, text)
-    return text
 
 def commits_list(match):
     t = '**' + match.group(1) +'**\n'
@@ -540,9 +668,15 @@ def github_mention(match):
     return '`@`' + username
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
-    text = project_specific_normalization(text, conv_help)
+
+    # conversion of url
+    text = trac_url_conv_help.sub(text)
+    text = cgit_conv_help.sub(text)
 
     # some normalization
+    text = RE_WRONG_FORMAT1.sub(r'ticket:\2#comment:\1', text)
+    text = RE_REPLYING_TO.sub(convert_replying_to, text)
+
     text = re.sub('\r\n', '\n', text)
     text = re.sub(r'\swiki:([a-zA-Z]+)', r' [wiki:\1]', text)
 
@@ -628,7 +762,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             in_td_prefix = re.search('{{{', line).start()
             in_td_n = 0
             in_td_defect = 0
-            line =  re.sub(r'{{{#!td', r'OPENING__PROCESSOR__TD', line)
+            line =  re.sub(r'{{{#!td', r'%s' % proc_td.open, line)
             level += 1
         elif line_temporary.startswith('{{{#!html') and not (in_code or in_html):
             in_html = True
@@ -646,7 +780,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             in_code_defect = 0
             if non_blank_previous_line:
                 line = '\n' + line
-            line =  re.sub(r'{{{#!([^\s]+)', r'OPENING__PROCESSOR__CODE\1', line)
+            line =  re.sub(r'{{{#!([^\s]+)', r'%s\1' % proc_code.open, line)
             level += 1
         elif line_temporary.rstrip() == '{{{' and not (in_code or in_html):
             # check dangling #!...
@@ -671,11 +805,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             if line_temporary.rstrip() == '{{{':
                 if non_blank_previous_line:
                     line = '\n' + line
-                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE', 1)
+                line = line.replace('{{{', proc_code.open, 1)
             else:
                 if non_blank_previous_line:
                     line = '\n' + line
-                line = line.replace('{{{', 'OPENING__PROCESSOR__CODE' +'\n' , 1)
+                line = line.replace('{{{', proc_code.open, +'\n' , 1)
             level += 1
         elif line_temporary.rstrip() == '}}}':
             level -= 1
@@ -686,7 +820,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     for i in range(in_td_n):
                         prev_line = a[-i-1]
                         a[-i-1] = prev_line[:len(quote_prefix)] + in_td_defect*' ' + prev_line[len(quote_prefix):]
-                line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__TD', line)
+                line =  re.sub(r'}}}', r'%s' % proc_td.close, line)
             elif in_html and in_html_level == level:
                 in_html = False
                 id_html_prefix = 0
@@ -702,7 +836,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     for i in range(in_code_n):
                         prev_line = a[-i-1]
                         a[-i-1] = prev_line[:len(quote_prefix)] + in_code_defect*' ' + prev_line[len(quote_prefix):]
-                line =  re.sub(r'}}}', r'CLOSING__PROCESSOR__CODE', line)
+                line =  re.sub(r'}}}', r'%s' % proc_code.close, line)
         else:
             # adjust badly indented codeblocks
             if in_td:
@@ -771,14 +905,14 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_SUBSCRIPT1.sub(r'<sub>\1</sub>', line)  # subscript ,,abc,,
 
             line = RE_QUERY1.sub(r'[%s?' % trac_url_query, line) # preconversion to URL format
-            line = RE_HTTPS1.sub(r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
-            line = RE_HTTPS2.sub(r'OPENING__LEFT__BRACKET\1CLOSING__RIGHT__BRACKET(\1)', line)  # link without display text
-            line = RE_HTTPS3.sub(r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
-            line = RE_HTTPS4.sub(r'OPENING__LEFT__BRACKET\1CLOSING__RIGHT__BRACKET(\1)', line)
+            line = RE_HTTPS1.sub(conv_help.wiki_link, line)
+            line = RE_HTTPS2.sub(conv_help.wiki_link, line)  # link without display text
+            line = RE_HTTPS3.sub(conv_help.wiki_link, line)
+            line = RE_HTTPS4.sub(conv_help.wiki_link, line)
 
-            line = RE_IMAGE1.sub(r'!OPENING__LEFT__BRACKETCLOSING__RIGHT__BRACKET(%s/\1)' % os.path.relpath('/tree/master/'), line)
-            line = RE_IMAGE2.sub(r'!OPENING__LEFT__BRACKETCLOSING__RIGHT__BRACKET(\1)', line)
-            line = RE_IMAGE3.sub(r'!OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(\1)', line)
+            line = RE_IMAGE1.sub(conv_help.image_link_under_tree, line)
+            line = RE_IMAGE2.sub(conv_help.image_link, line)
+            line = RE_IMAGE3.sub(conv_help.image_link, line)
             line = RE_IMAGE4.sub(r'<img src="\1" \2>', line)
             line = RE_IMAGE5.sub(conv_help.wiki_image, line)  # \2 is the image width
 
@@ -800,8 +934,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_TICKET1.sub(r' #\1', line) # replace global ticket references
             line = RE_TICKET2.sub(conv_help.ticket_link, line)
 
-            line = RE_COMMENT1.sub(r'OPENING__LEFT__BRACKET\2CLOSING__RIGHT__BRACKET(#comment%3A\1)', line)
-            line = RE_COMMENT2.sub(r'OPENING__LEFT__BRACKETcomment:\1CLOSING__RIGHT__BRACKET(#comment%3A\1)', line)
+            line = RE_COMMENT1.sub(conv_help.comment_link, line)
+            line = RE_COMMENT2.sub(conv_help.comment_link, line)
 
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
             line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
@@ -941,7 +1075,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 table.append('|' + 'NEW__LINE'.join(block) +'|')
                 block = []
                 continue
-            if line.startswith('OPENING__PROCESSOR__TD'):
+            if line.startswith(proc_td.open):
                 if len(block) > 1:
                     block.append('|')
                 block.append(line)
@@ -950,7 +1084,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 line = re.sub('\n', 'NEW__LINE', line)
                 block.append(line)
                 continue
-            if line.startswith('CLOSING__PROCESSOR__TD'):
+            if line.startswith(proc_td.close):
                 block.append(line)
                 continue
             if line.startswith('|'):
@@ -968,10 +1102,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             if table:
                 table_text = '\n'.join(table)
-                if 'OPENING__PROCESSOR__TD' in table_text:
+                if proc_td.open in table_text:
                     html = markdown.markdown(table_text, extensions=[TableExtension(use_align_attribute=True)])
-                    html = html.replace('OPENING__PROCESSOR__TD', r'<div align="left">')
-                    html = html.replace('CLOSING__PROCESSOR__TD', r'</div>')
+                    html = proc_td.replace(html)
                 else:
                     html = table_text
                 line = html.replace('NEW__LINE', '\n') + '\n' + line
@@ -986,11 +1119,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = '\n'.join(a)
 
     # remove artifacts
-    text = text.replace('OPENING__PROCESSOR__CODE', '```')
-    text = text.replace('CLOSING__PROCESSOR__CODE', '```')
-    text = text.replace('OPENING__LEFT__BRACKET', '[')
-    text = text.replace('CLOSING__RIGHT__BRACKET', ']')
-    text = text.replace('AT__SIGN__IN__CODE', '@')
+    text = proc_code.replace(text)
+    text = link_displ.replace(text)
+    text = at_sign.replace(text)
 
     # Some rewritings
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
@@ -1001,7 +1132,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = RE_BRANCH_PUSH.sub(r'**\1**', text)
 
     return text
-
 
 class WikiConversionHelper:
     """
@@ -1076,6 +1206,44 @@ class WikiConversionHelper:
             return r'[%s](%s/%s#comment:%s)' % (label, trac_url_ticket, ticket, comment)
         return r'[%s](%s/issues/%s#comment:%s)' % (label, target_url_issues_repo, ticket, comment)
 
+    def comment_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a comment link.
+        """
+        mg = match.groups()
+        comment = mg[0]
+        s = '%3A'
+        if len(mg) > 1:
+            label = mg[1]
+            return r'%s%s%s(#comment%s%s)' % (link_displ.open, label, link_displ.close, s, comment)
+        else:
+            return r'%scomment:%s%s(#comment%s%s)' % (link_displ.open, comment, link_displ.close, s, comment)
+
+    def image_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a image link.
+        """
+        mg = match.groups()
+        filename = mg[0]
+        if len(mg) > 1:
+            descr = mg[1]
+            return r'!%s%s%s(%s)' % (link_displ.open, descr, link_displ.close, filename)
+        else:
+            return r'!%s%s(%s)' % (link_displ.open, link_displ.close, filename)
+
+    def image_link_under_tree(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a image link under the tree path.
+        """
+        mg = match.groups()
+        filename = mg[0]
+        path = os.path.relpath('/tree/master/')
+        return r'!%s%s(%s/\1)' % (link_displ.open, link_displ.close, filename, path)
+
+
     def wiki_image(self, match):
         """
         Return a formatted string that replaces the match object found by re
@@ -1087,6 +1255,15 @@ class WikiConversionHelper:
             return r'<img src="%s" width=%s>' % (filename, mg[1])
         else:
             return r'<img src="%s">' % filename
+
+    def protect_wiki_link(self, display, link):
+        """
+        Return the given string encapsuled with protection tags. These will
+        be replaced at the end of conversion of a line by the brackets (see
+        method `link_displ.replace`). This is needed to avoid a mixture
+        with Trac wiki syntax.
+        """
+        return r'%s%s%s(%s)' % (link_displ.open, display, link_displ.close, link)
 
     def wiki_link(self, match):
         """
@@ -1112,13 +1289,13 @@ class WikiConversionHelper:
 
         if pagename.startswith('http'):
             link = pagename_ori.strip()
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+            return self.protect_wiki_link(display, link)
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+            return self.protect_wiki_link(display, link)
         elif pagename in self._pagenames_not_splitted:
             link = pagename_ori.replace('/', ' ').replace(' ', '-')  # convert to github link
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+            return self.protect_wiki_link(display, link)
         else:
             # we assume that this is a Trac macro like TicketQuery
             macro_split = pagename.split('(')
@@ -1129,8 +1306,8 @@ class WikiConversionHelper:
             display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
-                return r'OPENING__LEFT__BRACKET%s called with arguments (%s)CLOSING__RIGHT__BRACKET(%s)' % (display, args, link)
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+                return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
+            return self.protect_wiki_link(display, link)
 
     def camelcase_wiki_link(self, match):
         """
@@ -1195,21 +1372,21 @@ class IssuesConversionHelper(WikiConversionHelper):
 
         if pagename.startswith('http'):
             link = pagename_ori.strip()
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+            return self.protect_wiki_link(display, link)
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '')
             if link in wiki_path_conversion_table:
                 link = wiki_path_conversion_table[link]
             else:
                 link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
+            return self.protect_wiki_link(display, '../wiki/' + link)
         elif pagename in self._pagenames_not_splitted:
             link = pagename_ori.replace(' ', '')
             if link in wiki_path_conversion_table:
                 link = wiki_path_conversion_table[link]
             else:
                 link = pagename_ori.replace(' ', '-')
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, '../wiki/' + link)
+            return self.protect_wiki_link(display, '../wiki/' + link)
         else:
             # we assume that this is a Trac macro like TicketQuery
             macro_split = pagename.split('(')
@@ -1220,8 +1397,8 @@ class IssuesConversionHelper(WikiConversionHelper):
             display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
-                return r'OPENING__LEFT__BRACKET%s called with arguments (%s)CLOSING__RIGHT__BRACKET(%s)' % (display, args, link)
-            return r'OPENING__LEFT__BRACKET%sCLOSING__RIGHT__BRACKET(%s)' % (display, link)
+                return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
+            return self.protect_wiki_link(display, link)
 
 
 def github_ref_url(ref):
@@ -1272,22 +1449,9 @@ def mapcomponent(component):
     if component == 'PLEASE CHANGE':
         return None
     component = component.replace('_', ' ').lower()
-    if component in ['solaris', 'cygwin']:
-        component = 'porting: ' + component
-    elif component == 'freebsd':
-        component = 'porting: bsd'
-    elif component == 'aix or hp-ux ports':
-        component = 'porting: aix or hp-ux'
-    elif component == 'experimental package':
-        component = 'packages: experimental'
-    elif component == 'optional packages':
-        component = 'packages: optional'
-    elif component == 'plotting':
-        component = 'graphics'
-    elif component == 'doctest':
-        component = 'doctest coverage'
-    elif component == 'sage-check':
-        component = 'spkg-check'
+
+    if component in components_to_labels.keys():
+        component = components_to_labels[component]
     component_frequency[component] += 1
     # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
     return f'component: {component}'
@@ -1355,40 +1519,15 @@ def mapmilestone(title):
     if not title:
         return None, None
     title = title.lower()
-    if title in ['sage-duplicate/invalid/wontfix', 'sage-duplicate/invalid', 'sage-duplicate']:
-        return None, 'duplicate/invalid/wontfix'
-    if title == 'sage-wait':
-        title = 'sage-pending'
-    if title in ['sage-feature', 'sage-pending', 'sage-wishlist']:
-        return None, title[5:]
-    if title == 'sage-combinat':
-        return None, mapcomponent('combinatorics')
-    if title == 'sage-symbolics':
-        return None, mapcomponent('symbolics')
-    if title == 'sage-i18n':
-        return None, mapcomponent('translations')
+    if title in milestones_to_labels.keys():
+        return None, milestones_to_labels[title]
+    # some normalization
     if re.match('^[0-9]', title):
-        title = 'sage-' + title
-    if re.fullmatch('sage-[1-9]', title):
+        title = milestone_prefix_to + title
+    if re.fullmatch('%s[1-9]' % milestone_prefix_from, title):
         title = title + '.0'
-    # Remap milestones for releases that were canceled/renamed
-    if title == 'sage-2.8.4.3':
-        title = 'sage-2.8.5'
-    elif title == 'sage-3.2.4':
-        title = 'sage-3.3'
-    elif title == 'sage-4.0.3':
-        title = 'sage-4.1'
-    elif title == 'sage-4.1.3':
-        title = 'sage-4.2'
-    elif title == 'sage-4.4.5':
-        title = 'sage-4.5'
-    elif title == 'sage-4.7.3':
-        title = 'sage-4.8'
-    elif title == 'sage-6.11':
-        title = 'sage-7.0'
-    elif title == 'sage-7.7':
-        title = 'sage-8.0'
-
+    if title in canceled_milestones.keys():
+        title = canceled_milestones[title]
     return title, None
 
 def gh_create_milestone(dest, milestone_data) :
@@ -1674,7 +1813,7 @@ def gh_user_url(dest, username):
         # heuristic pattern for valid Trac account name (not an email address or junk)
         # Use this URL as the id (this is current best guess what a mannequin user would look like)
         username = username.replace('.', '-').replace('_', '-').strip('-')
-        username = f'sagetrac-{username}'
+        username = f'{unknown_users_prefix}{username}'
     else:
         return None
     try:

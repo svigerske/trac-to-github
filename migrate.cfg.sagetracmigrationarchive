@@ -11,7 +11,13 @@ url: https://trac.sagemath.org/xmlrpc
 # url: http://username:password@example.com/trac/login/xmlrpc
 
 # optional path to trac instance used to convert some attachments
-# path: /path/to/trac/instance
+path: sage_trac
+
+# optional prefix used for Trac milestones
+milestone_prefix: sage-
+
+# optional url for cgit repository access
+cgit_url: https://git.sagemath.org/sage.git/
 
 # if no, a trac ticket reference is converted to the corresponding issue reference
 keep_trac_ticket_references: yes
@@ -40,6 +46,43 @@ keywords_to_labels: {'beginner': 'good first issue'}
 
 # Migrate milestones
 migrate_milestones: yes
+
+# Map for certain Trac milestones to GitHub labels
+milestones_to_labels = {
+ 'sage-duplicate/invalid/wontfix': 'duplicate/invalid/wontfix',
+ 'sage-duplicate/invalid': 'duplicate/invalid/wontfix',
+ 'sage-duplicate': 'duplicate/invalid/wontfix',
+ 'sage-wait': 'pending',
+ 'sage-pending': 'pending',
+ 'sage-feature': 'feature',
+ 'sage-wishlist': 'wishlist',
+ 'sage-combinat': 'component: combinatorics',
+ 'sage-symbolics': 'component: symbolics',
+ 'sage-i18n': 'component: translations'}
+
+# Map for canceld Trac milestones to GitHub milestones
+canceled_milestones = {
+ 'sage-2.8.4.3': 'sage-2.8.5',
+ 'sage-3.2.4': 'sage-3.3',
+ 'sage-4.0.3': 'sage-4.1',
+ 'sage-4.1.3': 'sage-4.2',
+ 'sage-4.4.5': 'sage-4.5',
+ 'sage-4.7.3': 'sage-4.8',
+ 'sage-6.11': 'sage-7.0',
+ 'sage-7.7': 'sage-8.0'}
+
+# Map for certain Trac components to GitHub labels
+components_to_labels = {
+ 'solaris': 'porting: solaris',
+ 'cygwin': 'porting: cygwin',
+ 'freebsd': 'porting: bsd',
+ 'aix or hp-ux ports': 'porting: aix or hp-ux',
+ 'experimental package': 'packages: experimental',
+ 'optional packages': 'packages: optional',
+ 'plotting': 'graphics',
+ 'doctest': 'doctest coverage',
+ 'sage-check': 'spkg-check'}
+
 
 [attachments]
 
@@ -83,6 +126,9 @@ project_name: sagemath/sage
 
 # GitHub password (if no token specified)
 #password: secret
+
+# optional prefix used for GitHub milestones
+milestone_prefix: sage-
 
 # Where to write a migration archive
 migration_archive: archive
@@ -1055,3 +1101,6 @@ usernames = {
  'arattan': None,
  'joskarsson': None,
  'shahuwang': None}
+
+
+unknown_users_prefix: sagetrac-
