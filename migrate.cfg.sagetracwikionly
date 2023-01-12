@@ -14,6 +14,9 @@ url: https://trac.sagemath.org/xmlrpc
 # optional path to trac instance used to convert some attachments
 # path: /path/to/trac/instance
 
+# optional url for cgit repository access
+cgit_url: https://git.sagemath.org/sage.git/
+
 # if no, a trac ticket reference is converted to the corresponding issue reference
 keep_trac_ticket_references: yes
 
