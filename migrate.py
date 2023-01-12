@@ -1561,7 +1561,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
     note = preamble + note
 
     if comment_id:
-        anchor = f"<a id='comment:{comment_id}'>**comment:{comment_id}**</a>"
+        anchor = f"<a id='comment:{comment_id}'>**Comment {comment_id}:**</a>"
         note = anchor + '\n' + note
 
     if dest is None : return
