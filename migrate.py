@@ -2055,7 +2055,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             new_labels = update_labels(labels, newlabel, oldlabel)
             if issue_state != newstate :
                 if newstate == 'closed' and last_sha:
-                    if closing_sha := closing_commits.get((src_ticket_id, last_sha), None):
+                    if closing_sha := closing_commits.pop((src_ticket_id, last_sha), None):
+                        ## We pop the item so that the importer does not complain about RecordNotUnique.
                         # commit_id (string) -- The SHA of the commit that referenced this issue.
                         event_data['commit_id'] = closing_sha
                         # commit_url (string) -- The GitHub REST API link to the commit that referenced this issue.
