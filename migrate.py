@@ -1458,7 +1458,7 @@ def mapcomponent(component):
 
 ignored_values = ['N/A', 'tba', 'tbd', 'closed', 'somebody']
 
-default_priority = 'major'
+default_priority = None
 def mappriority(priority):
     "Return GitHub label corresponding to Trac ``priority``"
     if priority == default_priority:
