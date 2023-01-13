@@ -52,6 +52,8 @@ Features
  * Selected keywords and milestones can be converted to labels.
  * CC is added to the issue description as "@" mentions.
  * Attribute changes are converted to issue events or issue comments.
+ * Creates a file ``minimized_issue_comments.json`` that lists the IDs of issue comments that
+   correspond to attribute changes.
  * Links to the cgit server are rewritten as GitHub repository links.
  * Links to Trac tickets and ticket comments are rewritten as GitHub issue links.
  * Links to the Trac wiki are rewritten as GitHub wiki links.

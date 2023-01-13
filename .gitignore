@@ -9,7 +9,8 @@ trac_cache
 /map-ghe.csv
 /SECRETS
 __pycache__
-keyword_frequency.txt
-unmapped_users.txt
-unmapped_milestones.txt
-component_frequency.txt
+/keyword_frequency.txt
+/unmapped_users.txt
+/unmapped_milestones.txt
+/component_frequency.txt
+/minimized_issue_comments.json

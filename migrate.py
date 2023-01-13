@@ -42,6 +42,7 @@ import logging
 import mimetypes
 import types
 import gzip
+import json
 from collections import defaultdict
 from copy import copy
 from datetime import datetime
@@ -1678,7 +1679,8 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
         note = 'Attachment'
     return a, local_filename, note
 
-def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
+minimized_issue_comments = []
+def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minimize=True):
     preamble = ''
     attachments = comment.pop('attachments', [])
     # upload attachments, if there are any
@@ -1710,7 +1712,9 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None):
         if user_url:
            comment['user'] = user_url
 
-    issue.create_comment(note, **comment)
+    c = issue.create_comment(note, **comment)
+    if minimize:
+        minimized_issue_comments.append(c.url)
     sleep(sleep_after_request)
 
 def normalize_labels(dest, labels):
@@ -2241,7 +2245,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 comment_data['note'] = trac2markdown(desc, '/issues/', conv_help, False)
                 comment_data['attachments'] = attachments
                 attachments = []
-                gh_comment_issue(dest, issue, comment_data, src_ticket_id, comment_id=x)
+                gh_comment_issue(dest, issue, comment_data, src_ticket_id, comment_id=x, minimize=False)
             elif change_type.startswith("_comment") :
                 # this is an old version of a comment, which has been edited later (given in previous change),
                 # e.g., see http://localhost:8080/ticket/3431#comment:9 http://localhost:8080/ticket/3400#comment:14
@@ -2377,7 +2381,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         if attachments:
             comment_data['attachments'] = attachments
             attachments = []
-            gh_comment_issue(dest, issue, comment_data, src_ticket_id)
+            gh_comment_issue(dest, issue, comment_data, src_ticket_id, minimize=False)
 
         ticketcount += 1
         if ticketcount % 10 == 0 and sleep_after_10tickets > 0 :
@@ -2567,6 +2571,9 @@ if __name__ == "__main__":
                          }
                         for label in gh_labels.values()]}
             )
+            with open("minimized_issue_comments.json", "w") as f:
+                json.dump(minimized_issue_comments, f, indent=4)
+
         output_unmapped_users(sorted(unmapped_users.items(), key=lambda x: -x[1]))
         output_unmapped_milestones(sorted(unmapped_milestones.items(), key=lambda x: -x[1]))
         output_keyword_frequency(sorted(keyword_frequency.items(), key=lambda x: -x[1]))
