@@ -97,7 +97,9 @@ components_to_labels = {
  'sage-check': 'component: spkg-check',
  # No "component: " prefix for these:
  'performance': 'performance',
- 'refactoring': 'refactoring'}
+ 'refactoring': 'refactoring',
+ # Suppress
+ 'misc': None}
 
 # Colors for labels by label name or label category
 label_colors = {
