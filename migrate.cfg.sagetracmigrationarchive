@@ -93,9 +93,10 @@ components_to_labels = {
  'experimental package': 'component: packages: experimental',
  'optional packages': 'component: packages: optional',
  'plotting': 'component: graphics',
- 'doctest': 'component: doctest coverage',
  'sage-check': 'component: spkg-check',
  # No "component: " prefix for these:
+ 'doctest': 'doctest coverage',
+ 'doctest coverage': 'doctest coverage',
  'performance': 'performance',
  'refactoring': 'refactoring',
  # Suppress
@@ -151,6 +152,7 @@ label_colors = {
  'enhancement': '696969',
  'performance': '696969',
  'refactoring': '696969',
+ 'doctest coverage': '696969',
  'resolution': 'a6a6a6'}
 
 [attachments]
