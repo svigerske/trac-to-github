@@ -1477,7 +1477,11 @@ def mappriority(priority):
     "Return GitHub label corresponding to Trac ``priority``"
     if priority == default_priority:
         return None
-    return priority
+    try:
+        numerical_priority = 5 - ['trivial', 'minor', 'major', 'critical', 'blocker'].index(priority)
+    except ValueError:
+        return priority
+    return f'p{numerical_priority} \u2013 {priority}'
 
 default_severity = 'normal'
 def mapseverity(severity):
