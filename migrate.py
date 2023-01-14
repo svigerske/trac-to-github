@@ -1453,11 +1453,13 @@ def mapcomponent(component):
         return None
     component = component.replace('_', ' ').lower()
 
-    if component in components_to_labels.keys():
-        component = components_to_labels[component]
-    component_frequency[component] += 1
-    # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
-    return f'component: {component}'
+    try:
+        label = components_to_labels[component]
+    except KeyError:
+        # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
+        label = f'component: {component}'
+    component_frequency[label] += 1
+    return label
 
 ignored_values = ['N/A', 'tba', 'tbd', 'closed', 'somebody']
 

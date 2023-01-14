@@ -73,15 +73,15 @@ canceled_milestones = {
 
 # Map for certain Trac components to GitHub labels
 components_to_labels = {
- 'solaris': 'porting: solaris',
- 'cygwin': 'porting: cygwin',
- 'freebsd': 'porting: bsd',
- 'aix or hp-ux ports': 'porting: aix or hp-ux',
- 'experimental package': 'packages: experimental',
- 'optional packages': 'packages: optional',
- 'plotting': 'graphics',
- 'doctest': 'doctest coverage',
- 'sage-check': 'spkg-check'}
+ 'solaris': 'component: porting: solaris',
+ 'cygwin': 'component: porting: cygwin',
+ 'freebsd': 'component: porting: bsd',
+ 'aix or hp-ux ports': 'component: porting: aix or hp-ux',
+ 'experimental package': 'component: packages: experimental',
+ 'optional packages': 'component: packages: optional',
+ 'plotting': 'component: graphics',
+ 'doctest': 'component: doctest coverage',
+ 'sage-check': 'component: spkg-check'}
 
 # Colors for labels by label name or label category
 label_colors = {
