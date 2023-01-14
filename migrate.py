@@ -2027,7 +2027,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if branch == commit:
                     description_post += '\n\nBranch/Commit: **' + github_ref_markdown(branch) + '**'
                 else:
-                    description_post += '\n\nBranch/Commit: ' + github_ref_markdown(branch) + ' @ ' + github_ref_markdown(commit) + '**'
+                    description_post += '\n\nBranch/Commit: **' + github_ref_markdown(branch) + ' @ ' + github_ref_markdown(commit) + '**'
             else:
                 if branch:
                     description_post += f'\n\nBranch: **' + github_ref_markdown(branch) + '**'
