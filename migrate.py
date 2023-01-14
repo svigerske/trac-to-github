@@ -1619,6 +1619,10 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
             if filename.endswith('.log'):
                 # Python thinks it's text/plain.
                 mimetype = 'text/x-log'
+            elif filename.endswith('.gz'):
+                # Python thinks that .tar.gz is application/x-tar
+                mimetype = 'application/gzip'
+            logging.info(f'Attachment {filename=} {mimetype=}')
             # supported types from bbs-exporter-1.5.5/lib/bbs_exporter/attachment_exporter/content_type.rb:
             if mimetype in []: # ['image/gif', 'image/jpeg', 'image/png']:
                 # attachment URLs are rewritten to "/storage/user" paths, links broken.
@@ -1633,6 +1637,7 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                         attachment['attachment'] = gzip.compress(attachment['attachment'])
                     filename += ".gz"
                     mimetype = 'application/gzip'
+                    logging.info(f'Replaced by {filename=} {mimetype=}')
                 dirname = 'files'
                 if dest:
                     create = dest.create_repository_file
