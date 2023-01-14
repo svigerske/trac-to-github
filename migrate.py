@@ -1330,24 +1330,24 @@ class IssuesConversionHelper(WikiConversionHelper):
         Set paths from the ticket id.
         """
         self._ticket_id = ticket_id
-        self._attachment_path = os.path.join(attachment_export_url, 'ticket' + str(ticket_id))
 
     def attachment(self, match):
         filename = match.group(1)
+        if keep_trac_ticket_references:
+            url = '%s/ticket/%s/%s' % (trac_url_attachment, str(self._ticket_id), filename)
+        else:
+            # FIXME: This uses the global variable dest
+            a, _, _ = gh_create_attachment(dest, None, filename, self._ticket_id, None)
+            url = a.url
+            if url.endswith('.gz'):
+                filename += '.gz'
+
         if len(match.groups()) >= 2:
             label = match.group(2)
         else:
-            label = 'attachment:' + filename
+            label = 'attachment: ' + filename
 
-        if keep_trac_ticket_references:
-            return r'[%s](%s/ticket/%s/%s)' % (label, trac_url_attachment, str(self._ticket_id), filename)
-
-        if not re.fullmatch('[-A-Za-z0-9_.]*', filename):
-            import pathlib
-            from hashlib import md5
-            extension = pathlib.Path(filename).suffix
-            filename = md5(filename.encode('utf-8')).hexdigest() + extension
-        return r'[%s](%s)' % (label, os.path.join(self._attachment_path, filename))
+        return r'[%s](%s)' % (label, url)
 
     def wiki_link(self, match):
         """
@@ -1660,6 +1660,7 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
 
         a = create(filename, mimetype, asset_url,
                    user=user, created_at=comment and comment.get('created_at'))
+        logging.info('Attachment link %s' % a.url)
 
         if comment:
             if github:
