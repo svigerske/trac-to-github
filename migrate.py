@@ -2023,7 +2023,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     field = field.title().replace('_', ' ')
                     description_post += f'\n\n**{field}:** {value}'
 
-            description_post += f'\n\nIssue created by migration from {trac_url_ticket}/{src_ticket_id}\n\n'
+            description_post += f'\n\n_Issue created by migration from {trac_url_ticket}/{src_ticket_id}_\n\n'
 
             return description_pre + trac2markdown(description, '/issues/', conv_help, False) + description_post
 
