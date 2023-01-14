@@ -78,18 +78,6 @@ default_config = {
     'url' : 'https://api.github.com'
 }
 
-# 6-digit hex notation with leading '#' sign (e.g. #FFAABB) or one of the CSS color names
-# (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords)
-labelcolor = {
-  'component' : '08517b',
-  'priority' : 'ff0000',
-  'severity' : 'ee0000',
-  'type' : '008080',
-  'keyword' : 'eeeeee',
-  'milestone' : '008080',
-  'resolution' : '008080',
-}
-
 sleep_after_request = 2.0
 sleep_after_attachment = 60.0
 sleep_after_10tickets = 0.0  # TODO maybe this can be reduced due to the longer sleep after attaching something
@@ -224,6 +212,20 @@ add_label = None
 
 if config.has_option('issues', 'add_label'):
     add_label = config.get('issues', 'add_label')
+
+# 6-digit hex notation with leading '#' sign (e.g. #FFAABB) or one of the CSS color names
+# (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords)
+labelcolor = {
+  'component' : '08517b',
+  'priority' : 'ff0000',
+  'severity' : 'ee0000',
+  'type' : '008080',
+  'keyword' : 'eeeeee',
+  'milestone' : '008080',
+  'resolution' : '008080',
+}
+if config.has_option('issues', 'label_colors'):
+    labelcolor.update(ast.literal_eval(config.get('issues', 'label_colors')))
 
 attachment_export = config.getboolean('attachments', 'export')
 if attachment_export:
