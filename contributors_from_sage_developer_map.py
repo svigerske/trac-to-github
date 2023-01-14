@@ -21,7 +21,9 @@ def sage_contributors():
             continue
         yield c
 
-def sage_trac_to_github():
+
+# API
+def trac_to_github():
     usernames = {}
     for c in sage_contributors():
         trac = c.getAttribute("trac")
@@ -36,9 +38,24 @@ def sage_trac_to_github():
                         usernames[t] = None
     return usernames
 
+
+# API
+def trac_full_names():
+    usernames = {}
+    for c in sage_contributors():
+        trac = c.getAttribute("trac")
+        name = c.getAttribute("name")
+        if trac and name:
+            for t in trac.split(','):
+                t = t.strip()
+                if t:
+                    usernames[t] = name
+    return usernames
+
+
 if __name__ == "__main__":
 
-    usernames = sage_trac_to_github()
+    usernames = trac_to_github()
     pprint.pp(usernames)
 
     print('# Trac accounts without github account: ' + ','.join(

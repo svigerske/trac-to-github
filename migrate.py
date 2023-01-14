@@ -170,7 +170,13 @@ migration_archive = None
 if config.has_option('target', 'migration_archive'):
     migration_archive = config.get('target', 'migration_archive')
 
-users_map = ast.literal_eval(config.get('target', 'usernames'))
+users_map = {}
+username_modules = []
+if config.has_option('target', 'username_modules'):
+    username_modules = ast.literal_eval(config.get('target', 'username_modules'))
+    for module in username_modules:
+        users_map.update(__import__(module).trac_to_github())
+users_map.update(ast.literal_eval(config.get('target', 'usernames')))
 
 unknown_users_prefix = ''
 if config.has_option('target', 'unknown_users_prefix'):
