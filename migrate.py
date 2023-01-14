@@ -1744,6 +1744,8 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
         minimized_issue_comments.append(c.url)
     sleep(sleep_after_request)
 
+priority_labels = set(mappriority(priority)
+                      for priority in ['trivial', 'minor', 'major', 'critical', 'blocker'])
 def normalize_labels(dest, labels):
     if 'duplicate/invalid/wontfix' in labels:
         labels.remove('duplicate/invalid/wontfix')
@@ -1751,7 +1753,7 @@ def normalize_labels(dest, labels):
             labels.append('invalid')
             gh_ensure_label(dest, 'invalid', label_category='milestone')
     if any(x in labels for x in ['duplicate', 'invalid', 'wontfix', 'worksforme']):
-        labels = sorted(set(labels).difference(['trivial', 'minor', 'major', 'critical', 'blocker']))
+        labels = sorted(set(labels).difference(priority_labels))
     return labels
 
 def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
