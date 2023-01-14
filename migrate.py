@@ -643,7 +643,7 @@ def convert_replying_to(match):
     return 'Replying to [comment:{} {}]'.format(comment_id, name)
 
 def commits_list(match):
-    t = '**' + match.group(1) +'**\n'
+    t = match.group(1) + '\n'
     t += '<table>'
     for c in match.group(2).split('\n')[2:]:  # the first two are blank header
         if not c:
@@ -1137,8 +1137,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = RE_TRAC_REPORT.sub(r'[Trac report of id \1 inherited from the migration](%s/\1)' % trac_url_report, text)
     text = RE_NEW_COMMITS.sub(commits_list, text)
     text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
-    text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
-    text = RE_BRANCH_PUSH.sub(r'**\1**', text)
+    # text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
+    # text = RE_BRANCH_PUSH.sub(r'**\1**', text)
 
     return text
 
@@ -1687,7 +1687,7 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
             if github:
                 note = 'Attachment [%s](%s) by %s created at %s' % (filename, a.url, comment['user'], comment['created_at'])
             else:
-                note = '**Attachment:** [%s](%s)' % (filename, a.url)
+                note = 'Attachment: **[%s](%s)**' % (filename, a.url)
 
     elif gh_user is not None:
         if dest is None : return
@@ -1729,7 +1729,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
     note = preamble + note
 
     if comment_id:
-        anchor = f"<a id='comment:{comment_id}'>**Comment {comment_id}:**</a>"
+        anchor = f"<a id='comment:{comment_id}'>Comment {comment_id}:</a>"
         note = anchor + '\n' + note
 
     if dest is None : return
@@ -1999,11 +1999,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
 
             owner = gh_username_list(dest, src_ticket_data.pop('owner', None))
             if owner:
-                description_post += '\n\n**Assignee:** ' + owner
+                description_post += f'\n\nAssignee: **{owner}**'
 
             version = src_ticket_data.pop('version', None)
             if version is not None and version != 'trunk' :
-                description_post += '\n\n**Version:** ' + version
+                description_post += f'\n\nVersion: **{version}**'
 
             # subscribe persons in cc
             cc = src_ticket_data.pop('cc', '')
@@ -2014,25 +2014,25 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 person = gh_username(dest, person)
                 ccstr += ' ' + person
             if ccstr != '' :
-                description_post += '\n\n**CC:** ' + ccstr
+                description_post += '\n\nCC: ' + ccstr
 
             keywords, labels = mapkeywords(src_ticket_data.pop('keywords', ''))
             if keywords:
-                description_post += '\n\n**Keywords:** ' + ', '.join(keywords)
+                description_post += '\n\nKeywords: **' + ', '.join(keywords) + '**'
 
             branch = src_ticket_data.pop('branch', '')
             commit = src_ticket_data.pop('commit', '')
             # These two are the same in all closed-fixed tickets. Reduce noise.
             if branch and commit:
                 if branch == commit:
-                    description_post += '\n\n**Branch/Commit:** ' + github_ref_markdown(branch)
+                    description_post += '\n\nBranch/Commit: **' + github_ref_markdown(branch) + '**'
                 else:
-                    description_post += '\n\n**Branch/Commit:** ' + github_ref_markdown(branch) + ' @ ' + github_ref_markdown(commit)
+                    description_post += '\n\nBranch/Commit: ' + github_ref_markdown(branch) + ' @ ' + github_ref_markdown(commit) + '**'
             else:
                 if branch:
-                    description_post += f'\n\n**Branch:** ' + github_ref_markdown(branch)
+                    description_post += f'\n\nBranch: **' + github_ref_markdown(branch) + '**'
                 if commit:
-                    description_post += f'\n\n**Commit:** ' + github_ref_markdown(commit)
+                    description_post += f'\n\nCommit: **' + github_ref_markdown(commit) + '**'
 
             description = src_ticket_data.pop('description', '')
 
@@ -2041,7 +2041,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     and field not in ['changetime', 'time']
                     and value and value not in ignored_values):
                     field = field.title().replace('_', ' ')
-                    description_post += f'\n\n**{field}:** {value}'
+                    description_post += f'\n\n{field}: **{value}**'
 
             description_post += f'\n\n_Issue created by migration from {trac_url_ticket}/{src_ticket_id}_\n\n'
 
@@ -2301,11 +2301,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 oldvalue = gh_username_list(dest, oldvalue)
                 newvalue = gh_username_list(dest, newvalue)
                 if oldvalue and newvalue:
-                    comment_data['note'] = '**Changing assignee** from ' + oldvalue + ' to ' + newvalue + '.'
+                    comment_data['note'] = 'Changed assignee from **' + oldvalue + '** to **' + newvalue + '**'
                 elif newvalue:
-                    comment_data['note'] = '**Assignee:** ' + newvalue
+                    comment_data['note'] = 'Assignee: **' + newvalue + '**'
                 else:
-                    comment_data['note'] = '**Remove assignee** ' + oldvalue + '.'
+                    comment_data['note'] = 'Removed assignee **' + oldvalue + '**'
                 if newvalue != oldvalue:
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
@@ -2316,9 +2316,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 #     gh_update_issue_property(dest, issue, 'assignee', assignee)
             elif change_type == "version" :
                 if oldvalue != '' :
-                    desc = "**Version changed** from %s to %s." % (oldvalue, newvalue)
+                    desc = "Changed version from **%s** to **%s**." % (oldvalue, newvalue)
                 else :
-                    desc = "**Version:** " + newvalue
+                    desc = "Version: **" + newvalue + "**"
                 comment_data['note'] = desc
                 gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "milestone" :
@@ -2353,7 +2353,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     issue_data['description'] = issue_description(src_ticket_data) + '\n\n(changed by ' + user + ' at ' + change_time + ')'
                     gh_update_issue_property(dest, issue, 'description', issue_data['description'], **event_data)
                 else:
-                    body = '**Description changed:**\n``````diff\n'
+                    body = 'Description changed:\n``````diff\n'
                     old_description = trac2markdown(oldvalue, '/issues/', conv_help, False)
                     new_description = trac2markdown(newvalue, '/issues/', conv_help, False)
                     body += '\n'.join(unified_diff(old_description.split('\n'),
@@ -2389,7 +2389,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     labels.append(label)
                     gh_ensure_label(dest, label, label_category='keyword')
                 if oldkeywords != newkeywords:
-                    comment_data['note'] = '**Changing keywords** from "' + ', '.join(oldkeywords) + '" to "' + ', '.join(newkeywords) + '".'
+                    comment_data['note'] = 'Changed keywords from **' + ', '.join(oldkeywords) + '** to **' + ', '.join(newkeywords) + '**'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 if labels != oldlabels:
                     gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
@@ -2409,9 +2409,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                             newvalue = github_ref_markdown(newvalue)
                     change_type = change_type.replace('_', ' ')
                     if not oldvalue:
-                        comment_data['note'] = f'**{change_type.title()}:** {newvalue}'
+                        comment_data['note'] = f'{change_type.title()}: **{newvalue}**'
                     else:
-                        comment_data['note'] = f'**Changing {change_type}** from "{oldvalue}" to "{newvalue}".'
+                        comment_data['note'] = f'Changed {change_type} from **{oldvalue}** to **{newvalue}**'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
 
         if attachments:
