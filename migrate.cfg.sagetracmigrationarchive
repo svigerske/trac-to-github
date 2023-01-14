@@ -189,6 +189,8 @@ migration_archive: archive
 
 # Trac to GitHub user mappings
 username_modules = ['contributors_from_sage_developer_map']
-usernames = {}
+usernames = {
+ 'fhivert': 'hivert',
+ 'wstein': 'williamstein'}
 
 unknown_users_prefix: sagetrac-
