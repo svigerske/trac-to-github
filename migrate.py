@@ -1538,14 +1538,18 @@ def gh_create_milestone(dest, milestone_data) :
     sleep(sleep_after_request)
     return milestone
 
-def gh_ensure_label(dest, labelname, labelcolor) :
+def gh_ensure_label(dest, labelname, label_color=None, label_category=None):
     if dest is None or labelname is None:
         return
     labelname = labelname.lower()
     if labelname in gh_labels:
         return
-    log.info('Create label "%s" with color #%s' % (labelname, labelcolor));
-    gh_label = dest.create_label(labelname, labelcolor);
+    if label_color is None:
+        label_color = labelcolor.get(labelname)
+    if label_color is None:
+        label_color = labelcolor[label_category]
+    log.info('Create label "%s" with color #%s' % (labelname, label_color));
+    gh_label = dest.create_label(labelname, label_color);
     gh_labels[labelname] = gh_label;
     sleep(sleep_after_request)
 
@@ -1729,7 +1733,7 @@ def normalize_labels(dest, labels):
         if any(x in labels for x in ['duplicate', 'invalid', 'wontfix']):
             return
         labels.append('invalid')
-        gh_ensure_label(dest, 'invalid', labelcolor['milestone'])
+        gh_ensure_label(dest, 'invalid', label_category='milestone')
 
 def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     if dest is None : return
@@ -2052,33 +2056,33 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 label = mapcomponent(component)
                 if label:
                     labels.append(label)
-                    gh_ensure_label(dest, label, labelcolor['component'])
+                    gh_ensure_label(dest, label, label_category='component')
 
             priority = src_ticket_data.pop('priority', default_priority)
             if priority != default_priority:
                 label = mappriority(priority)
                 labels.append(label)
-                gh_ensure_label(dest, label, labelcolor['priority'])
+                gh_ensure_label(dest, label, label_category='priority')
 
             severity = src_ticket_data.pop('severity', default_severity)
             if severity != default_severity:
                 labels.append(severity)
-                gh_ensure_label(dest, severity, labelcolor['severity'])
+                gh_ensure_label(dest, severity, label_category='severity')
 
             tickettype = maptickettype(src_ticket_data.pop('type', None))
             if tickettype is not None :
                 labels.append(tickettype)
-                gh_ensure_label(dest, tickettype, labelcolor['type'])
+                gh_ensure_label(dest, tickettype, label_category='type')
 
             resolution = mapresolution(src_ticket_data.pop('resolution', None))
             if resolution is not None:
                 labels.append(resolution)
-                gh_ensure_label(dest, resolution, labelcolor['resolution'])
+                gh_ensure_label(dest, resolution, label_category='resolution')
 
             keywords, keyword_labels = mapkeywords(src_ticket_data.get('keywords', ''))
             for label in keyword_labels:
                 labels.append(label)
-                gh_ensure_label(dest, label, labelcolor['keyword'])
+                gh_ensure_label(dest, label, label_category='keyword')
 
             milestone, label = mapmilestone(src_ticket_data.pop('milestone', None))
             if milestone and milestone in milestone_map:
@@ -2091,13 +2095,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 milestone = None
             elif label:
                 labels.append(label)
-                gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['milestone'])
+                gh_ensure_label(dest, label, label_category='milestone')
 
             status = src_ticket_data.pop('status', status)
             issue_state, label = mapstatus(status)
             if label:
                 labels.append(label)
-                gh_ensure_label(dest, label, labelcolor.get(label, None) or labelcolor['resolution'])
+                gh_ensure_label(dest, label, label_category='resolution')
 
             normalize_labels(dest, labels)
             return milestone, labels
@@ -2162,7 +2166,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     labels.remove(remove_label)
             if add_label:
                 labels.append(add_label)
-                gh_ensure_label(dest, add_label, labelcolor[label_category])
+                gh_ensure_label(dest, add_label, label_category=label_category)
             normalize_labels(dest, labels)
             if set(labels) != set(oldlabels):
                 gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
@@ -2357,7 +2361,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                         labels.remove(label)
                 for label in newkeywordlabels:
                     labels.append(label)
-                    gh_ensure_label(dest, label, labelcolor['keyword'])
+                    gh_ensure_label(dest, label, label_category='keyword')
                 if oldkeywords != newkeywords:
                     comment_data['note'] = '**Changing keywords** from "' + ', '.join(oldkeywords) + '" to "' + ', '.join(newkeywords) + '".'
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
