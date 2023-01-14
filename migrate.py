@@ -1751,7 +1751,7 @@ def normalize_labels(dest, labels):
         labels.remove('duplicate/invalid/wontfix')
         if not any(x in labels for x in ['duplicate', 'invalid', 'wontfix']):
             labels.append('invalid')
-            gh_ensure_label(dest, 'invalid', label_category='milestone')
+            gh_ensure_label(dest, 'invalid', label_category='resolution')
     if any(x in labels for x in ['duplicate', 'invalid', 'wontfix', 'worksforme']):
         labels = sorted(set(labels).difference(priority_labels))
     return labels
