@@ -1708,7 +1708,7 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
     note = preamble + note
 
     if comment_id:
-        anchor = f'<div id="comment:{comment_id}" align="right">Comment {comment_id}</div>'
+        anchor = f"<a id='comment:{comment_id}'>**Comment {comment_id}:**</a>"
         note = anchor + '\n' + note
 
     if dest is None : return
