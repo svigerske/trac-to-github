@@ -42,7 +42,20 @@ migrate: yes
 # add_label: Websites
 
 # Keywords to migrate to labels (all others go to the issue description)
-keywords_to_labels: {'beginner': 'good first issue'}
+keywords_to_labels: {
+ 'beginner': 'good first issue',
+ # Introduce "component: linear optimization" -- more specific than "component: numerical".
+ # Do not map the keyword "optimization" though -- it is often used for "code optimizations"
+ 'lp': 'component: linear optimization',
+ 'milp': 'component: linear optimization',
+ 'mip': 'component: linear optimization',
+ 'mixedintegerlinearprogram': 'component: linear optimization',
+ 'mixed integer programming': 'component: linear optimization',
+ 'semidefinite programming': 'component: linear optimization',
+ 'linearconstraint': 'component: linear optimization',
+ 'linear optimization': 'component: linear optimization',
+ 'glpsol': 'component: linear optimization',
+ 'glpk': 'component: linear optimization'}
 
 # Migrate milestones
 migrate_milestones: yes
