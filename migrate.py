@@ -1971,11 +1971,13 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             for dep in dependencies.replace(';', ' ').replace(',', ' ').split():
                 dep = dep.strip()
                 if m := re.fullmatch('#?([0-9]+)', dep):
+                    if not description_post:
+                        description_post += '\n'
                     # Use this phrase, used by various dependency managers:
                     # https://www.dpulls.com/
                     # https://github.com/z0al/dependent-issues
                     # https://github.com/gregsdennis/dependencies-action/pull/5
-                    description_post += f'\n\nDepends on #{m.group(1)}'
+                    description_post += f'\nDepends on #{m.group(1)}'
                 elif dep:
                     # some free form remark in Dependencies
                     other_deps.append(dep)
