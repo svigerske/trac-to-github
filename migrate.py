@@ -1412,6 +1412,9 @@ def github_ref_url(ref):
 
 def github_ref_markdown(ref):
     url = github_ref_url(ref)
+    if re.fullmatch(r'[0-9a-f]{40}', ref):
+        # shorten displayed commit sha
+        ref = ref[:7]
     return f'[{ref}]({url})'
 
 def convert_xmlrpc_datetime(dt):
@@ -2006,8 +2009,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             branch = src_ticket_data.pop('branch', '')
             commit = src_ticket_data.pop('commit', '')
             # These two are the same in all closed-fixed tickets. Reduce noise.
-            if branch and branch == commit:
-                description_post += '\n\n**Branch/Commit:** ' + github_ref_markdown(branch)
+            if branch and commit:
+                if branch == commit:
+                    description_post += '\n\n**Branch/Commit:** ' + github_ref_markdown(branch)
+                else:
+                    description_post += '\n\n**Branch/Commit:** ' + github_ref_markdown(branch) + ' @ ' + github_ref_markdown(commit)
             else:
                 if branch:
                     description_post += f'\n\n**Branch:** ' + github_ref_markdown(branch)
