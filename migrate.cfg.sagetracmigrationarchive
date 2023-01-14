@@ -81,7 +81,10 @@ components_to_labels = {
  'optional packages': 'component: packages: optional',
  'plotting': 'component: graphics',
  'doctest': 'component: doctest coverage',
- 'sage-check': 'component: spkg-check'}
+ 'sage-check': 'component: spkg-check',
+ # No "component: " prefix for these:
+ 'performance': 'performance',
+ 'refactoring': 'refactoring'}
 
 # Colors for labels by label name or label category
 label_colors = {
@@ -131,7 +134,9 @@ label_colors = {
  'good first issue': '7057ff',
  'bug': 'd73a4a',
  'enhancement': '696969',
- 'resolution': '969696'}
+ 'performance': '696969',
+ 'refactoring': '696969',
+ 'resolution': 'a6a6a6'}
 
 [attachments]
 
