@@ -1710,6 +1710,7 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
     return a, local_filename, note
 
 minimized_issue_comments = []
+local_filenames = dict()  # local_filename -> comment_id
 def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minimize=True):
     preamble = ''
     attachments = comment.pop('attachments', [])
@@ -1718,6 +1719,10 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
         a, local_filename, note = gh_create_attachment(dest, issue, attachment['attachment_name'],
                                                        src_ticket_id, attachment, comment=comment)
         # write attachment data to binary file
+        if local_filename in local_filenames:
+            logging.warning(f'Overwriting attachment {local_filename} with a new version')
+        else:
+            local_filenames[local_filename] = comment_id
         open(local_filename, 'wb').write(attachment['attachment'])
         if preamble:
             preamble += '\n\n'
