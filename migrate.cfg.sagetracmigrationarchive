@@ -192,7 +192,8 @@ milestone_prefix: sage-
 migration_archive: archive
 
 # Trac to GitHub user mappings
-username_modules = ['contributors_from_sage_developer_map']
+username_modules = ['contributors_from_sage_trac_users',
+                    'contributors_from_sage_developer_map']
 usernames = {
  'fhivert': 'hivert',
  'wstein': 'williamstein'}

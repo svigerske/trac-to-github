@@ -6,6 +6,7 @@ import pprint
 
 from xml.dom.minidom import parseString
 
+
 def sage_contributors():
     http = urllib3.PoolManager(
         cert_reqs='CERT_REQUIRED',
@@ -13,7 +14,10 @@ def sage_contributors():
     )
 
     ack = parseString(http.request('GET', 'https://raw.githubusercontent.com/sagemath/website/master/conf/contributors.xml').data.decode('utf-8'))
+    yield from sage_contributors_from_xmldoc(ack)
 
+
+def sage_contributors_from_xmldoc(ack):
     for c in ack.getElementsByTagName("contributors")[0].childNodes:
         if c.nodeType != ack.ELEMENT_NODE:
             continue
@@ -23,9 +27,11 @@ def sage_contributors():
 
 
 # API
-def trac_to_github():
+def trac_to_github(contributors=None):
+    if contributors is None:
+        contributors = sage_contributors()
     usernames = {}
-    for c in sage_contributors():
+    for c in contributors:
         trac = c.getAttribute("trac")
         github = c.getAttribute("github")
         if trac:
@@ -40,7 +46,9 @@ def trac_to_github():
 
 
 # API
-def trac_full_names():
+def trac_full_names(contributors=None):
+    if contributors is None:
+        contributors = sage_contributors()
     usernames = {}
     for c in sage_contributors():
         trac = c.getAttribute("trac")
