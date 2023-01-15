@@ -1828,14 +1828,24 @@ def convert_trac_username(origname):
     if origname.startswith('gh:'):
         # example: https://trac.sagemath.org/ticket/24876
         return origname[3:]
-    gh_name = users_map.get(origname, None)
-    if gh_name:
-        return gh_name
-    assert not origname.startswith('@')
-    if re.fullmatch('[-A-Za-z._0-9]+', origname):
-        # heuristic pattern for valid Trac account name (not an email address or full name or junk)
-        unmapped_users[origname] += 1
-    return None
+    try:
+        gh_name = users_map[origname]
+    except KeyError:
+        # Not a known Trac user
+        assert not origname.startswith('@')
+        if re.fullmatch('[-A-Za-z._0-9]+', origname):
+            # heuristic pattern for valid Trac account name (not an email address or full name or junk)
+            unmapped_users[origname] += 1
+        return None
+    else:
+        if gh_name:
+            return gh_name
+        # Known Trac user, but no known mapping to GitHub
+        # Create mannequin user
+        username = origname.replace('.', '-').replace('_', '-').strip('-')
+        username = f'{unknown_users_prefix}{username}'
+        unmapped_users['@' + username] += 1
+        return username
 
 def gh_username(dest, origname):
     github_name = convert_trac_username(origname)
@@ -1847,11 +1857,6 @@ gh_users = {}
 def gh_user_url(dest, username):
     if username.startswith('@'):
         username = username[1:]
-    elif re.fullmatch('[-A-Za-z._0-9]+', username):
-        # heuristic pattern for valid Trac account name (not an email address or junk)
-        # Use this URL as the id (this is current best guess what a mannequin user would look like)
-        username = username.replace('.', '-').replace('_', '-').strip('-')
-        username = f'{unknown_users_prefix}{username}'
     else:
         return None
     try:

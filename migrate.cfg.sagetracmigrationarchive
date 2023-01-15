@@ -195,6 +195,8 @@ migration_archive: archive
 username_modules = ['contributors_from_sage_trac_users',
                     'contributors_from_sage_developer_map']
 usernames = {
+ 'git': 'sagetrac-git',
+ 'galois': 'sagetrac-gitlab-bot',
  'fhivert': 'hivert',
  'wstein': 'williamstein'}
 
