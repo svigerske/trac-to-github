@@ -171,11 +171,14 @@ if config.has_option('target', 'migration_archive'):
     migration_archive = config.get('target', 'migration_archive')
 
 users_map = {}
+user_full_names = {}
 username_modules = []
 if config.has_option('target', 'username_modules'):
     username_modules = ast.literal_eval(config.get('target', 'username_modules'))
     for module in username_modules:
-        users_map.update(__import__(module).trac_to_github())
+        module = __import__(module)
+        users_map.update(module.trac_to_github())
+        user_full_names.update(module.trac_full_names())
 users_map.update(ast.literal_eval(config.get('target', 'usernames')))
 
 unknown_users_prefix = ''
@@ -2298,7 +2301,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             elif change_type == "resolution" :
                 oldresolution = mapresolution(oldvalue)
                 newresolution = mapresolution(newvalue)
-                labels = update_labels(labels, newresolution, oldresolution, 'type')
+                labels = update_labels(labels, newresolution, oldresolution, 'resolution')
             elif change_type == "component" :
                 oldlabel = mapcomponent(oldvalue)
                 newlabel = mapcomponent(newvalue)
