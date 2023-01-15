@@ -119,11 +119,11 @@ class MigrationArchiveWritingRequester:
                 file_path = '/'.join(urlparse(input['file_url']).path.split('/')[2:])
                 url = urljoin(base_url, f'files/{file_path}')
             case 'GET', ['users', login]:
-                output = {}
+                if output is None:
+                    output = {}
                 output['type'] = 'user'
                 output['login'] = login
                 output['emails'] = []
-                # output['name'] = ....   # can get if needed
                 url = f"https://github.com/{login}"
             case 'PATCH', [org, repo]:
                 with open(self._migration_archive / f'repositories_000001.json.in', "r") as f:

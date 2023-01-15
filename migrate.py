@@ -1848,27 +1848,33 @@ def convert_trac_username(origname):
         return username
 
 def gh_username(dest, origname):
-    github_name = convert_trac_username(origname)
-    if github_name:
-        return '@' + github_name
+    username = convert_trac_username(origname)
+    if username:
+        _gh_user(dest, username)
+        return '@' + username
     return origname
 
 gh_users = {}
-def gh_user_url(dest, username):
-    if username.startswith('@'):
-        username = username[1:]
-    else:
-        return None
+def _gh_user(dest, username):
     try:
-        return gh_users[username].url
+        return gh_users[username]
     except KeyError:
         headers, data = dest._requester.requestJsonAndCheck(
-            "GET", f"/users/{username}"
+            "GET", f"/users/{username}", input={'name': user_full_names.get(username)}
         )
         gh_users[username] = NamedUser(
             dest._requester, headers, data, completed=True
         )
-        return gh_users[username].url
+        return gh_users[username]
+
+def gh_user_url(dest, username):
+    if username.startswith('@'):
+        username = username[1:]
+    else:
+        username = convert_trac_username(username)
+        if not username:
+            return None
+    return _gh_user(dest, username).url
 
 def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tba']):
     "Split and transform comma- separated lists of names"
@@ -2224,8 +2230,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             milestone, labels = milestone_labels(tmp_src_ticket_data, status)
 
             # Create issue events for initial labels & milestone
-            user = gh_username(dest, tmp_src_ticket_data.get('reporter'))
-            user_url = gh_user_url(dest, user)
+            user_url = gh_user_url(dest, tmp_src_ticket_data.get('reporter'))
             event_data = {
                 'created_at': convert_xmlrpc_datetime(time_created),
                 'actor': user_url,
@@ -2269,7 +2274,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             #     print ("  SKIPPING CHANGE BY", author)
             #     continue
             user = gh_username(dest, author)
-            user_url = gh_user_url(dest, user)
+            user_url = gh_user_url(dest, author)
 
             comment_data = {
                 'created_at': convert_trac_datetime(change_time),
