@@ -200,12 +200,39 @@ migration_archive: archive
 username_modules = ['contributors_from_sage_trac_users',
                     'contributors_from_sage_developer_map']
 usernames = {
+ # Bots
  'git': 'sagetrac-git',
  'vbraun_spam': 'sagetrac-vbraun-spam',
  'galois': 'sagetrac-gitlab-bot',
  'github': 'sagetrac-github-bot',
- 'fhivert': 'hivert',
+ # Users not in contributors list
+ 'Winfried': 'w-bruns',
+ # Typos and ad-hoc mentions
  'wstein': 'williamstein',
- 'Winfried': 'w-bruns'}
+ 'fhivert': 'hivert',
+ 'krcisman': 'kcrisman',
+ 'ntheiry': 'nthiery',
+ 'Scrimshaw': 'tscrim',
+ 'Dima': 'dimpase',
+ 'dima': 'dimpase',
+ 'simonking': 'simon-king-jena',
+ 'SImonKing': 'simon-king-jena',
+ 'timothyclemans': 'TimothyClemans',
+ 'TimothyClemens': 'TimothyClemans',
+ 'Nathann': 'nathanncohen',
+ 'citro': 'craigcitro',
+ 'dkirkby': 'sagetrac-drkirkby',
+ 'kirkby': 'sagetrac-drkirkby',
+ 'kiwifb': 'kiwifb',
+ 'vinklein': 'vinklein',
+ 'mabsoff': 'sagetrac-mabshoff',
+ 'aschillin': 'anneschilling',
+ 'jdemeye': 'jdemeyer',
+ 'jdmeyer': 'jdemeyer',
+ 'monteil': 'sagetrac-tmonteil',
+ 'djoyner': 'wdjoyner',
+ 'bhtuz': 'bhutz',
+ 'MKoeppe': 'mkoeppe',
+ 'Zimmermann': 'zimmermann6'}
 
 unknown_users_prefix: sagetrac-

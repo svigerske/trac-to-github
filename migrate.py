@@ -1871,6 +1871,7 @@ ignored_mentions = set(['option',
                         'cached_in_parent',
                         'total_ordering',
                         'decorator',
+                        'rename_keyword',
                         ])
 
 def convert_trac_username(origname, is_mention=False):
