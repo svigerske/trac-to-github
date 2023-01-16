@@ -1473,7 +1473,7 @@ def mapcomponent(component):
     component_frequency[label] += 1
     return label
 
-ignored_values = ['N/A', 'tba', 'tbd', 'closed', 'somebody']
+ignored_values = ['N/A', 'tba', 'tbd', 'tdb', 'closed', 'somebody']
 
 default_priority = None
 def mappriority(priority):
@@ -1821,8 +1821,27 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 
 unmapped_users = defaultdict(lambda: 0)
 
+ignored_mentions = set(['option',
+                        'coerce_binop',
+                        'cached_function',
+                        'cached_method',
+                        'wraps',
+                        'sage_wraps',
+                        'combinatorial_map',
+                        'staticmethod',
+                        'options',
+                        'parallel',
+                        'interact',
+                        'suboption',
+                        'rpath',
+                        'memoize',
+                        'cached_method_with_conditions',
+                        ])
+
 def convert_trac_username(origname, is_mention=False):
     if origname in ignored_values:
+        return None
+    if is_mention and origname in ignored_mentions:
         return None
     origname = origname.strip('\u200b')
     if origname.startswith('gh-'):
@@ -1886,7 +1905,7 @@ def gh_user_url(dest, username):
             return None
     return _gh_user(dest, username).url
 
-def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tba']):
+def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tdb', 'tba']):
     "Split and transform comma- separated lists of names"
     if not orignames:
         return ''

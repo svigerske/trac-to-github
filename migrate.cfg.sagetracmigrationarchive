@@ -198,6 +198,7 @@ usernames = {
  'git': 'sagetrac-git',
  'vbraun_spam': 'sagetrac-vbraun-spam',
  'galois': 'sagetrac-gitlab-bot',
+ 'github': 'sagetrac-github-bot',
  'fhivert': 'hivert',
  'wstein': 'williamstein'}
 
