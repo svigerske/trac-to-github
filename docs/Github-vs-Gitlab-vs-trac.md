@@ -86,6 +86,11 @@ Some in the Sage community have advocated in the past for using [Gitlab](https:/
 
 Some have [suggested](https://groups.google.com/g/sage-devel/c/ayOL8_bzOfk/m/iM6AymFDFwAJ) [mirroring](https://docs.gitlab.com/ee/user/project/import/github.html#mirror-a-repository-and-share-pipeline-status) Sage on Gitlab as well as Github.  Mirroring is not part of this proposal, but could be set up in the future if desired by the community.
 
+## Other options
+
+[codeberg](https://codeberg.org/) is another alternative to GitHub/Lab, being very similar in functionality, yet run by a non-profit.
+Cf. for [more options](https://docs.codeberg.org/getting-started/what-is-codeberg/#what-is-codeberg-e.v.%3F).
+
 ## Other references
 
 There are many references online about the differences between Github and Gitlab, including the slightly different workflows they use.  Here is a sampling.
