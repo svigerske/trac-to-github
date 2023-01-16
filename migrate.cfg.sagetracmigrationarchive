@@ -205,6 +205,7 @@ usernames = {
  'galois': 'sagetrac-gitlab-bot',
  'github': 'sagetrac-github-bot',
  'fhivert': 'hivert',
- 'wstein': 'williamstein'}
+ 'wstein': 'williamstein',
+ 'Winfried': 'w-bruns'}
 
 unknown_users_prefix: sagetrac-
