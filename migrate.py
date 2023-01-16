@@ -1492,7 +1492,7 @@ def mapcomponent(component):
     component_frequency[label] += 1
     return label
 
-ignored_values = ['N/A', 'tba', 'tbd', 'tdb', 'closed', 'somebody']
+ignored_values = ['N/A', 'tba', 'T.b.a.', 'tbd', 'tdb', 'closed', 'somebody']
 
 default_priority = None
 def mappriority(priority):
