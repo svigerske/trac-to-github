@@ -2548,13 +2548,15 @@ def output_unmapped_milestones(data):
             for key, frequency in data:
                 f.write(' '.join([key, str(frequency)]) +'\n')
 
+min_keyword_frequency_displayed = 20
 def output_keyword_frequency(data):
     table = Table(title="Keyword frequency")
     table.add_column("Keyword", justify="right", style="cyan", no_wrap=True)
     table.add_column("Frequency", style="magenta")
 
     for key, frequency in data:
-        table.add_row(key, str(frequency))
+        if frequency >= min_keyword_frequency_displayed:
+            table.add_row(key, str(frequency))
 
     console = Console()
     console.print(table)
