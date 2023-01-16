@@ -1839,6 +1839,18 @@ ignored_mentions = set(['option',
                         'property',
                         'fork',
                         'failure',
+                        'retry',
+                        'lazy_attribute',
+                        'abstract_method',
+                        'abstract_class',
+                        'default_method',
+                        'dummy_method',
+                        'lazy_class_attribute',
+                        'weak_cached_function',
+                        'cache_if_immutable',
+                        'cached_in_parent',
+                        'total_ordering',
+                        'decorator',
                         ])
 
 def convert_trac_username(origname, is_mention=False):
