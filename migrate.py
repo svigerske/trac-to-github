@@ -1836,6 +1836,9 @@ ignored_mentions = set(['option',
                         'rpath',
                         'memoize',
                         'cached_method_with_conditions',
+                        'property',
+                        'fork',
+                        'failure',
                         ])
 
 def convert_trac_username(origname, is_mention=False):
