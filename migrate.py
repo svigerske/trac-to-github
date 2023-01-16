@@ -325,17 +325,21 @@ RE_HTTPS1 = re.compile(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]')
 RE_HTTPS2 = re.compile(r'\[\[(https?://[^\]]+)\]\]')
 RE_HTTPS3 = re.compile(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
 RE_HTTPS4 = re.compile(r'\[(https?://[^\s\[\]\|]+)\]')
+RE_TICKET_COMMENT1 = re.compile(r'\[\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s*\|\s*(.+?)\]\]')
+RE_TICKET_COMMENT2 = re.compile(r'\[\[ticket:([1-9]\d*)#comment:([1-9]\d*)\]\]')
+RE_TICKET_COMMENT3 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)\]')
+RE_TICKET_COMMENT4 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
 RE_COMMENT1 = re.compile(r'\[\[comment:([1-9]\d*)\s*\|\s*(.+?)\]\]')
 RE_COMMENT2 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
 RE_COMMENT3 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
-RE_TICKET_COMMENT1 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)\]')
-RE_TICKET_COMMENT2 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
-RE_ATTACHMENT1 = re.compile(r'\[attachment:([^\s\|]+)[\s\|](.+)\]')
-RE_ATTACHMENT2 = re.compile(r'\[attachment:([^\s]+)\]')
-RE_ATTACHMENT3 = re.compile(r'(?<=\s)attachment:([^\s]+)\.\s')
-RE_ATTACHMENT4 = re.compile(r'^attachment:([^\s]+)\.\s')
-RE_ATTACHMENT5 = re.compile(r'(?<=\s)attachment:([^\s]+)')
-RE_ATTACHMENT6 = re.compile(r'^attachment:([^\s]+)')
+RE_ATTACHMENT1 = re.compile(r'\[\[attachment:([^\s\|\]]+)[\s\|](.+?)\]\]')
+RE_ATTACHMENT2 = re.compile(r'\[\[attachment:([^\s]+?)\]\]')
+RE_ATTACHMENT3 = re.compile(r'\[attachment:([^\s\|\]]+)[\s\|](.+?)\]')
+RE_ATTACHMENT4 = re.compile(r'\[attachment:([^\s]+?)\]')
+RE_ATTACHMENT5 = re.compile(r'(?<=\s)attachment:([^\s]+)\.\s')
+RE_ATTACHMENT6 = re.compile(r'^attachment:([^\s]+)\.\s')
+RE_ATTACHMENT7 = re.compile(r'(?<=\s)attachment:([^\s]+)')
+RE_ATTACHMENT8 = re.compile(r'^attachment:([^\s]+)')
 RE_WIKI1 = re.compile(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]')
 RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]')
 RE_WIKI3 = re.compile(r'\[\[\s*([^\]]+)\]\]')
@@ -929,12 +933,14 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_IMAGE4.sub(r'<img src="\1" \2>', line)
             line = RE_IMAGE5.sub(conv_help.wiki_image, line)  # \2 is the image width
 
+            line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
+            line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
+            line = RE_TICKET_COMMENT3.sub(conv_help.ticket_comment_link, line)
+            line = RE_TICKET_COMMENT4.sub(conv_help.ticket_comment_link, line)
+
             line = RE_COMMENT1.sub(conv_help.comment_link, line)
             line = RE_COMMENT2.sub(conv_help.comment_link, line)
             line = RE_COMMENT3.sub(conv_help.comment_link, line)
-
-            line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
-            line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
 
             line = RE_ATTACHMENT1.sub(conv_help.attachment, line)
             line = RE_ATTACHMENT2.sub(conv_help.attachment, line)
@@ -942,6 +948,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_ATTACHMENT4.sub(conv_help.attachment, line)
             line = RE_ATTACHMENT5.sub(conv_help.attachment, line)
             line = RE_ATTACHMENT6.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT7.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT8.sub(conv_help.attachment, line)
 
             line = RE_WIKI1.sub(conv_help.wiki_link, line)
             line = RE_WIKI2.sub(conv_help.wiki_link, line)
@@ -1145,6 +1153,16 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     # text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
     # text = RE_BRANCH_PUSH.sub(r'**\1**', text)
 
+    text = unescape(text)
+
+    return text
+
+def escape(text):
+    text = text.replace('comment:', 'COMMENT__COLON')
+    return text
+
+def unescape(text):
+    text = text.replace('COMMENT__COLON', 'comment:')
     return text
 
 class WikiConversionHelper:
@@ -1216,6 +1234,7 @@ class WikiConversionHelper:
             label = '#{} comment:{}'.format(ticket, comment)
         else:
             label = match.group(3)
+        label = escape(label)
         if keep_trac_ticket_references:
             return r'[%s](%s/%s#comment:%s)' % (label, trac_url_ticket, ticket, comment)
         return r'[%s](%s/issues/%s#comment:%s)' % (label, target_url_issues_repo, ticket, comment)
@@ -1225,14 +1244,14 @@ class WikiConversionHelper:
         Return a formatted string that replaces the match object found by re
         in the case of a comment link.
         """
-        mg = match.groups()
-        comment = mg[0]
+        comment = match.group(1)
         s = '%3A'
-        if len(mg) > 1:
-            label = mg[1]
-            return r'%s%s%s(#comment%s%s)' % (link_displ.open, label, link_displ.close, s, comment)
+        if len(match.groups()) < 2:
+            label = 'comment:{}'.format(comment)
         else:
-            return r'%scomment:%s%s(#comment%s%s)' % (link_displ.open, comment, link_displ.close, s, comment)
+            label = match.group(2)
+        label = escape(label)
+        return r'%s%s%s(#comment%s%s)' % (link_displ.open, label, link_displ.close, s, comment)
 
     def image_link(self, match):
         """
