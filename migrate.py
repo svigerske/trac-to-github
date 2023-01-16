@@ -1674,7 +1674,8 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                 create = issue.create_attachment
             else:
                 # Cannot make it an "attachment"(?)
-                if mimetype not in ['text/plain', 'text/x-log', 'application/gzip', 'application/zip']:
+                if mimetype not in ['text/plain', 'text/x-log', 'application/gzip', 'application/zip',
+                                    'image/gif', 'image/jpeg', 'image/png']:
                     # Replace by a gzipped file
                     if attachment:
                         attachment['attachment'] = gzip.compress(attachment['attachment'])
