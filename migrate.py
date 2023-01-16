@@ -1573,7 +1573,7 @@ def mapmilestone(title):
 def gh_create_milestone(dest, milestone_data) :
     if dest is None : return None
 
-    milestone = dest.create_milestone(milestone_data['title'], milestone_data['state'], milestone_data['description'], milestone_data.get('due_date', GithubObject.NotSet), user=gh_user_url(dest, 'git') )
+    milestone = dest.create_milestone(user=gh_user_url(dest, 'git'), **milestone_data)
     sleep(sleep_after_request)
     return milestone
 
@@ -1998,18 +1998,23 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
     if migrate_milestones:
         for milestone_name in get_all_milestones(source):
             milestone = get_milestone(source, milestone_name)
+            log.debug(f'Milestone: {milestone}')
             title = milestone.pop('name')
             title, label = mapmilestone(title)
             if title:
                 log.info("Creating milestone " + title)
+                completed = milestone.pop('completed')
                 new_milestone = {
                     'description' : trac2markdown(milestone.pop('description'), '/milestones/', conv_help, False),
                     'title' : title,
-                    'state' : 'open' if str(milestone.pop('completed')) == '0'  else 'closed'
+                    'state' : 'open' if not completed else 'closed'
                     }
                 due = milestone.pop('due')
                 if due:
-                    new_milestone['due_date'] = convert_xmlrpc_datetime(due)
+                    new_milestone['due_on'] = convert_xmlrpc_datetime(due)
+                if completed:
+                    new_milestone['updated_at'] = convert_xmlrpc_datetime(completed)
+                    new_milestone['closed_at'] = convert_xmlrpc_datetime(completed)
                 if milestone:
                     log.warning(f"Discarded milestone data: {milestone}")
                 milestone_map[milestone_name] = gh_create_milestone(dest, new_milestone)
