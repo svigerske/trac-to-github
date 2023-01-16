@@ -196,6 +196,7 @@ username_modules = ['contributors_from_sage_trac_users',
                     'contributors_from_sage_developer_map']
 usernames = {
  'git': 'sagetrac-git',
+ 'vbraun_spam': 'sagetrac-vbraun-spam',
  'galois': 'sagetrac-gitlab-bot',
  'fhivert': 'hivert',
  'wstein': 'williamstein'}

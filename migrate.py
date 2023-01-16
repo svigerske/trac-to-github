@@ -674,7 +674,7 @@ def commits_list(match):
 
 def github_mention(match):
     username = match.group(1)
-    github_username = convert_trac_username(username)
+    github_username = convert_trac_username(username, is_mention=True)
     if github_username:
         return '@' + github_username
     return '`@`' + username
@@ -1821,7 +1821,7 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
 
 unmapped_users = defaultdict(lambda: 0)
 
-def convert_trac_username(origname):
+def convert_trac_username(origname, is_mention=False):
     if origname in ignored_values:
         return None
     origname = origname.strip('\u200b')
@@ -1840,6 +1840,11 @@ def convert_trac_username(origname):
         assert not origname.startswith('@')
         if re.fullmatch('[-A-Za-z._0-9]+', origname):
             # heuristic pattern for valid Trac account name (not an email address or full name or junk)
+            if not unmapped_users[origname]:
+                if is_mention:
+                    logging.info(f'Unmapped @ mention of {origname}')
+                else:
+                    logging.info(f'Unmapped Trac user {origname}')
             unmapped_users[origname] += 1
         return None
     else:
