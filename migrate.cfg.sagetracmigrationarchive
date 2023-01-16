@@ -79,10 +79,15 @@ components_to_labels = {
  'aix or hp-ux ports': 'component: porting: aix or hp-ux',
  'experimental package': 'component: packages: experimental',
  'optional packages': 'component: packages: optional',
+ 'packages': 'component: packages: standard',
  'plotting': 'component: graphics',
  'sage-check': 'component: spkg-check',
+ # Tiny components, merge into something larger
+ 'linbox': 'component: packages: standard',
+ 'givaro': 'component: packages: standard',
  # No "component: " prefix for these:
  'doctest': 'doctest coverage',
+ 'doctests': 'doctest coverage',
  'doctest coverage': 'doctest coverage',
  'performance': 'performance',
  'refactoring': 'refactoring',
