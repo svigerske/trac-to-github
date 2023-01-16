@@ -325,6 +325,17 @@ RE_HTTPS1 = re.compile(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]')
 RE_HTTPS2 = re.compile(r'\[\[(https?://[^\]]+)\]\]')
 RE_HTTPS3 = re.compile(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
 RE_HTTPS4 = re.compile(r'\[(https?://[^\s\[\]\|]+)\]')
+RE_COMMENT1 = re.compile(r'\[\[comment:([1-9]\d*)\s*\|\s*(.+?)\]\]')
+RE_COMMENT2 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
+RE_COMMENT3 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
+RE_TICKET_COMMENT1 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)\]')
+RE_TICKET_COMMENT2 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
+RE_ATTACHMENT1 = re.compile(r'\[attachment:([^\s\|]+)[\s\|](.+)\]')
+RE_ATTACHMENT2 = re.compile(r'\[attachment:([^\s]+)\]')
+RE_ATTACHMENT3 = re.compile(r'(?<=\s)attachment:([^\s]+)\.\s')
+RE_ATTACHMENT4 = re.compile(r'^attachment:([^\s]+)\.\s')
+RE_ATTACHMENT5 = re.compile(r'(?<=\s)attachment:([^\s]+)')
+RE_ATTACHMENT6 = re.compile(r'^attachment:([^\s]+)')
 RE_WIKI1 = re.compile(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]')
 RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]')
 RE_WIKI3 = re.compile(r'\[\[\s*([^\]]+)\]\]')
@@ -340,16 +351,6 @@ RE_ITALIC1 = re.compile(r'\'\'(.*?)\'\'')
 RE_ITALIC2 = re.compile(r'(?<=\s)//(.*?)//')
 RE_TICKET1 = re.compile(r'[\s]%s/([1-9]\d{0,4})' % trac_url_ticket)
 RE_TICKET2 = re.compile(r'\#([1-9]\d{0,4})')
-RE_COMMENT1 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
-RE_COMMENT2 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
-RE_TICKET_COMMENT1 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)\]')
-RE_TICKET_COMMENT2 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
-RE_ATTACHMENT1 = re.compile(r'\[attachment:([^\s\|]+)[\s\|](.+)\]')
-RE_ATTACHMENT2 = re.compile(r'\[attachment:([^\s]+)\]')
-RE_ATTACHMENT3 = re.compile(r'(?<=\s)attachment:([^\s]+)\.\s')
-RE_ATTACHMENT4 = re.compile(r'^attachment:([^\s]+)\.\s')
-RE_ATTACHMENT5 = re.compile(r'(?<=\s)attachment:([^\s]+)')
-RE_ATTACHMENT6 = re.compile(r'^attachment:([^\s]+)')
 RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
 RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
@@ -928,6 +929,20 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_IMAGE4.sub(r'<img src="\1" \2>', line)
             line = RE_IMAGE5.sub(conv_help.wiki_image, line)  # \2 is the image width
 
+            line = RE_COMMENT1.sub(conv_help.comment_link, line)
+            line = RE_COMMENT2.sub(conv_help.comment_link, line)
+            line = RE_COMMENT3.sub(conv_help.comment_link, line)
+
+            line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
+            line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
+
+            line = RE_ATTACHMENT1.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT2.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT3.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT4.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT5.sub(conv_help.attachment, line)
+            line = RE_ATTACHMENT6.sub(conv_help.attachment, line)
+
             line = RE_WIKI1.sub(conv_help.wiki_link, line)
             line = RE_WIKI2.sub(conv_help.wiki_link, line)
             line = RE_WIKI3.sub(conv_help.wiki_link, line)  # wiki link without display text
@@ -945,19 +960,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
             line = RE_TICKET1.sub(r' #\1', line) # replace global ticket references
             line = RE_TICKET2.sub(conv_help.ticket_link, line)
-
-            line = RE_COMMENT1.sub(conv_help.comment_link, line)
-            line = RE_COMMENT2.sub(conv_help.comment_link, line)
-
-            line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
-            line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
-
-            line = RE_ATTACHMENT1.sub(conv_help.attachment, line)
-            line = RE_ATTACHMENT2.sub(conv_help.attachment, line)
-            line = RE_ATTACHMENT3.sub(conv_help.attachment, line)
-            line = RE_ATTACHMENT4.sub(conv_help.attachment, line)
-            line = RE_ATTACHMENT5.sub(conv_help.attachment, line)
-            line = RE_ATTACHMENT6.sub(conv_help.attachment, line)
 
             # code surrounded by underline, mistaken as italics by github
             line = RE_UNDERLINED_CODE1.sub(r'`_\1_`', line)
