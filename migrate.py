@@ -1880,16 +1880,18 @@ def convert_trac_username(origname, is_mention=False):
                 else:
                     logging.info(f'Unmapped Trac user {origname}')
             unmapped_users[origname] += 1
-        return None
+        else:
+            return None
     else:
         if gh_name:
             return gh_name
-        # Known Trac user, but no known mapping to GitHub
-        # Create mannequin user
-        username = origname.replace('.', '-').replace('_', '-').strip('-')
-        username = f'{unknown_users_prefix}{username}'
-        unmapped_users['@' + username] += 1
-        return username
+    # Create mannequin user
+    username = origname.replace('.', '-').replace('_', '-').strip('-')
+    username = f'{unknown_users_prefix}{username}'
+    if is_mention and not username in gh_users:
+        return None
+    unmapped_users['@' + username] += 1
+    return username
 
 def gh_username(dest, origname):
     username = convert_trac_username(origname)
