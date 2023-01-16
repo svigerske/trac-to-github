@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=python fileencoding=utf-8
 '''
 Copyright © 2022 Matthias Koeppe
                  Kwankyu Lee
@@ -48,7 +47,6 @@ from copy import copy
 from datetime import datetime
 from difflib import unified_diff
 from time import sleep
-#from re import MULTILINE
 from roman import toRoman
 from xmlrpc import client
 from github import Github, GithubObject, InputFileContent
@@ -1737,8 +1735,8 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
     note = preamble + note
 
     if comment_id:
-        anchor = f"<a id='comment:{comment_id}'>Comment {comment_id}:</a>"
-        note = anchor + '\n' + note
+        anchor = f'<div id="comment:{comment_id}" align="right">Comment {comment_id}</div>\n\n'
+        note = anchor + note
 
     if dest is None : return
 
