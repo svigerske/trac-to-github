@@ -1900,7 +1900,7 @@ def convert_trac_username(origname, is_mention=False):
         return None
     if is_mention and origname in ignored_mentions:
         return None
-    origname = origname.strip('\u200b')
+    origname = origname.strip('\u200b').rstrip('.')
     if origname.startswith('gh-'):
         return origname[3:]
     if origname.startswith('github/'):
