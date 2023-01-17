@@ -1925,31 +1925,32 @@ def convert_trac_username(origname, is_mention=False):
 def gh_username(dest, origname):
     username = convert_trac_username(origname)
     if username:
-        _gh_user(dest, username)
+        _gh_user(dest, username, origname)
         return '@' + username
     return origname
 
 gh_users = {}
-def _gh_user(dest, username):
+def _gh_user(dest, username, origname):
     try:
         return gh_users[username]
     except KeyError:
         headers, data = dest._requester.requestJsonAndCheck(
-            "GET", f"/users/{username}", input={'name': user_full_names.get(username)}
+            "GET", f"/users/{username}", input={'name': user_full_names.get(origname)}
         )
         gh_users[username] = NamedUser(
             dest._requester, headers, data, completed=True
         )
         return gh_users[username]
 
-def gh_user_url(dest, username):
-    if username.startswith('@'):
-        username = username[1:]
+def gh_user_url(dest, origname):
+    if origname.startswith('@'):
+        username = origname[1:]
+        origname = None
     else:
-        username = convert_trac_username(username)
+        username = convert_trac_username(origname)
         if not username:
             return None
-    return _gh_user(dest, username).url
+    return _gh_user(dest, username, origname).url
 
 def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tdb', 'tba']):
     "Split and transform comma- separated lists of names"

@@ -52,6 +52,10 @@ def trac_full_names(contributors=None):
     usernames = {}
     for c in contributors:
         trac = c.getAttribute("trac")
+        if not trac:
+            gh = c.getAttribute("github")
+            if gh:
+                trac = 'gh-' + gh
         name = c.getAttribute("name")
         if trac and name:
             for t in trac.split(','):
