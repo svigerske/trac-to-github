@@ -2502,7 +2502,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     labels.append(label)
                     gh_ensure_label(dest, label, label_category='keyword')
                 if oldkeywords != newkeywords:
-                    comment_data['note'] = 'Changed keywords from ' + attr_value(', '.join(oldkeywords) + '** to **' + ', '.join(newkeywords))
+                    comment_data['note'] = 'Changed keywords from ' + attr_value(', '.join(oldkeywords)) + ' to ' + attr_value(', '.join(newkeywords))
                     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
                 if labels != oldlabels:
                     gh_update_issue_property(dest, issue, 'labels', labels, oldval=oldlabels, **event_data)
