@@ -29,3 +29,4 @@ if __name__ == "__main__":
 
     usernames = trac_to_github()
     pprint.pp(usernames)
+    pprint.pp(trac_full_names())

@@ -50,7 +50,7 @@ def trac_full_names(contributors=None):
     if contributors is None:
         contributors = sage_contributors()
     usernames = {}
-    for c in sage_contributors():
+    for c in contributors:
         trac = c.getAttribute("trac")
         name = c.getAttribute("name")
         if trac and name:
