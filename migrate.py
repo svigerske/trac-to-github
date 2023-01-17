@@ -371,7 +371,6 @@ RE_LAST_NEW_COMMITS = re.compile(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(
 RE_BRANCH_FORCED_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])')
 RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])')
 
-
 class CodeTag:
     """
     Handler for code protectors.
@@ -446,7 +445,6 @@ class SourceUrlConversionHelper:
             expr, path, argument = reg.value
             text = self._re[reg].sub(argument, text)
         return text
-
 
 class TracUrlConversionHelper(SourceUrlConversionHelper):
     """
@@ -683,7 +681,6 @@ def github_mention(match):
     return '`@`' + username
 
 def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
-
     # conversion of url
     text = trac_url_conv_help.sub(text)
     text = cgit_conv_help.sub(text)
@@ -1256,13 +1253,12 @@ class WikiConversionHelper:
         Return a formatted string that replaces the match object found by re
         in the case of a image link.
         """
-        mg = match.groups()
-        filename = mg[0]
-        if len(mg) > 1:
-            descr = mg[1]
-            return r'!%s%s%s(%s)' % (link_displ.open, descr, link_displ.close, filename)
+        filename = match.group(1)
+        if len(match.groups()) < 2:
+            descr = ''
         else:
-            return r'!%s%s(%s)' % (link_displ.open, link_displ.close, filename)
+            descr = match.group(2)
+        return r'!%s%s%s(%s)' % (link_displ.open, descr, link_displ.close, filename)
 
     def image_link_under_tree(self, match):
         """
@@ -1273,7 +1269,6 @@ class WikiConversionHelper:
         filename = mg[0]
         path = os.path.relpath('/tree/master/')
         return r'!%s%s(%s/\1)' % (link_displ.open, link_displ.close, filename, path)
-
 
     def wiki_image(self, match):
         """
@@ -1349,7 +1344,6 @@ class WikiConversionHelper:
             return self.wiki_link(match)
         return match.group(0)
 
-
 class IssuesConversionHelper(WikiConversionHelper):
     """
     A class that provides conversion methods that depend on information collected
@@ -1363,21 +1357,37 @@ class IssuesConversionHelper(WikiConversionHelper):
 
     def attachment(self, match):
         filename = match.group(1)
-        if keep_trac_ticket_references:
-            url = '%s/ticket/%s/%s' % (trac_url_attachment, str(self._ticket_id), filename)
-        else:
-            # FIXME: This uses the global variable dest
-            a, _, _ = gh_create_attachment(dest, None, filename, self._ticket_id, None)
-            url = a.url
-            if url.endswith('.gz'):
-                filename += '.gz'
-
         if len(match.groups()) >= 2:
             label = match.group(2)
         else:
             label = 'attachment: ' + filename
 
+        if keep_trac_ticket_references:
+            url = '%s/ticket/%s/%s' % (trac_url_attachment, str(self._ticket_id), filename)
+        else:
+            # FIXME: This uses the global variable dest
+            a, _, _ = gh_create_attachment(dest, None, filename, self._ticket_id, None)
+            if a.url.endswith('.gz'):
+                filename += '.gz'
+            url = os.path.join(attachment_export_url, attachment_path(self._ticket_id, filename))
+
         return r'[%s](%s)' % (label, url)
+
+    def image_link(self, match):
+        """
+        Return a formatted string that replaces the match object found by re
+        in the case of a image link.
+        """
+        filename = match.group(1)
+        if len(match.groups()) < 2:
+            descr = ''
+        else:
+            descr = match.group(2)
+        if keep_trac_ticket_references:
+            url = '%s/ticket/%s/%s' % (trac_url_attachment, str(self._ticket_id), filename)
+        else:
+            url = os.path.join(attachment_export_url, attachment_path(self._ticket_id, filename))
+        return r'!%s%s%s(%s)' % (link_displ.open, descr, link_displ.close, url)
 
     def wiki_link(self, match):
         """
@@ -1430,7 +1440,6 @@ class IssuesConversionHelper(WikiConversionHelper):
             if args:
                 return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
             return self.protect_wiki_link(display, link)
-
 
 def github_ref_url(ref):
     if re.fullmatch(r'[0-9a-f]{40}', ref):  # commit sha
