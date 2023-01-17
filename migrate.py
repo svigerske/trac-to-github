@@ -1365,7 +1365,6 @@ class IssuesConversionHelper(WikiConversionHelper):
         if keep_trac_ticket_references:
             url = '%s/ticket/%s/%s' % (trac_url_attachment, str(self._ticket_id), filename)
         else:
-            # FIXME: This uses the global variable dest
             a, _, _ = gh_create_attachment(dest, None, filename, self._ticket_id, None)
             if a.url.endswith('.gz'):
                 filename += '.gz'
@@ -1383,10 +1382,17 @@ class IssuesConversionHelper(WikiConversionHelper):
             descr = ''
         else:
             descr = match.group(2)
+
         if keep_trac_ticket_references:
             url = '%s/ticket/%s/%s' % (trac_url_attachment, str(self._ticket_id), filename)
         else:
-            url = os.path.join(attachment_export_url, attachment_path(self._ticket_id, filename))
+            if filename.startswith('http'):
+                url = filename
+            elif filename.startswith('ticket:'):
+                _, ticket_id, fname = filename.split(':')
+                url = os.path.join(attachment_export_url, attachment_path(ticket_id, fname))
+            else:
+                url = os.path.join(attachment_export_url, attachment_path(self._ticket_id, filename))
         return r'!%s%s%s(%s)' % (link_displ.open, descr, link_displ.close, url)
 
     def wiki_link(self, match):
@@ -1649,8 +1655,6 @@ def attachment_path(src_ticket_id, filename):
 def gh_attachment_url(src_ticket_id, filename):
     # Example attached to https://github.com/sagemath/trac-to-github/issues/53:
     # - https://github.com/sagemath/trac-to-github/files/10328066/test_attachment.txt
-    #
-    # FIXME: This uses the global variable dest
     a, local_filename, note = gh_create_attachment(dest, None, filename, src_ticket_id, None)
     return a.url
 
