@@ -1916,6 +1916,7 @@ def convert_trac_username(origname, is_mention=False):
             pass
         else:
             return None
+        gh_name = False
     else:
         if gh_name:
             return gh_name
@@ -1924,12 +1925,13 @@ def convert_trac_username(origname, is_mention=False):
     username = f'{unknown_users_prefix}{username}'
     if is_mention and not username in gh_users:
         return None
-    if not unmapped_users[(origname, is_mention, '@' + username)]:
+    key = (origname, gh_name is not False, is_mention, '@' + username)
+    if not unmapped_users[key]:
         if is_mention:
             logging.info(f'Unmapped @ mention of {origname}')
         else:
             logging.info(f'Unmapped Trac user {origname}')
-    unmapped_users[(origname, is_mention, '@' + username)] += 1
+    unmapped_users[key] += 1
     return username
 
 def gh_username(dest, origname):
@@ -2598,13 +2600,14 @@ def convert_wiki(source, dest):
 def output_unmapped_users(data):
     table = Table(title="Unmapped users")
     table.add_column("Username", justify="right", style="cyan", no_wrap=True)
+    table.add_column("Known on Trac", justify="right", style="cyan", no_wrap=True)
     table.add_column("Mention", justify="right", style="cyan", no_wrap=True)
     table.add_column("Mannequin", justify="right", style="cyan", no_wrap=True)
     table.add_column("Frequency", style="magenta")
 
     for key, frequency in data:
-        origname, is_mention, mannequin = key
-        table.add_row(origname, str(is_mention), mannequin, str(frequency))
+        origname, known_on_trac, is_mention, mannequin = key
+        table.add_row(origname, str(known_on_trac), str(is_mention), mannequin, str(frequency))
 
     console = Console()
     console.print(table)
@@ -2613,8 +2616,8 @@ def output_unmapped_users(data):
     if not os.path.exists('unmapped_users.txt'):
         with open('unmapped_users.txt', 'a') as f:
             for key, frequency in data:
-                origname, is_mention, mannequin = key
-                f.write(' '.join([origname, str(is_mention), mannequin, str(frequency)]) +'\n')
+                origname, known_on_trac, is_mention, mannequin = key
+                f.write(' '.join([origname, known_on_trac, str(is_mention), mannequin, str(frequency)]) +'\n')
 
 def output_unmapped_milestones(data):
     table = Table(title="Unmapped milestones")
