@@ -368,8 +368,6 @@ RE_COMMIT_LIST2 = re.compile(r'\|\[(.+?)\]\((.*)\)\|`(.*?)`\|')
 RE_COMMIT_LIST3 = re.compile(r'\|(.*?)\|(.*?)\|')
 RE_NEW_COMMITS = re.compile(r'(?sm)(New commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
 RE_LAST_NEW_COMMITS = re.compile(r'(?sm)(Last \d+ new commits:)\n((?:\|[^\n]*\|(?:\n|$))+)')
-RE_BRANCH_FORCED_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1[.] This was a forced push[.])')
-RE_BRANCH_PUSH = re.compile(r'^(Branch pushed to git repo; I updated commit sha1( and set ticket back to needs_review)?[.])')
 
 class CodeTag:
     """
@@ -1145,8 +1143,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = RE_TRAC_REPORT.sub(r'[Trac report of id \1 inherited from the migration](%s/\1)' % trac_url_report, text)
     text = RE_NEW_COMMITS.sub(commits_list, text)
     text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
-    # text = RE_BRANCH_FORCED_PUSH.sub(r'**\1**', text)
-    # text = RE_BRANCH_PUSH.sub(r'**\1**', text)
 
     text = unescape(text)
 
@@ -1229,10 +1225,9 @@ class WikiConversionHelper:
             label = '#{} comment:{}'.format(ticket, comment)
         else:
             label = match.group(3)
-        label = escape(label)
         if keep_trac_ticket_references:
-            return r'[%s](%s/%s#comment:%s)' % (label, trac_url_ticket, ticket, comment)
-        return r'[%s](%s/issues/%s#comment:%s)' % (label, target_url_issues_repo, ticket, comment)
+            return escape(r'[%s](%s/%s#comment:%s)' % (label, trac_url_ticket, ticket, comment))
+        return escape(r'[%s](%s/issues/%s#comment:%s)' % (label, target_url_issues_repo, ticket, comment))
 
     def comment_link(self, match):
         """
@@ -1240,13 +1235,11 @@ class WikiConversionHelper:
         in the case of a comment link.
         """
         comment = match.group(1)
-        s = '%3A'
         if len(match.groups()) < 2:
             label = 'comment:{}'.format(comment)
         else:
             label = match.group(2)
-        label = escape(label)
-        return r'%s%s%s(#comment%s%s)' % (link_displ.open, label, link_displ.close, s, comment)
+        return escape(r'%s%s%s(#comment:%s)' % (link_displ.open, label, link_displ.close, comment))
 
     def image_link(self, match):
         """
@@ -1770,7 +1763,11 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
     note = preamble + note
 
     if comment_id:
-        anchor = f'<div id="comment:{comment_id}" align="right">Comment {comment_id}</div>\n\n'
+        if (note.startswith('Branch pushed to git repo;') or
+            note.startswith('New commits:')):
+            anchor = f'<div id="comment:{comment_id}"></div>\n\n'
+        else:
+            anchor = f'<div id="comment:{comment_id}" align="right">comment:{comment_id}</div>\n\n'
         note = anchor + note
 
     if dest is None : return
