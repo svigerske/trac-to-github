@@ -1619,15 +1619,15 @@ def gh_create_issue(dest, issue_data) :
         if user_url:
             issue_data['user'] = user_url
 
-    assignee = issue_data.pop('assignee', GithubObject.NotSet)
-    if assignee is GithubObject.NotSet:
-        assignees = []
-    else:
-        assignees = [assignee]
+    ## assignee = issue_data.pop('assignee', GithubObject.NotSet)
+    ## if assignee is GithubObject.NotSet:
+    ##     assignees = []
+    ## else:
+    ##     assignees = [assignee]
 
     gh_issue = dest.create_issue(issue_data.pop('title'),
                                  description,
-                                 assignee=assignee, assignees=assignees,
+                                 #assignee=assignee, assignees=assignees,
                                  milestone=issue_data.pop('milestone', GithubObject.NotSet),
                                  labels=labels,
                                  **issue_data)
@@ -1813,6 +1813,16 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
                 if label not in oldlabels:
                     # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#labeled
                     issue.create_event('labeled', label=label, **kwds)
+    elif key == 'assignees':
+        if not github:
+            for assignee in oldval:
+                if assignee not in val:
+                    # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#unassigneeed
+                    issue.create_event('unassigned', assignee=assignee, assigner=kwds['actor'], **kwds)
+            for assignee in val:
+                if assignee not in oldval:
+                    # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#assigned
+                    issue.create_event('assigned', assignee=assignee, assigner=kwds['actor'], **kwds)
     elif key == 'assignee' :
         if issue.assignee == val:
             return
@@ -1964,14 +1974,27 @@ def gh_user_url(dest, origname):
             return None
     return _gh_user(dest, username, origname).url
 
+def gh_user_url_list(dest, orignames, ignore=['somebody', 'tbd', 'tdb', 'tba']):
+    if not orignames:
+        return []
+    urls = []
+    for origname in orignames.split(','):
+        origname = origname.strip()
+        if origname and origname not in ignore:
+            url = gh_user_url(dest, origname)
+            if url:
+               urls.append(url)
+    return urls
+
 def gh_username_list(dest, orignames, ignore=['somebody', 'tbd', 'tdb', 'tba']):
     "Split and transform comma- separated lists of names"
     if not orignames:
         return ''
     names = []
     for origname in orignames.split(','):
-        name = gh_username(dest, origname.strip())
-        if name and name not in ignore:
+        origname = origname.strip()
+        if origname and origname not in ignore:
+            name = gh_username(dest, origname)
             names.append(name)
     return ', '.join(names)
 
@@ -2286,6 +2309,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             issue_data['updated_at'] = convert_xmlrpc_datetime(time_changed)
             issue_data['number'] = int(src_ticket_id)
             issue_data['reactions'] = []
+            issue_data['assignees'] = gh_user_url_list(dest, tmp_src_ticket_data.pop('owner'))
             # Find closed_at
             for time, author, change_type, oldvalue, newvalue, permanent in reversed(changelog):
                 if change_type == 'status':
@@ -2410,22 +2434,19 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 newlabel = map_component(newvalue)
                 labels = update_labels(labels, newlabel, oldlabel, 'component')
             elif change_type == "owner" :
-                oldvalue = gh_username_list(dest, oldvalue)
-                newvalue = gh_username_list(dest, newvalue)
-                if oldvalue and newvalue:
-                    comment_data['note'] = 'Changed assignee from ' + attr_value(oldvalue) + ' to ' + attr_value(newvalue)
-                elif newvalue:
-                    comment_data['note'] = 'Assignee: ' + attr_value(newvalue)
-                else:
-                    comment_data['note'] = 'Removed assignee ' + attr_value(oldvalue)
-                if newvalue != oldvalue:
-                    gh_comment_issue(dest, issue, comment_data, src_ticket_id)
-
-                # if newvalue != oldvalue :
-                #     assignee = gh_username(dest, newvalue)
-                #     if not assignee.startswith('@') :
-                #         assignee = GithubObject.NotSet
-                #     gh_update_issue_property(dest, issue, 'assignee', assignee)
+                oldvalue = gh_user_url_list(dest, oldvalue)
+                newvalue = gh_user_url_list(dest, newvalue)
+                gh_update_issue_property(dest, issue, 'assignees', newvalue, oldval=oldvalue, **event_data)
+                # oldvalue = gh_username_list(dest, oldvalue)
+                # newvalue = gh_username_list(dest, newvalue)
+                # if oldvalue and newvalue:
+                #     comment_data['note'] = 'Changed assignee from ' + attr_value(oldvalue) + ' to ' + attr_value(newvalue)
+                # elif newvalue:
+                #     comment_data['note'] = 'Assignee: ' + attr_value(newvalue)
+                # else:
+                #     comment_data['note'] = 'Removed assignee ' + attr_value(oldvalue)
+                # if newvalue != oldvalue:
+                #     gh_comment_issue(dest, issue, comment_data, src_ticket_id)
             elif change_type == "version" :
                 if oldvalue != '':
                     desc = "Changed version from %s to %s." % (attr_value(oldvalue), attr_value(newvalue))
