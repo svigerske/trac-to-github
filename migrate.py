@@ -1763,10 +1763,12 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
     note = preamble + note
 
     if comment_id:
-        if not (note.startswith('Branch pushed to git repo;') or
-                note.startswith('New commits:')):
+        if (note.startswith('Branch pushed to git repo;') or
+            note.startswith('New commits:')):
+            anchor = f'<div id="comment:{comment_id}"></div>\n\n'
+        else:
             anchor = f'<div id="comment:{comment_id}" align="right">comment:{comment_id}</div>\n\n'
-            note = anchor + note
+        note = anchor + note
 
     if dest is None : return
 
