@@ -1906,7 +1906,7 @@ ignored_mentions = set(['option',
                         'rename_keyword',
                         ])
 
-ignored_username = set(['28', '4ti2', 'a', 'b', 'c', 'h', 'z', 'anonymous', 'anybody', 'cc', 'myself',
+ignored_usernames = set(['28', '4ti2', 'a', 'b', 'c', 'h', 'z', 'anonymous', 'anybody', 'cc', 'myself',
                         'combinatorics', 'days100', 'days28', 'days64', 'documentation', 'reference',
                         'sage-', 'sage-algebra', ' sage-combinat-commits', 'sage-combinat-devel',
                         'sd45', 'sd48', 'sd67', 'Somebody', 'someone',
@@ -1917,7 +1917,7 @@ def convert_trac_username(origname, is_mention=False):
         return None
     if is_mention and origname in ignored_mentions:
         return None
-    if origname in ignored_username:
+    if origname in ignored_usernames:
         return None
     origname = origname.strip('\u200b').rstrip('.')
     if origname.startswith('gh-'):
