@@ -2195,7 +2195,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         for change in changelog :
             time, author, change_type, oldvalue, newvalue, permanent = change
             if change_type not in first_old_values:
-                if (change_type not in ['cc', 'reporter', 'comment', 'attachment']
+                if (change_type not in ['cc', 'comment', 'attachment']
                     and not change_type.startswith('_comment')):
                     field = change_type
                     if isinstance(oldvalue, str):
