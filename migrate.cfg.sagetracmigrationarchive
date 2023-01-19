@@ -208,6 +208,7 @@ usernames = {
  # Users not in contributors list
  'Winfried': 'w-bruns',
  'asmeurer': 'asmeurer',
+ 'benjaminjones': 'benjaminfjones',
  # Typos and ad-hoc mentions
  'wstein': 'williamstein',
  'fhivert': 'hivert',
@@ -268,6 +269,7 @@ usernames = {
  'ashilling': 'anneschilling',
  'Anne': 'anneschilling',
  'fchapoton': 'fchapoton',
+ 'chapton': 'fchapoton',
  'bhackl': 'behackl',
  'bsalisbury': 'bsalisbury1',
  'bsalisbury01': 'bsalisbury1',
@@ -313,6 +315,7 @@ usernames = {
  'vbarun': 'vbraun',
  'vbaun': 'vbraun',
  'vdelacroix': 'videlec',
+ 'delecroix': 'videlec',
  'xcaruso': 'xcaruso',
  'Zabrocki': 'zabrocki',
  'Zimmermann': 'zimmermann6'}
