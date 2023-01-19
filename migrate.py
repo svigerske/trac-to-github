@@ -1495,8 +1495,8 @@ def map_component(component):
     try:
         label = components_to_labels[component]
     except KeyError:
-        # Prefix it with "component: " so that they show up as one group in the GitHub dropdown list
-        label = f'component: {component}'
+        # Prefix it with "c: " so that they show up as one group in the GitHub dropdown list
+        label = f'c: {component}'
     component_frequency[label] += 1
     return label
 
@@ -1511,7 +1511,7 @@ def map_priority(priority):
         numerical_priority = 5 - ['trivial', 'minor', 'major', 'critical', 'blocker'].index(priority)
     except ValueError:
         return priority
-    return f'p{numerical_priority} \u2013 {priority}'
+    return f'p: {numerical_priority} \u2013 {priority}'
 
 default_severity = 'normal'
 def map_severity(severity):
