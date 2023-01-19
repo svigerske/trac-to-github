@@ -1908,7 +1908,7 @@ ignored_mentions = set(['option',
 
 ignored_usernames = set(['28', '4ti2', 'a', 'b', 'c', 'h', 'z', 'anonymous', 'anybody', 'cc', 'myself',
                         'combinatorics', 'days100', 'days28', 'days64', 'documentation', 'reference',
-                        'sage-', 'sage-algebra', ' sage-combinat-commits', 'sage-combinat-devel',
+                        'sage-', 'sage-algebra', 'sage-combinat-commits', 'sage-combinat-devel',
                         'sd45', 'sd48', 'sd67', 'Somebody', 'someone',
                         ])
 
