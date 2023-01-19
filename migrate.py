@@ -2617,7 +2617,7 @@ def output_unmapped_users(data):
         with open('unmapped_users.txt', 'a') as f:
             for key, frequency in data:
                 origname, known_on_trac, is_mention, mannequin = key
-                f.write(' '.join([origname, known_on_trac, str(is_mention), mannequin, str(frequency)]) +'\n')
+                f.write(' '.join([origname, str(known_on_trac), str(is_mention), mannequin, str(frequency)]) +'\n')
 
 def output_unmapped_milestones(data):
     table = Table(title="Unmapped milestones")
@@ -2729,7 +2729,7 @@ if __name__ == "__main__":
             with open("minimized_issue_comments.json", "w") as f:
                 json.dump(minimized_issue_comments, f, indent=4)
 
-        output_unmapped_users(sorted(unmapped_users.items(), key=lambda x: x[0]))
+        output_unmapped_users(sorted(unmapped_users.items(), key=lambda x: (x[0][0].lower(), *x[0][1:])))
         output_unmapped_milestones(sorted(unmapped_milestones.items(), key=lambda x: -x[1]))
         output_keyword_frequency(sorted(keyword_frequency.items(), key=lambda x: -x[1]))
         output_component_frequency(sorted(component_frequency.items(), key=lambda x: -x[1]))
