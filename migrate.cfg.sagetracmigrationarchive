@@ -221,6 +221,7 @@ usernames = {
  'palmiery': 'jhpalmieri',
  'jpalmieri': 'jhpalmieri',
  'vivianepons': 'VivianePons',
+ 'VivanePons': 'VivianePons',
  'aghitza': 'aghitza',
  'mvgnu': 'sagetrac-mvgnu',
  'pbori': 'sagetrac-PolyBoRi',
@@ -240,6 +241,7 @@ usernames = {
  'rbradshaw': 'robertwb',
  'Scrimshaw': 'tscrim',
  'Travis': 'tscrim',
+ 'tscrm': 'tscrim',
  'Dima': 'dimpase',
  'dima': 'dimpase',
  'dimapase': 'dimpase',
@@ -298,6 +300,7 @@ usernames = {
  'slielievre': 'slel',
  'snark': 'SnarkBoojum',
  'starosta': 'staroste',
+ 'stump': 'stumpc5',
  'wdjoyner': 'wdjoyner',
  'djoyner': 'wdjoyner',
  'joyner': 'wdjoyner',
@@ -307,6 +310,11 @@ usernames = {
  'MKoeppe': 'mkoeppe',
  'mmadeu': 'mmasdeu',
  'darijg': 'darijgr',
+ 'vbarun': 'vbraun',
+ 'vbaun': 'vbraun',
+ 'vdelacroix': 'videlec',
+ 'xcaruso': 'xcaruso',
+ 'Zabrocki': 'zabrocki',
  'Zimmermann': 'zimmermann6'}
 
 unknown_users_prefix: sagetrac-
