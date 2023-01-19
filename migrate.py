@@ -2617,7 +2617,7 @@ def output_unmapped_users(data):
         with open('unmapped_users.txt', 'a') as f:
             for key, frequency in data:
                 origname, known_on_trac, is_mention, mannequin = key
-                f.write(' '.join([origname, known_on_trac, str(is_mention), mannequin, str(frequency)]) +'\n')
+                f.write(' '.join([origname, str(known_on_trac), str(is_mention), mannequin, str(frequency)]) +'\n')
 
 def output_unmapped_milestones(data):
     table = Table(title="Unmapped milestones")
