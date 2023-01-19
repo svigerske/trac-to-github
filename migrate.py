@@ -1500,7 +1500,7 @@ def map_component(component):
     component_frequency[label] += 1
     return label
 
-ignored_values = ['N/A', 'tba', 'T.b.a.', 'tbd', 'tdb', 'closed', 'somebody']
+ignored_values = ['N/A', 'tba', 'T.b.a.', 'tbd', 'tdb', 'closed', 'somebody', 'someone', 'failure']
 
 default_priority = None
 def map_priority(priority):
@@ -1815,14 +1815,16 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
                     issue.create_event('labeled', label=label, **kwds)
     elif key == 'assignees':
         if not github:
+            kwds = copy(kwds)
+            kwds['subject'] = kwds.pop('actor')
             for assignee in oldval:
                 if assignee not in val:
                     # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#unassigneeed
-                    issue.create_event('unassigned', assignee=assignee, assigner=kwds['actor'], **kwds)
+                    issue.create_event('unassigned', actor=assignee, **kwds)
             for assignee in val:
                 if assignee not in oldval:
                     # https://docs.github.com/en/developers/webhooks-and-events/events/issue-event-types#assigned
-                    issue.create_event('assigned', assignee=assignee, assigner=kwds['actor'], **kwds)
+                    issue.create_event('assigned', actor=assignee, **kwds)
     elif key == 'assignee' :
         if issue.assignee == val:
             return
@@ -2301,7 +2303,6 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
         issue_data['labels'] = labels
         if milestone:
             issue_data['milestone'] = milestone
-        #'assignee' : assignee,
 
         if not github:
             issue_data['user'] = gh_username(dest, tmp_src_ticket_data.pop('reporter'))
@@ -2309,7 +2310,8 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             issue_data['updated_at'] = convert_xmlrpc_datetime(time_changed)
             issue_data['number'] = int(src_ticket_id)
             issue_data['reactions'] = []
-            issue_data['assignees'] = gh_user_url_list(dest, tmp_src_ticket_data.pop('owner'))
+            assignees = gh_user_url_list(dest, tmp_src_ticket_data.pop('owner'))
+            issue_data['assignees'] = assignees
             # Find closed_at
             for time, author, change_type, oldvalue, newvalue, permanent in reversed(changelog):
                 if change_type == 'status':
@@ -2345,6 +2347,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             title, status = title_status(src_ticket_data.get('summary'), src_ticket_data.get('status'))
             tmp_src_ticket_data = copy(src_ticket_data)
             milestone, labels = milestone_labels(tmp_src_ticket_data, status)
+            assignees = gh_user_url_list(dest, tmp_src_ticket_data.pop('owner'))
 
             # Create issue events for initial labels & milestone
             user_url = gh_user_url(dest, tmp_src_ticket_data.get('reporter'))
@@ -2356,6 +2359,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 gh_update_issue_property(dest, issue, 'milestone', milestone, None, **event_data)
             for label in labels:
                 update_labels([], label, None)
+            gh_update_issue_property(dest, issue, 'assignees', assignees, oldval=[], **event_data)
 
         issue_state, label = map_status(status)
         if label and label not in labels:
