@@ -1668,6 +1668,8 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
             if filename.endswith('.log'):
                 # Python thinks it's text/plain.
                 mimetype = 'text/x-log'
+            elif filename.endswith('.bz2'):
+                mimetype = "application/octet-stream"
             elif filename.endswith('.gz'):
                 # Python thinks that .tar.gz is application/x-tar
                 mimetype = 'application/gzip'
