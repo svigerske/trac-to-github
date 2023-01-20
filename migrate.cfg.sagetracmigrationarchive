@@ -96,6 +96,7 @@ components_to_labels = {
  'doctest': 'doctest coverage',
  'doctests': 'doctest coverage',
  'doctest coverage': 'doctest coverage',
+ 'memleak': 'memleak',
  'performance': 'performance',
  'refactoring': 'refactoring',
  # Suppress
@@ -115,7 +116,6 @@ label_colors = {
  'c: distribution': '000080',
  'c: docker': '000080',
  'c: doctest framework': '000080',
- 'c: memleak': '000080',
  'c: notebook': '000080',
  'c: packages': '000080',
  'c: packages: optional': '000080',
@@ -149,6 +149,7 @@ label_colors = {
  'good first issue': '7057ff',
  'bug': 'd73a4a',
  'enhancement': '696969',
+ 'memleak': '696969',
  'performance': '696969',
  'refactoring': '696969',
  'doctest coverage': '696969',
