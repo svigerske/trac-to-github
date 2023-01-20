@@ -2225,7 +2225,9 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             if add_label:
                 labels.append(add_label)
 
-            component = src_ticket_data.pop('component', None)
+            component = src_ticket_data.get('component', None)
+            # We do not pop the component; this is to ensure that one can search for
+            # Trac components even after an outdated component label is deleted in GitHub.
             if component is not None and component.strip() != '' :
                 label = map_component(component)
                 if label:
