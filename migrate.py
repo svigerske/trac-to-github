@@ -1789,7 +1789,7 @@ priority_labels = set(map_priority(priority)
 def normalize_labels(dest, labels):
     if 'duplicate/invalid/wontfix' in labels:
         labels.remove('duplicate/invalid/wontfix')
-        if not any(x in labels for x in ['duplicate', 'invalid', 'wontfix']):
+        if not any(x in labels for x in ['duplicate', 'invalid', 'wontfix', 'worksforme']):
             labels.append('invalid')
             gh_ensure_label(dest, 'invalid', label_category='resolution')
     if any(x in labels for x in ['duplicate', 'invalid', 'wontfix', 'worksforme']):
