@@ -85,10 +85,10 @@ components_to_labels = {
  # Old components, merge into something larger
  'debian-package': 'c: distribution',
  'pbuild': 'c: build',
- 'spkg-check', 'c: packages: standard'
- 'packages: huge', 'c: packages: optional',
- 'notebook', 'c: user interface',
- 'sage-mode', 'c: user interface',
+ 'spkg-check': 'c: packages: standard',
+ 'packages: huge': 'c: packages: optional',
+ 'notebook': 'c: user interface',
+ 'sage-mode': 'c: user interface',
  # Tiny components, merge into something larger
  'linbox': 'c: packages: standard',
  'givaro': 'c: packages: standard',
