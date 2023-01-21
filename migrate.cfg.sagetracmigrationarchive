@@ -213,7 +213,7 @@ label_colors = {
  'performance': '696969',
  'refactoring': '696969',
  'doctest coverage': '696969',
- 'resolution': 'a6a6a6'}
+ 'resolution': 'c6c6c6'}
 
 [attachments]
 
