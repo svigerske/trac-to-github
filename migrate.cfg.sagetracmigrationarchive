@@ -277,6 +277,10 @@ usernames = {
  'Winfried': 'w-bruns',
  'asmeurer': 'asmeurer',
  'benjaminjones': 'benjaminfjones',
+ 'alexk': 'alex-konovalov',
+ 'ebriand': 'EmmanuelJeanBriand',
+ 'justin': 'RalphieBoy',
+ 'anna': 'annahaensch',
  # Typos and ad-hoc mentions
  'wstein': 'williamstein',
  'fhivert': 'hivert',
@@ -386,10 +390,6 @@ usernames = {
  'delecroix': 'videlec',
  'xcaruso': 'xcaruso',
  'Zabrocki': 'zabrocki',
- 'Zimmermann': 'zimmermann6',
- 'ebriand': 'EmmanuelJeanBriand',
- 'justin': 'RalphieBoy',
- 'anna': 'annahaensch',
- }
+ 'Zimmermann': 'zimmermann6'}
 
 unknown_users_prefix: sagetrac-
