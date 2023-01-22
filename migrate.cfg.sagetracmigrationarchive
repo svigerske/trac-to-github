@@ -215,6 +215,56 @@ label_colors = {
  'doctest coverage': '696969',
  'resolution': 'c6c6c6'}
 
+# values to be ignored on issue conversion
+ignored_values = ['N/A', 'tba', 'T.b.a.', 'tbd', 'tdb', 'closed', 'Somebody', 'somebody', 'someone', 'failure']
+
+# mentions to be ignored on issue conversion
+ignored_mentions = ['option',
+                    'coerce_binop',
+                    'cached_function',
+                    'cached_method',
+                    'cached_methods',
+                    'cached',
+                    'wraps',
+                    'sage_wraps',
+                    'combinatorial_map',
+                    'staticmethod',
+                    'options',
+                    'parallel',
+                    'run_once',
+                    'interact',
+                    'suboption',
+                    'suboptions',
+                    'rpath',
+                    'executable_path',
+                    'parallel-decorated',
+                    'cached-method',
+                    'wrap_sage',
+                    'memoize',
+                    'cached_method_with_conditions',
+                    'property',
+                    'fork',
+                    'failure',
+                    'retry',
+                    'lazy_attribute',
+                    'abstract_method',
+                    'abstract_class',
+                    'default_method',
+                    'dummy_method',
+                    'lazy_class_attribute',
+                    'weak_cached_function',
+                    'cache_if_immutable',
+                    'cached_in_parent',
+                    'total_ordering',
+                    'decorator',
+                    'rename_keyword']
+
+# usernames to be ignored on issue conversion
+ignored_usernames = ['28', '4ti2', 'a', 'b', 'c', 'h', 'z', 'anonymous', 'anybody', 'cc', 'myself',
+                     'combinatorics', 'days100', 'days28', 'days64', 'documentation', 'reference',
+                     'sage-', 'sage-algebra', 'sage-combinat-commits', 'sage-combinat-devel',
+                     'sd45', 'sd48', 'sd67', 'Somebody', 'someone']
+
 [attachments]
 
 # Export attachement as files to the local filesystem or try to upload them as Gist?

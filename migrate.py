@@ -234,6 +234,18 @@ labelcolor = {
 if config.has_option('issues', 'label_colors'):
     labelcolor.update(ast.literal_eval(config.get('issues', 'label_colors')))
 
+ignored_values = []
+if config.has_option('issues', 'ignored_values'):
+    ignored_values = ast.literal_eval(config.get('issues', 'ignored_values'))
+
+ignored_usernames = set([])
+if config.has_option('issues', 'ignored_usernames'):
+    ignored_usernames = set(ast.literal_eval(config.get('issues', 'ignored_usernames')))
+
+ignored_mentions = set([])
+if config.has_option('issues', 'ignored_mentions'):
+    ignored_mentions = set(ast.literal_eval(config.get('issues', 'ignored_mentions')))
+
 attachment_export = config.getboolean('attachments', 'export')
 if attachment_export:
     attachment_export_dir = config.get('attachments', 'export_dir')
@@ -1500,8 +1512,6 @@ def map_component(component):
     component_frequency[label] += 1
     return label
 
-ignored_values = ['N/A', 'tba', 'T.b.a.', 'tbd', 'tdb', 'closed', 'Somebody', 'somebody', 'someone', 'failure']
-
 default_priority = None
 def map_priority(priority):
     "Return GitHub label corresponding to Trac ``priority``"
@@ -1869,53 +1879,6 @@ def gh_update_issue_property(dest, issue, key, val, oldval=None, **kwds):
     sleep(sleep_after_request)
 
 unmapped_users = defaultdict(lambda: 0)
-
-ignored_mentions = set(['option',
-                        'coerce_binop',
-                        'cached_function',
-                        'cached_method',
-                        'cached_methods',
-                        'cached',
-                        'wraps',
-                        'sage_wraps',
-                        'combinatorial_map',
-                        'staticmethod',
-                        'options',
-                        'parallel',
-                        'run_once',
-                        'interact',
-                        'suboption',
-                        'suboptions',
-                        'rpath',
-                        'executable_path',
-                        'parallel-decorated',
-                        'cached-method',
-                        'wrap_sage',
-                        'memoize',
-                        'cached_method_with_conditions',
-                        'property',
-                        'fork',
-                        'failure',
-                        'retry',
-                        'lazy_attribute',
-                        'abstract_method',
-                        'abstract_class',
-                        'default_method',
-                        'dummy_method',
-                        'lazy_class_attribute',
-                        'weak_cached_function',
-                        'cache_if_immutable',
-                        'cached_in_parent',
-                        'total_ordering',
-                        'decorator',
-                        'rename_keyword',
-                        ])
-
-ignored_usernames = set(['28', '4ti2', 'a', 'b', 'c', 'h', 'z', 'anonymous', 'anybody', 'cc', 'myself',
-                        'combinatorics', 'days100', 'days28', 'days64', 'documentation', 'reference',
-                        'sage-', 'sage-algebra', 'sage-combinat-commits', 'sage-combinat-devel',
-                        'sd45', 'sd48', 'sd67', 'Somebody', 'someone',
-                        ])
 
 def convert_trac_username(origname, is_mention=False):
     if origname in ignored_values:
