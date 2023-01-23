@@ -99,10 +99,10 @@ keywords_to_labels: {
  'milp': 'component: linear programming',
  'mip': 'component: linear programming',
  'lp': 'c: linear programming',
- 'mixedintegerlinearprogram': 'component: linear programming',
- 'mixed integer programming': 'component: linear programming',
- 'linearconstraint': 'component: linear programming',
- 'linear optimization': 'component: linear programming'}
+ 'mixedintegerlinearprogram': 'c: linear programming',
+ 'mixed integer programming': 'c: linear programming',
+ 'linearconstraint': 'c: linear programming',
+ 'linear optimization': 'c: linear programming'}
 
 # Migrate milestones
 migrate_milestones: yes
@@ -165,6 +165,7 @@ components_to_labels = {
 # Colors for labels by label name or label category
 label_colors = {
  'component': '0000ff',
+ 'keyword': '0000ff',
  'c: documentation': '0075ca',
  'c: translations': '0075ca',
  'c: website/wiki': '0075ca',
