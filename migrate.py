@@ -1521,7 +1521,7 @@ def map_priority(priority):
         numerical_priority = 5 - ['trivial', 'minor', 'major', 'critical', 'blocker'].index(priority)
     except ValueError:
         return priority
-    return f'p: {numerical_priority} \u2013 {priority}'
+    return f'p: {priority} / {numerical_priority}'
 
 default_severity = 'normal'
 def map_severity(severity):
@@ -1802,11 +1802,10 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
 priority_labels = set(map_priority(priority)
                       for priority in ['trivial', 'minor', 'major', 'critical', 'blocker'])
 def normalize_labels(dest, labels):
-    if 'duplicate/invalid/wontfix' in labels:
-        labels.remove('duplicate/invalid/wontfix')
-        if not any(x in labels for x in ['duplicate', 'invalid', 'wontfix', 'worksforme']):
-            labels.append('invalid')
-            gh_ensure_label(dest, 'invalid', label_category='resolution')
+    if 'invalid' in labels:
+        if any(x in labels for x in ['duplicate', 'invalid', 'wontfix', 'worksforme']):
+            # Remove in favor of the more specific label.
+            labels.remove('invalid')
     if any(x in labels for x in ['duplicate', 'invalid', 'wontfix', 'worksforme']):
         labels = sorted(set(labels).difference(priority_labels))
     return labels
