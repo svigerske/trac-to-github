@@ -264,7 +264,9 @@ ignored_mentions = ['option',
 ignored_usernames = ['28', '4ti2', 'a', 'b', 'c', 'h', 'z', 'anonymous', 'anybody', 'cc', 'myself',
                      'combinatorics', 'days100', 'days28', 'days64', 'documentation', 'reference',
                      'sage-', 'sage-algebra', 'sage-combinat-commits', 'sage-combinat-devel',
-                     'sd45', 'sd48', 'sd67', 'Somebody', 'someone']
+                     'sd45', 'sd48', 'sd67', 'Somebody', 'someone',
+                     'amog2011', 'beginner', 'BugReporter', 'combinat', 'demosd235',
+                     'factorization']
 
 [attachments]
 
@@ -333,6 +335,20 @@ usernames = {
  'justin': 'RalphieBoy',
  'anna': 'annahaensch',
  # Typos and ad-hoc mentions
+ 'dkohel': 'sagetrac-kohel',
+ 'chaopoton': 'fchapoton',
+ 'cberg': 'sagetrac-chrisjamesberg',
+ 'carus': 'xcaruso',
+ 'campbell': 'theref',
+ 'Braun': 'vbraun',
+ 'Boussicault', 'sagetrac-boussica',
+ 'Ben': 'bhutz',
+ 'beezer': 'rbeezer',
+ 'anne': 'anneschilling',
+ 'Andrew': 'sheerluck',
+ 'Alexander': 'alexanderdreyer',
+ 'bsalisbury01': 'bsalisbury1',
+ 'bsalisbury': 'bsalisbury1',
  'wstein': 'williamstein',
  'fhivert': 'hivert',
  'krcisman': 'kcrisman',
