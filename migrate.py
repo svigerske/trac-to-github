@@ -1884,7 +1884,7 @@ def convert_trac_username(origname, is_mention=False):
         return None
     if is_mention and origname in ignored_mentions:
         return None
-    if origname in ignored_usernames:
+    if origname in ignored_names:
         return None
     origname = origname.strip('\u200b').rstrip('.')
     if origname.startswith('gh-'):
