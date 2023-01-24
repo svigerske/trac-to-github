@@ -238,9 +238,9 @@ ignored_values = []
 if config.has_option('issues', 'ignored_values'):
     ignored_values = ast.literal_eval(config.get('issues', 'ignored_values'))
 
-ignored_usernames = set([])
-if config.has_option('issues', 'ignored_usernames'):
-    ignored_usernames = set(ast.literal_eval(config.get('issues', 'ignored_usernames')))
+ignored_names = set([])
+if config.has_option('issues', 'ignored_names'):
+    ignored_names = set(ast.literal_eval(config.get('issues', 'ignored_names')))
 
 ignored_mentions = set([])
 if config.has_option('issues', 'ignored_mentions'):
