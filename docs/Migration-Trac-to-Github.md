@@ -86,13 +86,21 @@ See also: https://trac.sagemath.org/ticket/30363
   - If it is not ready for review, [mark the PR as a "Draft"](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)
 
 - For contributing a change that addresses an existing open Issue that has been created on GitHub, **instead of pushing a git branch to a Trac ticket**:
+  - Check if a PR is already attached. If so, go to the appropriate section of the guide. Otherwise follow the instructions here.
   - same as above
   - [use `Fixes #ISSUENUMBER` to link to an existing issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue); this will auto-close the linked Issue when the PR is merged.
 
 - For contributing a change that addresses an existing open Issue that has been migrated from Trac, **instead of pushing a git branch to a Trac ticket**:
+  - Check if a PR is already attached. If so, go to the appropriate section of the guide. Otherwise follow the instructions here.
   - Pull the branch from your read-only `trac` remote (see section *One time action: Instead of adding a git remote named trac*) as you use to do before.
   - Edit and commit your changes
   - Push the branch to the remote named `origin`, i.e., to your fork
+  - Follow the instructions above from there
+
+- For contributing a change that addresses an existing open Issue that already has a PR, **instead of changing the branch-field of a Trac ticket**:
+  - Add a remote to the fork of the contributor of that PR, for example `git remote add <user> git@github.com:<user>/sage.git` where `<user>` replaces the GitHub username of the contributor
+  - Pull the branch of the PR from that remote to a new local branch, for example `git checkout -b <branch-name>; git pull <user> <branch-name>` where `<branch-name>` replaces the branch name of the PR.
+  - Edit and commit your changes
   - Follow the instructions above from there
 
 - For finding PRs that are waiting for review, **instead of using Trac ticket reports**:
