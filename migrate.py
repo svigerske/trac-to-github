@@ -2164,7 +2164,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     description_post_items.append(f'{field}: {attr_value(value)}')
 
             # Sort description items
-            order = ['cc:', 'component', 'keywords', 'author', 'reviewer', 'branch', 'commit', 'depends']
+            order = ['depends', 'upstream', 'cc:', 'component', 'keywords', 'assignee', 'author', 'branch', 'commit', 'reviewer', 'merged']
             sort_order = [item[:3].lower() for item in order]  # weigh only initial 3 characters
 
             def item_key(x):
