@@ -98,10 +98,10 @@ See also: https://trac.sagemath.org/ticket/30363
   - Follow the instructions above from there
 
 - For contributing a change that addresses an existing open Issue that already has a PR, **instead of changing the branch-field of a Trac ticket**:
-  - Find the ID number of the pull request you want to contribute to. This is the sequence of digits right after the pull request's title. 
+  - Find the ID number of the pull request you want to contribute to. This is the sequence of digits right after the pull request's title.
   - Pull the branch of the PR to a new local branch using `git fetch origin pull/<ID>/head:<branch-name>; git checkout <branch-name>` where `<branch-name>` will be the name of your local branch.
   - Edit and commit your changes
-  - Follow the instructions above from there
+  - Follow the instructions above from there, but create a new PR against the branch that the PR is based upon. For this, you navigate to `https://github.com/<USER>/sage/pulls`, where `<USER>` is the name of the original creator of the PR, and click on "Create new pull request", where you can select the correct target branch as "base".
 
 - For finding PRs that are waiting for review, **instead of using Trac ticket reports**:
   - [filter PRs by review status](https://docs.github.com/en/issues/tracking-your-work-with-issues/filtering-and-searching-issues-and-pull-requests#filtering-pull-requests-by-review-status)
