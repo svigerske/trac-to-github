@@ -238,9 +238,9 @@ ignored_values = []
 if config.has_option('issues', 'ignored_values'):
     ignored_values = ast.literal_eval(config.get('issues', 'ignored_values'))
 
-ignored_usernames = set([])
-if config.has_option('issues', 'ignored_usernames'):
-    ignored_usernames = set(ast.literal_eval(config.get('issues', 'ignored_usernames')))
+ignored_names = set([])
+if config.has_option('issues', 'ignored_names'):
+    ignored_names = set(ast.literal_eval(config.get('issues', 'ignored_names')))
 
 ignored_mentions = set([])
 if config.has_option('issues', 'ignored_mentions'):
@@ -1884,7 +1884,7 @@ def convert_trac_username(origname, is_mention=False):
         return None
     if is_mention and origname in ignored_mentions:
         return None
-    if origname in ignored_usernames:
+    if origname in ignored_names:
         return None
     origname = origname.strip('\u200b').rstrip('.')
     if origname.startswith('gh-'):
