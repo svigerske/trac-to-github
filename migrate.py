@@ -2164,11 +2164,11 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     description_post_items.append(f'{field}: {attr_value(value)}')
 
             # Sort description items
-            order = ['depends', 'upstream', 'cc:', 'component', 'keywords', 'assignee', 'author', 'branch', 'commit', 'reviewer', 'merged']
-            sort_order = [item[:3].lower() for item in order]  # weigh only initial 3 characters
+            order = ['depends', 'upstream', 'cc: ', 'component', 'keywords', 'assignee', 'author', 'branch', 'commit', 'reviewer', 'merged']
+            sort_order = [item[:4].lower() for item in order]  # weigh only initial 4 characters
 
             def item_key(x):
-                initial = x[:3].lower()
+                initial = x[:4].lower()
                 try:
                     return str(sort_order.index(initial))
                 except ValueError:
