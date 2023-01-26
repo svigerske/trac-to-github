@@ -238,9 +238,9 @@ ignored_values = []
 if config.has_option('issues', 'ignored_values'):
     ignored_values = ast.literal_eval(config.get('issues', 'ignored_values'))
 
-ignored_usernames = set([])
-if config.has_option('issues', 'ignored_usernames'):
-    ignored_usernames = set(ast.literal_eval(config.get('issues', 'ignored_usernames')))
+ignored_names = set([])
+if config.has_option('issues', 'ignored_names'):
+    ignored_names = set(ast.literal_eval(config.get('issues', 'ignored_names')))
 
 ignored_mentions = set([])
 if config.has_option('issues', 'ignored_mentions'):
@@ -778,23 +778,23 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         line_temporary = line.lstrip()
         if line_temporary.startswith('{{{') and in_code:
             level += 1
-        elif line_temporary.startswith('{{{#!td'):
+        elif re.match(r'{{{\s*#!td', line_temporary):
             in_td = True
             in_td_level = level
             in_td_prefix = re.search('{{{', line).start()
             in_td_n = 0
             in_td_defect = 0
-            line =  re.sub(r'{{{#!td', r'%s' % proc_td.open, line)
+            line =  re.sub(r'{{{\s*#!td', r'%s' % proc_td.open, line)
             level += 1
-        elif line_temporary.startswith('{{{#!html') and not (in_code or in_html):
+        elif re.match(r'{{{\s*#!html', line_temporary) and not (in_code or in_html):
             in_html = True
             in_html_level = level
             in_html_prefix = re.search('{{{', line).start()
             in_html_n = 0
             in_html_defect =0
-            line =  re.sub(r'{{{#!html', r'', line)
+            line =  re.sub(r'{{{\s*#!html', r'', line)
             level += 1
-        elif line_temporary.startswith('{{{#!') and not (in_code or in_html):  # code: python, diff, ...
+        elif re.match(r'{{{\s*#!', line_temporary) and not (in_code or in_html):  # code: python, diff, ...
             in_code = True
             in_code_level = level
             in_code_prefix = re.search('{{{', line).start()
@@ -802,7 +802,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             in_code_defect = 0
             if non_blank_previous_line:
                 line = '\n' + line
-            line =  re.sub(r'{{{#!([^\s]+)', r'%s\1' % proc_code.open, line)
+            line =  re.sub(r'{{{\s*#!([^\s]+)', r'%s\1' % proc_code.open, line)
             level += 1
         elif line_temporary.rstrip() == '{{{' and not (in_code or in_html):
             # check dangling #!...
@@ -831,7 +831,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             else:
                 if non_blank_previous_line:
                     line = '\n' + line
-                line = line.replace('{{{', proc_code.open, +'\n' , 1)
+                line = line.replace('{{{', proc_code.open + '\n' , 1)
             level += 1
         elif line_temporary.rstrip() == '}}}':
             level -= 1
@@ -1251,7 +1251,7 @@ class WikiConversionHelper:
             label = 'comment:{}'.format(comment)
         else:
             label = match.group(2)
-        return escape(r'%s%s%s(#comment:%s)' % (link_displ.open, label, link_displ.close, comment))
+        return escape(r'%s%s%s(#comment%s%s)' % (link_displ.open, label, link_displ.close, '%3A', comment))
 
     def image_link(self, match):
         """
@@ -1781,7 +1781,8 @@ def gh_comment_issue(dest, issue, comment, src_ticket_id, comment_id=None, minim
 
     if comment_id:
         if (note.startswith('Branch pushed to git repo;') or
-            note.startswith('New commits:')):
+            note.startswith('New commits:') or
+            re.match(r'^Last \d+ new commits:', note)):
             anchor = f'<div id="comment:{comment_id}"></div>\n\n'
         else:
             anchor = f'<div id="comment:{comment_id}" align="right">comment:{comment_id}</div>\n\n'
@@ -1884,7 +1885,7 @@ def convert_trac_username(origname, is_mention=False):
         return None
     if is_mention and origname in ignored_mentions:
         return None
-    if origname in ignored_usernames:
+    if origname in ignored_names:
         return None
     origname = origname.strip('\u200b').rstrip('.')
     if origname.startswith('gh-'):
@@ -2093,32 +2094,37 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
             description_pre = ""
             description_post = ""
 
+            description_post_items = []
+
+            depends = ""
             dependencies = src_ticket_data.pop('dependencies', '')
             other_deps = []
             for dep in dependencies.replace(';', ' ').replace(',', ' ').split():
                 dep = dep.strip()
                 if m := re.fullmatch('#?([0-9]+)', dep):
-                    if not description_post:
-                        description_post += '\n'
+                    if depends:
+                        depends += '\n'
                     # Use this phrase, used by various dependency managers:
                     # https://www.dpulls.com/
                     # https://github.com/z0al/dependent-issues
                     # https://github.com/gregsdennis/dependencies-action/pull/5
-                    description_post += f'\nDepends on #{m.group(1)}'
+                    depends += f'Depends on #{m.group(1)}'
                 elif dep:
                     # some free form remark in Dependencies
                     other_deps.append(dep)
             if other_deps:
                 # put it back
                 src_ticket_data['dependencies'] = dependencies
+            if depends:
+                description_post_items.append(depends)
 
             owner = gh_username_list(dest, src_ticket_data.pop('owner', None))
             if owner:
-                description_post += f'\n\nAssignee: {attr_value(owner)}'
+                description_post_items.append(f'Assignee: {attr_value(owner)}')
 
             version = src_ticket_data.pop('version', None)
             if version is not None and version != 'trunk' :
-                description_post += f'\n\nVersion: {attr_value(version)}'
+                description_post_items.append(f'Version: {attr_value(version)}')
 
             # subscribe persons in cc
             cc = src_ticket_data.pop('cc', '')
@@ -2128,26 +2134,26 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                 if person == '' : continue
                 person = gh_username(dest, person)
                 ccstr += ' ' + person
-            if ccstr != '' :
-                description_post += '\n\nCC: ' + ccstr
+            if ccstr != '':
+                description_post_items.append('CC: ' + ccstr)
 
             keywords, labels = map_keywords(src_ticket_data.pop('keywords', ''))
             if keywords:
-                description_post += '\n\nKeywords: ' + attr_value(', '.join(keywords))
+                description_post_items.append('Keywords: ' + attr_value(', '.join(keywords)))
 
             branch = src_ticket_data.pop('branch', '')
             commit = src_ticket_data.pop('commit', '')
             # These two are the same in all closed-fixed tickets. Reduce noise.
             if branch and commit:
                 if branch == commit:
-                    description_post += '\n\nBranch/Commit: ' + attr_value(github_ref_markdown(branch))
+                    description_post_items.append('Branch/Commit: ' + attr_value(github_ref_markdown(branch)))
                 else:
-                    description_post += '\n\nBranch/Commit: ' + attr_value(github_ref_markdown(branch) + ' @ ' + github_ref_markdown(commit))
+                    description_post_items.append('Branch/Commit: ' + attr_value(github_ref_markdown(branch) + ' @ ' + github_ref_markdown(commit)))
             else:
                 if branch:
-                    description_post += f'\n\nBranch: ' + attr_value(github_ref_markdown(branch))
+                    description_post_items.append(f'Branch: ' + attr_value(github_ref_markdown(branch)))
                 if commit:
-                    description_post += f'\n\nCommit: ' + attr_value(github_ref_markdown(commit))
+                    description_post_items.append(f'Commit: ' + attr_value(github_ref_markdown(commit)))
 
             description = src_ticket_data.pop('description', '')
 
@@ -2156,7 +2162,21 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                     and field not in ['changetime', 'time']
                     and value and value not in ignored_values):
                     field = field.title().replace('_', ' ')
-                    description_post += f'\n\n{field}: {attr_value(value)}'
+                    description_post_items.append(f'{field}: {attr_value(value)}')
+
+            # Sort description items
+            order = ['depends', 'upstream', 'cc: ', 'component', 'keywords', '****', 'assignee', 'author', 'branch', 'commit', 'reviewer', 'merged']
+            sort_order = [item[:4].lower() for item in order]  # weigh only initial 4 characters
+
+            def item_key(x):
+                initial = x[:4].lower()
+                try:
+                    return sort_order.index(initial), initial
+                except ValueError:
+                    return sort_order.index('****'), initial
+
+            description_post_items = sorted(description_post_items, key=item_key)
+            description_post += '\n\n' + '\n\n'.join(description_post_items)
 
             description_post += f'\n\n_Issue created by migration from {trac_url_ticket}/{src_ticket_id}_\n\n'
 
@@ -2392,7 +2412,7 @@ def convert_issues(source, dest, only_issues = None, blacklist_issues = None):
                                     'attachment_name': newvalue})
             elif change_type == "comment":
                 # oldvalue is here either x or y.x, where x is the number of this comment and y is the number of the comment that is replied to
-                m = re.match('([0-9]+.)?([0-9]+)', oldvalue)
+                m = re.fullmatch(r'([0-9]+[.])?([0-9]+)', oldvalue)
                 x = m and m.group(2)
                 desc = newvalue.strip();
                 if not desc and not attachments:

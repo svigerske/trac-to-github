@@ -160,11 +160,11 @@ Conversion script: https://github.com/sagemath/trac-to-github
 Preview of the converted issues:
 - Iteration 0 (2022-09): A few issues converted from Trac tickets at https://github.com/sagemath/trac_to_gh/issues?q=is%3Aissue
 - Iterations 1–50 (2022-12): Migration archive (all 35000 issues) formatted as Markdown at https://github.com/sagemath/trac_to_gh/tree/main/Issues-11xxx etc.
-- TBD: Migration archive imported into a GitHub Enterprise Server instance
+- Iterations 51- (2023-01): Migration archive imported into a GitHub Enterprise Server instance https://34.105.185.241/sagemath
 
 Preview of the converted wiki: https://github.com/sagemath/trac_to_gh/wiki
 
-Switchover day (date to be determined; proposed: Feb 1, 2023):
+Switchover day (confirmed: Feb 1, 2023):
 - Steps see https://github.com/sagemath/trac-to-github/issues/73
 
 # Retrieving data from GitHub
