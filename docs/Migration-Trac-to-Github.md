@@ -98,8 +98,8 @@ See also: https://trac.sagemath.org/ticket/30363
   - Follow the instructions above from there
 
 - For contributing a change that addresses an existing open Issue that already has a PR, **instead of changing the branch-field of a Trac ticket**:
-  - Add a remote to the fork of the contributor of that PR, for example `git remote add <user> git@github.com:<user>/sage.git` where `<user>` replaces the GitHub username of the contributor
-  - Pull the branch of the PR from that remote to a new local branch, for example `git checkout -b <branch-name>; git pull <user> <branch-name>` where `<branch-name>` replaces the branch name of the PR.
+  - Find the ID number of the pull request you want to contribute to. This is the sequence of digits right after the pull request's title. 
+  - Pull the branch of the PR to a new local branch using `git fetch origin pull/<ID>/head:<branch-name>; git checkout <branch-name>` where `<branch-name>` will be the name of your local branch.
   - Edit and commit your changes
   - Follow the instructions above from there
 
