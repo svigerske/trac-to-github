@@ -479,11 +479,14 @@ class TracUrlConversionHelper(SourceUrlConversionHelper):
             return gh_attachment_url(ticket_id, filename)
 
         TICKET1 = [r'/(\d+)#comment:(\d+)?', subdir.ticket, r'ticket:\1#comment:\2']
-        TICKET2 = [r'/(\d+)', subdir.ticket.optional_path(), r'%s/issues/\1' % target_url_issues_repo]
+        TICKET2 = [r'/(\d+)#comment:(\d+)?', subdir.ticket.optional_path(), r'ticket:\1#comment:\2']
+        TICKET3 = [r'/(\d+)', subdir.ticket, r'%s/issues/\1' % target_url_issues_repo]
+        TICKET4 = [r'/(\d+)', subdir.ticket.optional_path(), r'%s/issues/\1' % target_url_issues_repo]
         WIKI1= [r'/([/\-\w0-9@:%._+~#=]+)', subdir.wiki, convert_wiki_link]
         ATTACHMENT1 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.attachment_ticket, convert_ticket_attachment]
         ATTACHMENT2 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.attachment_ticket.optional_path(), convert_ticket_attachment]
-        ATTACHMENT3 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.raw_attachment_ticket.optional_path(), convert_ticket_attachment]
+        ATTACHMENT3 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.raw_attachment_ticket, convert_ticket_attachment]
+        ATTACHMENT4 = [r'/(\d+)/([/\-\w0-9@:%._+~#=]+)', subdir.raw_attachment_ticket.optional_path(), convert_ticket_attachment]
 
 class CgitConversionHelper(SourceUrlConversionHelper):
     """
@@ -735,6 +738,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     in_html = False
     in_list = False
     in_table = False
+    quote_depth_decreased = False
     block = []
     table = []
     list_indents = []
@@ -751,12 +755,14 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         if line.startswith(quote_prefix):
             line = line[len(quote_prefix):]
         else:
-            if in_code:  # to recover from interrupted codeblock
+            if in_code or in_html:  # to recover from interrupted codeblock
+                text_lines.append(line)  # put it back
                 text_lines.append(quote_prefix + '}}}')
+                line = non_blank_previous_line
                 continue
 
-            if line:
-                a.append('')  # effectively insert a blank line when quote depth decreases
+            if line:  # insert a blank line when quote depth decreased
+                quote_depth_decreased = True
             quote_prefix = ''
 
         if not (in_code or in_html):
@@ -769,6 +775,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             if m:
                 prefix += m.group(1)
             quote_prefix += prefix
+            if quote_depth_decreased:
+                a.append(quote_prefix)
+                quote_depth_decreased = False
             line = line[len(prefix):]
 
         if previous_line:
