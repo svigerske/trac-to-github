@@ -998,8 +998,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_ATTACHMENT7.sub(conv_help.attachment, line)
             line = RE_ATTACHMENT8.sub(conv_help.attachment, line)
 
-            line = RE_LINEBREAK1.sub('\n', line)
-            line = RE_LINEBREAK2.sub('\n', line)
+            if in_table:
+                line = RE_LINEBREAK1.sub('<br/>', line)
+                line = RE_LINEBREAK2.sub('<br/>', line)
+            else:
+                line = RE_LINEBREAK1.sub('\n', line)
+                line = RE_LINEBREAK2.sub('\n', line)
 
             line = RE_WIKI1.sub(conv_help.wiki_link, line)
             line = RE_WIKI2.sub(conv_help.wiki_link, line)
@@ -1141,7 +1145,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     end = i
                     part = line[start:end]
                     if not inline_code:
-                        part = RE_LINEBREAK3.sub('\n', part)
+                        if in_table:
+                            part = RE_LINEBREAK3.sub('<br/>', part)
+                        else:
+                            part = RE_LINEBREAK3.sub('\n', part)
                     new_line += part
                     start = end
                     if i < l and line[i] == '`':
@@ -1202,6 +1209,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     a = a[:-1]
     text = '\n'.join(a)
+
+    # close unclosed codeblock
+    if in_code or in_html:
+        text += '\n%s' % proc_code.close
 
     # remove artifacts
     text = proc_code.replace(text)
@@ -1394,8 +1405,8 @@ class WikiConversionHelper:
             macro = macro_split[0]
             args = None
             if len(macro_split) > 1:
-                args =  macro_split[1]
-            display = 'This is the Trac macro *%s* that was inherited from the migration' % macro
+                args =  macro_split[1][:-1]  # remove ')'
+            display = 'This is the Trac macro *%s*' % macro
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
                 return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
