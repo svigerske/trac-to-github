@@ -1224,7 +1224,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
 
     # Some rewritings
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
-    text = RE_TRAC_REPORT.sub(r'[Trac report of id \1 inherited from the migration](%s/\1)' % trac_url_report, text)
+    text = RE_TRAC_REPORT.sub(r'[Trac report of id \1](%s/\1)' % trac_url_report, text)
     text = RE_NEW_COMMITS.sub(commits_list, text)
     text = RE_LAST_NEW_COMMITS.sub(commits_list, text)
 
@@ -1406,7 +1406,7 @@ class WikiConversionHelper:
             args = None
             if len(macro_split) > 1:
                 args =  macro_split[1][:-1]  # remove ')'
-            display = 'This is the Trac macro *%s*' % macro
+            display = 'Trac macro *%s*' % macro
             link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             if args:
                 return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
