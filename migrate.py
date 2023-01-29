@@ -400,6 +400,8 @@ class CodeTag:
         self._code = code
 
 at_sign = CodeTag('AT__SIGN__IN__CODE', '@')
+linebreak_sign1 =  CodeTag('LINEBREAK__SIGN1__IN__CODE', r'\\')
+linebreak_sign2 =  CodeTag('LINEBREAK__SIGN2__IN__CODE', r'[[br]]')
 
 class Brackets:
     """
@@ -646,7 +648,9 @@ RE_REPLYING_TO_TICKET = re.compile(r'Replying to \[ticket:(\d+)\s([\-\w0-9@._]+)
 
 def inline_code_snippet(match):
     code = match.group(1)
-    code = code.replace('@', at_sign.tag)
+    code = code.replace(r'@', at_sign.tag)
+    code = code.replace(r'\\', linebreak_sign1.tag)
+    code = code.replace(r'[[br]]', linebreak_sign2.tag)
     if '`' in code:
         return '<code>' + code.replace('`', r'\`') + '</code>'
     else:
@@ -933,9 +937,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = new_line
 
         if not (in_code or in_html):
-            line = RE_LINEBREAK1.sub('\n', line)
-            line = RE_LINEBREAK2.sub('\n', line)
-
             # heading
             line = re.sub(r'^(\s*)# ', r'\1\# ', line)  # first fix unintended heading
             line = RE_HEADING1.sub(heading_replace, line)
@@ -1122,6 +1123,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 elif t == 'i':
                     line = line.replace('i', toRoman(c).lower(), 1)
 
+            if not in_table:
+                line = RE_LINEBREAK1.sub('\n', line)
+                line = RE_LINEBREAK2.sub('\n', line)
+
         # only for table with td blocks:
         if in_table:
             if line == '|\\' or line == '| \\':  # leads td block
@@ -1178,6 +1183,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
     text = proc_code.replace(text)
     text = link_displ.replace(text)
     text = at_sign.replace(text)
+    text = linebreak_sign1.replace(text)
+    text = linebreak_sign2.replace(text)
 
     # Some rewritings
     text = RE_COLOR.sub(r'$\\textcolor{\1}{\\text{\2}}$', text)
