@@ -312,6 +312,8 @@ elif must_convert_wiki:
 
 RE_CAMELCASE1 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})(?=[\s\.\,\:\;\?\!])')
 RE_CAMELCASE2 = re.compile(r'(?<=\s)((?:[A-Z][a-z0-9]+){2,})$')
+RE_LINEBREAK1 = re.compile(r'\[\[br\]\]\s+')
+RE_LINEBREAK2 = re.compile(r'\\\\\s+')
 RE_HEADING1 = re.compile(r'^(=)\s(.+)\s=\s*([\#][^\s]*)?')
 RE_HEADING2 = re.compile(r'^(==)\s(.+)\s==\s*([\#][^\s]*)?')
 RE_HEADING3 = re.compile(r'^(===)\s(.+)\s===\s*([\#][^\s]*)?')
@@ -931,6 +933,9 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = new_line
 
         if not (in_code or in_html):
+            line = RE_LINEBREAK1.sub('\n', line)
+            line = RE_LINEBREAK2.sub('\n', line)
+
             # heading
             line = re.sub(r'^(\s*)# ', r'\1\# ', line)  # first fix unintended heading
             line = RE_HEADING1.sub(heading_replace, line)
