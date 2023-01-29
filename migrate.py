@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 '''
-Copyright © 2022 Matthias Koeppe
-                 Kwankyu Lee
-                 Sebastian Oehms
-                 Dima Pasechnik
+Copyright © 2022-2023 Matthias Koeppe
+                      Kwankyu Lee
+                      Sebastian Oehms
+                      Dima Pasechnik
 
 Modified and extended for the migration of SageMath from Trac to GitHub.
 
