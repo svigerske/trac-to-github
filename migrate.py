@@ -356,7 +356,7 @@ RE_LINEBREAK1= re.compile(r'(\[\[br\]\])')
 RE_LINEBREAK2 = re.compile(r'(\[\[BR\]\])')
 RE_LINEBREAK3 = re.compile(r'(\\\\\s*)')
 RE_WIKI1 = re.compile(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]')
-RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]')
+RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]\|]+)\]\]')
 RE_WIKI3 = re.compile(r'\[\[\s*([^\]]+)\]\]')
 RE_WIKI4 = re.compile(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]')
 RE_WIKI5 = re.compile(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
@@ -1416,13 +1416,14 @@ class WikiConversionHelper:
                     macro = None
                     args = None
             if macro:
-                display = 'Trac macro *%s*' % macro
+                display = 'Trac macro %s' % macro
                 link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             else:
-                return link_displ.open + link_displ.open + pagename + link_displ.close + link_displ.close
+                return link_displ.open + link_displ.open + mg[0] + link_displ.close + link_displ.close
 
             if args:
-                return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
+                args = args.replace('|', r'\|')
+                return self.protect_wiki_link('%s(%s)' % (display, args), link)
             return self.protect_wiki_link(display, link)
 
     def camelcase_wiki_link(self, match):
@@ -1539,13 +1540,14 @@ class IssuesConversionHelper(WikiConversionHelper):
                     macro = None
                     args = None
             if macro:
-                display = 'Trac macro *%s*' % macro
+                display = 'Trac macro %s' % macro
                 link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
             else:
-                return link_displ.open + link_displ.open + pagename + link_displ.close + link_displ.close
+                return link_displ.open + link_displ.open + mg[0] + link_displ.close + link_displ.close
 
             if args:
-                return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
+                args = args.replace('|', r'\|')
+                return self.protect_wiki_link('%s(%s)' % (display, args), link)
             return self.protect_wiki_link(display, link)
 
 def github_ref_url(ref):
