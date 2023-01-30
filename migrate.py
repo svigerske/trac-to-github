@@ -331,6 +331,7 @@ RE_IMAGE2 = re.compile(r'\[\[Image\(([^),]+)\)\]\]')
 RE_IMAGE3 = re.compile(r'\[\[Image\(([^),]+),\slink=([^(]+)\)\]\]')
 RE_IMAGE4 = re.compile(r'\[\[Image\((http[^),]+),\s([^)]+)\)\]\]')
 RE_IMAGE5 = re.compile(r'\[\[Image\(([^),]+),\s([^)]+)\)\]\]')
+RE_IMAGE6 = re.compile(r'\[\[Image\(([^),]+),\s*([^)]+),\s*([^)]+)\)\]\]')
 RE_HTTPS1 = re.compile(r'\[\[(https?://[^\s\]\|]+)\s*\|\s*(.+?)\]\]')
 RE_HTTPS2 = re.compile(r'\[\[(https?://[^\]]+)\]\]')
 RE_HTTPS3 = re.compile(r'\[(https?://[^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
@@ -976,7 +977,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_IMAGE2.sub(conv_help.image_link, line)
             line = RE_IMAGE3.sub(conv_help.image_link, line)
             line = RE_IMAGE4.sub(r'<img src="\1" \2>', line)
-            line = RE_IMAGE5.sub(conv_help.wiki_image, line)  # \2 is the image width
+            line = RE_IMAGE5.sub(conv_help.wiki_image, line)  # \2 is image width
+            line = RE_IMAGE6.sub(conv_help.image_link, line)  # \2 is image width, \3 is alignment
 
             line = RE_TICKET_COMMENT1.sub(conv_help.ticket_comment_link, line)
             line = RE_TICKET_COMMENT2.sub(conv_help.ticket_comment_link, line)
@@ -1469,10 +1471,20 @@ class IssuesConversionHelper(WikiConversionHelper):
         in the case of a image link.
         """
         filename = match.group(1)
-        if len(match.groups()) < 2:
+        if len(match.groups()) == 1:
             descr = ''
-        else:
+        elif len(match.groups()) == 2:
             descr = match.group(2)
+        else:
+            if match.group(2).startswith('width='):
+                width = match.group(2)[6:]
+                alignment = match.group(3)
+            elif match.group(3).startswith('width='):
+                width = match.group(3)[6:]
+                alignment = match.group(2)
+            else:
+                width = '100%'
+                alignment = 'center'
 
         if keep_trac_ticket_references:
             url = '%s/ticket/%s/%s' % (trac_url_attachment, str(self._ticket_id), filename)
@@ -1484,6 +1496,10 @@ class IssuesConversionHelper(WikiConversionHelper):
                 url = os.path.join(attachment_export_url, attachment_path(ticket_id, fname))
             else:
                 url = os.path.join(attachment_export_url, attachment_path(self._ticket_id, filename))
+
+        if len(match.groups()) == 3:
+            return r'<div align="%s"><img src="%s" width="%s"></div>' % (alignment, url, width)
+
         return r'!%s%s%s(%s)' % (link_displ.open, descr, link_displ.close, url)
 
     def wiki_link(self, match):
