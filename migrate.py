@@ -1001,8 +1001,8 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_ATTACHMENT8.sub(conv_help.attachment, line)
 
             if in_table:
-                line = RE_LINEBREAK1.sub('<br/>', line)
-                line = RE_LINEBREAK2.sub('<br/>', line)
+                line = RE_LINEBREAK1.sub('<br>', line)
+                line = RE_LINEBREAK2.sub('<br>', line)
             else:
                 line = RE_LINEBREAK1.sub('\n', line)
                 line = RE_LINEBREAK2.sub('\n', line)
@@ -1148,7 +1148,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                     part = line[start:end]
                     if not inline_code:
                         if in_table:
-                            part = RE_LINEBREAK3.sub('<br/>', part)
+                            part = RE_LINEBREAK3.sub('<br>', part)
                         else:
                             part = RE_LINEBREAK3.sub('\n', part)
                     new_line += part
