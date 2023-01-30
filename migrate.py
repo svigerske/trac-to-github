@@ -356,7 +356,7 @@ RE_LINEBREAK1= re.compile(r'(\[\[br\]\])')
 RE_LINEBREAK2 = re.compile(r'(\[\[BR\]\])')
 RE_LINEBREAK3 = re.compile(r'(\\\\\s*)')
 RE_WIKI1 = re.compile(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]')
-RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]]+)\]\]')
+RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]\|]+)\]\]')
 RE_WIKI3 = re.compile(r'\[\[\s*([^\]]+)\]\]')
 RE_WIKI4 = re.compile(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]')
 RE_WIKI5 = re.compile(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
@@ -1005,9 +1005,6 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                 line = RE_LINEBREAK1.sub('\n', line)
                 line = RE_LINEBREAK2.sub('\n', line)
 
-            line = RE_WIKI1.sub(conv_help.wiki_link, line)
-            line = RE_WIKI2.sub(conv_help.wiki_link, line)
-            line = RE_WIKI3.sub(conv_help.wiki_link, line)  # wiki link without display text
             line = RE_WIKI4.sub(conv_help.wiki_link, line)  # for pagenames containing whitespaces
             line = RE_WIKI5.sub(conv_help.wiki_link, line)
             line = RE_WIKI6.sub(conv_help.wiki_link, line)  # link without display text
@@ -1149,6 +1146,11 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                             part = RE_LINEBREAK3.sub('<br/>', part)
                         else:
                             part = RE_LINEBREAK3.sub('\n', part)
+
+                        part = RE_WIKI1.sub(conv_help.wiki_link, part)
+                        part = RE_WIKI2.sub(conv_help.wiki_link, part)
+                        part = RE_WIKI3.sub(conv_help.wiki_link, part)
+
                     new_line += part
                     start = end
                     if i < l and line[i] == '`':
@@ -1400,16 +1402,28 @@ class WikiConversionHelper:
             link = pagename_ori.replace('/', ' ').replace(' ', '-')  # convert to github link
             return self.protect_wiki_link(display, link)
         else:
-            # we assume that this is a Trac macro like TicketQuery
-            macro_split = pagename.split('(')
-            macro = macro_split[0]
-            args = None
-            if len(macro_split) > 1:
-                args =  macro_split[1][:-1]  # remove ')'
-            display = 'Trac macro *%s*' % macro
-            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
+            # We assume that this is a Trac macro like TicketQuery
+            m = re.fullmatch(r'[a-zA-Z]+[?]?', pagename)
+            if m:
+                macro = m.group(0)
+                args = None
+            else:
+                m = re.fullmatch(r'([a-zA-Z]+[?]?)\((.+)\)', pagename)
+                if m:
+                    macro = m.group(1)
+                    args = m.group(2)
+                else:
+                    macro = None
+                    args = None
+            if macro:
+                display = 'Trac macro %s' % macro
+                link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
+            else:
+                return link_displ.open + link_displ.open + mg[0] + link_displ.close + link_displ.close
+
             if args:
-                return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
+                args = args.replace('|', r'\|')
+                return self.protect_wiki_link('%s(%s)' % (display, args), link)
             return self.protect_wiki_link(display, link)
 
     def camelcase_wiki_link(self, match):
@@ -1512,16 +1526,28 @@ class IssuesConversionHelper(WikiConversionHelper):
                 link = pagename_ori.replace(' ', '-')
             return self.protect_wiki_link(display, '../wiki/' + link)
         else:
-            # we assume that this is a Trac macro like TicketQuery
-            macro_split = pagename.split('(')
-            macro = macro_split[0]
-            args = None
-            if len(macro_split) > 1:
-                args =  macro_split[1][:-1]  # remove ')'
-            display = 'Trac macro *%s*' % macro
-            link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
+            # We assume that this is a Trac macro like TicketQuery
+            m = re.fullmatch(r'[a-zA-Z]+[?]?', pagename)
+            if m:
+                macro = m.group(0)
+                args = None
+            else:
+                m = re.fullmatch(r'([a-zA-Z]+[?]?)\((.+)\)', pagename)
+                if m:
+                    macro = m.group(1)
+                    args = m.group(2)
+                else:
+                    macro = None
+                    args = None
+            if macro:
+                display = 'Trac macro %s' % macro
+                link = '%s/WikiMacros#%s-macro' % (trac_url_wiki, macro)
+            else:
+                return link_displ.open + link_displ.open + mg[0] + link_displ.close + link_displ.close
+
             if args:
-                return self.protect_wiki_link('%s called with arguments (%s)' % (display, args), link)
+                args = args.replace('|', r'\|')
+                return self.protect_wiki_link('%s(%s)' % (display, args), link)
             return self.protect_wiki_link(display, link)
 
 def github_ref_url(ref):
