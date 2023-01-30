@@ -341,9 +341,10 @@ RE_TICKET_COMMENT3 = re.compile(r'\[ticket:([1-9]\d*)#comment:([1-9]\d*)\s+(.*?)
 RE_TICKET_COMMENT4 = re.compile(r'\[ticket:([1-9]\d*)#comment:([0])\s+(.*?)\]')
 RE_TICKET_COMMENT5 = re.compile(r'\[comment:ticket:([1-9]\d*):([1-9]\d*)\s+(.*?)\]')
 RE_TICKET_COMMENT6 = re.compile(r'ticket:([1-9]\d*)#comment:([1-9]\d*)')
-RE_COMMENT1 = re.compile(r'\[\[comment:([1-9]\d*)\s*\|\s*(.+?)\]\]')
-RE_COMMENT2 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
-RE_COMMENT3 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
+RE_COMMENT1 = re.compile(r'\[\[comment:([1-9]\d*)\]\]')
+RE_COMMENT2 = re.compile(r'\[\[comment:([1-9]\d*)\s*\|\s*(.+?)\]\]')
+RE_COMMENT3 = re.compile(r'\[comment:([1-9]\d*)\s+(.*?)\]')
+RE_COMMENT4 = re.compile(r'(?<=\s)comment:([1-9]\d*)')  # need to exclude the string as part of http url
 RE_ATTACHMENT1 = re.compile(r'\[\[attachment:([^\s\|\]]+)[\s\|](.+?)\]\]')
 RE_ATTACHMENT2 = re.compile(r'\[\[attachment:([^\s]+?)\]\]')
 RE_ATTACHMENT3 = re.compile(r'\[attachment:([^\s\|\]]+)[\s\|](.+?)\]')
@@ -988,6 +989,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             line = RE_COMMENT1.sub(conv_help.comment_link, line)
             line = RE_COMMENT2.sub(conv_help.comment_link, line)
             line = RE_COMMENT3.sub(conv_help.comment_link, line)
+            line = RE_COMMENT4.sub(conv_help.comment_link, line)
 
             line = RE_ATTACHMENT1.sub(conv_help.attachment, line)
             line = RE_ATTACHMENT2.sub(conv_help.attachment, line)
