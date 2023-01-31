@@ -744,7 +744,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         level = len(match.group(1))
         heading = match.group(2).rstrip()
 
-        if create_wiki_link_conversion_table:
+        if not isinstance(conv_help, IssuesConversionHelper) and create_wiki_link_conversion_table:
             with open('wiki_path_conversion_table.txt', "a") as f:
                 f.write(conv_help._trac_wiki_path + '#' + heading.replace(' ', '') + ' '
                         + conv_help._wiki_path + '#' + heading.replace(' ', '-'))
