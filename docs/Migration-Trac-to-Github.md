@@ -123,7 +123,13 @@ See also: https://trac.sagemath.org/ticket/30363
   - **instead of changing the status of the ticket** (i.e. "positive review" or "needs work"), choose the [correct type of your pull request review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/reviewing-proposed-changes-in-a-pull-request#submitting-your-review) (i.e. "approve" vs "request changes")
   - for trying the branch of a PR locally, **instead of using `git trac checkout TICKETNUMBER` or `git trac try TICKETNUMBER`**, use [`git fetch upstream pull/PULL_REQUEST_ID/head:LOCAL_BRANCH_NAME`](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally)
     - alternatively, with the [GitHub command-line interface](https://trac.sagemath.org/ticket/34523), use [`gh pr checkout PULL_REQUEST_ID`](https://cli.github.com/manual/gh_pr_checkout)
-    
+
+- For closing issues, **instead of marking it as invalid/duplicate and ready for review**,
+  - if you have the rights to do so, simply [close the issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/closing-an-issue), add a label to specify the reason (e.g. "duplicate") and maybe add a short comment explaining why the issue has been closed, if that's not already clear from the discussion; optionally, to change the reason for closing the issue, click the arrow next to "Close issue" and select a reason;
+  - otherwise, add a short comment indicating that you think the issue should be closed and someone else with the necessary rights will take care of this. 
+  
+  > If you think an issue has been prematurely be closed, feel free to reopen it.
+
 - For organizing, **instead of using meta-tickets**:
   - either open an Issue
     - it can include a checklist of things to do which can be checked off as they are dealt with by various PRs.
