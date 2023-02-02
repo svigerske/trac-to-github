@@ -125,7 +125,7 @@ See also: https://trac.sagemath.org/ticket/30363
     - alternatively, with the [GitHub command-line interface](https://trac.sagemath.org/ticket/34523), use [`gh pr checkout PULL_REQUEST_ID`](https://cli.github.com/manual/gh_pr_checkout)
 
 - For closing issues, **instead of marking it as invalid/duplicate and ready for review**,
-  - if you have the rights to do so, simply close the issue, add a label to specify the reason (e.g. "duplicate") and maybe add a short comment explaining why the issue has been closed, if that's not already clear from the discussion;
+  - if you have the rights to do so, simply [close the issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/closing-an-issue), add a label to specify the reason (e.g. "duplicate") and maybe add a short comment explaining why the issue has been closed, if that's not already clear from the discussion; optionally, to change the reason for closing the issue, click the arrow next to "Close issue" and select a reason;
   - otherwise, add a short comment indicating that you think the issue should be closed and someone else with the necessary rights will take care of this. 
   
   > If you think an issue has been prematurely be closed, feel free to reopen it.
