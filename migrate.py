@@ -2854,6 +2854,7 @@ if __name__ == "__main__":
             convert_wiki(source, dest)
     finally:
         if must_convert_issues and not github:
+            dest._requester.flush()
             # Patch in labels
             dest._requester.requestJsonAndCheck(
                 "PATCH",
