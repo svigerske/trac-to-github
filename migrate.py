@@ -1808,9 +1808,9 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                 mimetype = 'application/gzip'
             logging.info(f'Attachment {filename=} {mimetype=}')
             # supported types from bbs-exporter-1.5.5/lib/bbs_exporter/attachment_exporter/content_type.rb:
-            if mimetype in []: # ['image/gif', 'image/jpeg', 'image/png']:
-                # attachment URLs are rewritten to "/storage/user" paths, links broken.
-                # so we just do everything via repository_file, not attachement
+            if mimetype in ['image/gif', 'image/jpeg', 'image/png']:
+                # on GHE attachment URLs are rewritten to "/storage/user" paths, links broken.
+                # so we just did everything via repository_file, not attachment
                 dirname = 'attachments'
                 create = issue.create_attachment
             else:
