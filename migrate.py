@@ -1796,7 +1796,9 @@ def gh_create_attachment(dest, issue, filename, src_ticket_id, attachment=None, 
                     pass
                 case mimetype:
                     pass
-            if filename.endswith('.log'):
+            if mimetype == 'text/plain' and not filename.endswith('.txt'):
+                mimetype = 'application/octet-stream'
+            elif filename.endswith('.log'):
                 # Python thinks it's text/plain.
                 mimetype = 'text/x-log'
             elif filename.endswith('.bz2'):
