@@ -13,6 +13,7 @@ See also: https://trac.sagemath.org/ticket/30363
  
 ### Instead of adding a git remote named `trac`:
   
+  - If you already have your personal GitHub fork, rename it and archive it; it is best to create a fresh fork of our new repository because Fork Relationships on GitHub cannot be migrated.
   - [Create your personal GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage - this will become a repository in https://github.com/USERNAME
   - **If you already have a clone of a Sage repository on your computer:**
     - Check your current git remote repositories:
