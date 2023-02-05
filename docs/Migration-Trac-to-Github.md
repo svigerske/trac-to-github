@@ -3,13 +3,15 @@ See also: https://trac.sagemath.org/ticket/30363
 
 # Proposed workflow on GitHub (with transition guide from Trac)
 
-- One time action: **Instead of depositing an SSH public key on Trac**:
+## One time actions
+
+### Instead of depositing an SSH public key on Trac
   - No action needed if you have already contributed to any other project on GitHub and set up Git credentials or SSH keys for this.
   - For new users of GitHub:
     - Either https://docs.github.com/en/get-started/getting-started-with-git/caching-your-github-credentials-in-git
     - Or [generate ssh keypair, or use an already existing one, and upload the public key to your GitHub account settings](https://docs.github.com/en/authentication/connecting-to-github-with-ssh)
  
-- One time action: **Instead of adding a git remote named `trac`**:
+### Instead of adding a git remote named `trac`:
   
   - [Create your personal GitHub fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository) of the main repository https://github.com/sagemath/sage - this will become a repository in https://github.com/USERNAME
   - **If you already have a clone of a Sage repository on your computer:**
@@ -54,14 +56,16 @@ See also: https://trac.sagemath.org/ticket/30363
      ```
   - (Of course, you can give arbitrary names to your git remotes, but `origin` and `upstream` are the established defaults, which will make it easier to use tools such as the GitHub command-line tools.)
 
-- For reporting a bug, planning an enhancement, describing a project, **instead of opening a Trac ticket**:
+## Instead of opening a Trac ticket
+
+### For reporting a bug, planning an enhancement, describing a project:
 
   - [Open an Issue on GitHub](https://docs.github.com/en/issues). Preview of Issues (converted from Trac): https://github.com/sagemath/trac_to_gh/issues
   - **Trac ticket box attributes** are mapped as follows (see https://github.com/sagemath/trac-to-github/issues/8):
-    - **Type** ("defect", "enhancement", "task") are mapped to "Labels" "t: bug", "t: enhancement".
-    - **Component** ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to "Labels" 
-      with prefix `c: `
-    - **Priority** ("trivial"/"minor"/"major"/"critical"/"blocker") are mapped to "Labels" with prefix `p: `
+    - **Type** ("defect", "enhancement", "task") are mapped to Labels `t: bug`, `t: enhancement`.
+    - **Component** ("basic arithmetic", "linear algebra", "geometry", ...) are mapped to Labels 
+      with prefix `c: `; except for "refactoring", "memleak", which are mapped to non-prefixed Labels
+    - **Priority** ("trivial"/"minor"/"major"/"critical"/"blocker") are mapped to Labels with prefix `p: `
     - **Keywords** just add them in free form to the issue description if there's no suitable "Label"
     - **Cc**: use `@USERNAME` either in the Issue description or in any comment. 
       - Optionally, regular developers who would like to get notified automatically when a PR touches a particular part of the sage code can add themselves as a [Code Owner](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
@@ -71,42 +75,53 @@ See also: https://trac.sagemath.org/ticket/30363
     - **Milestone = duplicate/invalid/wontfix** and **Resolution** ("duplicate", "invalid", "wontfix")
       are replaced by
       - [marking as duplicate](https://docs.github.com/en/issues/tracking-your-work-with-issues/marking-issues-or-pull-requests-as-a-duplicate), 
-      - "Labels" "r: duplicate", "r: invalid", "r: wontfix", or
-      - closing with a comment; use "Close as not wanted"
-    - **Dependencies**: Use the phrase "Depends on ", followed by the Issue or PR reference.
+      - Labels" `r: duplicate`, `r: invalid`, `r: wontfix`, or
+      - closing with a comment; use drop-down option "Close as not wanted"
+    - **Dependencies**: Use the phrase `Depends on `, followed by the Issue or PR reference.
       Repeat this in separate lines if there is more than one dependency.
       This format is understood by various dependency managers: See https://www.dpulls.com/,
       https://github.com/z0al/dependent-issues, https://github.com/gregsdennis/dependencies-action/pull/5
 
-- For contributing a change that does not address an existing open Issue, **instead of opening a Trac ticket and pushing a git branch to it**:
+### For contributing a change that does not address an existing open Issue
+
+**Instead of opening a Trac ticket and pushing a git branch to it:**
   - Create a new local branch based on `upstream/develop`
   - Push the branch to the remote named `origin`, i.e., to your fork
   - A git message will provide a URL for opening a Pull Request (PR)
   - [Create the PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
   - If it is not ready for review, [mark the PR as a "Draft"](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)
 
-- For contributing a change that addresses an existing open Issue that has been created on GitHub, **instead of pushing a git branch to a Trac ticket**:
+## Instead of pushing a git branch to an existing Trac ticket
+
+### For contributing a change that addresses an existing open Issue that has been created on GitHub
   - Check if a PR is already attached. If so, go to the appropriate section of the guide. Otherwise follow the instructions here.
   - same as above
   - [use `Fixes #ISSUENUMBER` to link to an existing issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue); this will auto-close the linked Issue when the PR is merged.
 
-- For contributing a change that addresses an existing open Issue that has been migrated from Trac, **instead of pushing a git branch to a Trac ticket**:
+### For contributing a change that addresses an existing open Issue that has been migrated from Trac
+
   - Check if a PR is already attached. If so, go to the appropriate section of the guide. Otherwise follow the instructions here.
   - Pull the branch from your read-only `trac` remote (see section *One time action: Instead of adding a git remote named trac*) as you use to do before.
   - Edit and commit your changes
   - Push the branch to the remote named `origin`, i.e., to your fork
   - Follow the instructions above from there
 
-- For contributing a change that addresses an existing open Issue that already has a PR, **instead of changing the branch-field of a Trac ticket**:
+### For contributing a change that addresses an existing open Issue that already has a PR
+
+**Instead of changing the branch-field of a Trac ticket:**
   - Find the ID number of the pull request you want to contribute to. This is the sequence of digits right after the pull request's title.
   - Pull the branch of the PR to a new local branch using `git fetch origin pull/<ID>/head:<branch-name>; git checkout <branch-name>` where `<branch-name>` will be the name of your local branch.
   - Edit and commit your changes
   - Follow the instructions above from there, but create a new PR against the branch that the PR is based upon. For this, you navigate to `https://github.com/<USER>/sage/pulls`, where `<USER>` is the name of the original creator of the PR, and click on "Create new pull request", where you can select the correct target branch as "base".
 
-- For finding PRs that are waiting for review, **instead of using Trac ticket reports**:
+## Instead of using Trac ticket reports
+
+**For finding PRs that are waiting for review:**
   - [filter PRs by review status](https://docs.github.com/en/issues/tracking-your-work-with-issues/filtering-and-searching-issues-and-pull-requests#filtering-pull-requests-by-review-status)
 
-- **Instead of adding a comment to a ticket**:
+## Instead of adding comments on Trac ticket and changing ticket box attributes
+
+### Instead of adding a comment to a ticket
   - Add a comment to the Issue
   - If a PR is linked to the Issue, you can alternatively comment on the PR. 
   - Where should a comment go?
@@ -115,37 +130,41 @@ See also: https://trac.sagemath.org/ticket/30363
     - ... (add your examples)
   - Generally everyone has a large enough screen to view both the Issue and the PR on their screen simultaneously
 
-- For reviewing a change:
+### For reviewing a change
   - **instead of looking at the patchbot**, use the [Checks on GitHub Actions](https://trac.sagemath.org/wiki/ReleaseTours/sage-9.6#BuildsandchecksofticketbranchesonGitHubActions), which are already available on Trac since the Sage 9.6 series; the [status of the check runs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks) will be clearer on GitHub [than on Trac](https://trac.sagemath.org/ticket/33818) 
   - **instead of copy-pasting parts of the diff of a branch to a comment**, use [pull request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews): You can add comments directly to changed lines
   - **instead of making reviewer edits**, smaller suggestions can be made [through the github web interface](https://egghead.io/lessons/github-add-suggestions-in-a-github-pr-review) as part of the [pull request review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/incorporating-feedback-in-your-pull-request)
   - **if you want to be able to make changes directly to others' PRs** (when the author elects to allow edits from maintainers), please contact one of the [Sagemath Github admins](https://github.com/orgs/sagemath/people?query=role%3Aowner), who can give you the relevant permissions.
-  - **instead of changing the status of the ticket** (i.e. "positive review" or "needs work"), choose the [correct type of your pull request review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/reviewing-proposed-changes-in-a-pull-request#submitting-your-review) (i.e. "approve" vs "request changes")
+  - **instead of changing the status of the ticket** (e.g., "positive review" or "needs work"), choose the [correct type of your pull request review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/reviewing-proposed-changes-in-a-pull-request#submitting-your-review) (i.e. "approve" vs "request changes")
   - for trying the branch of a PR locally, **instead of using `git trac checkout TICKETNUMBER` or `git trac try TICKETNUMBER`**, use [`git fetch upstream pull/PULL_REQUEST_ID/head:LOCAL_BRANCH_NAME`](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally)
     - alternatively, with the [GitHub command-line interface](https://trac.sagemath.org/ticket/34523), use [`gh pr checkout PULL_REQUEST_ID`](https://cli.github.com/manual/gh_pr_checkout)
 
-- For closing issues, **instead of marking it as invalid/duplicate and ready for review**,
-  - if you have the rights to do so, simply [close the issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/closing-an-issue), add a label to specify the reason (e.g. "r: duplicate") and maybe add a short comment explaining why the issue has been closed, if that's not already clear from the discussion; optionally, to change the reason for closing the issue, click the arrow next to "Close issue" and select a reason;
+### For closing issues, instead of marking it as invalid/duplicate/wontfix and ready for review
+  - if you have the rights to do so, simply [close the issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/closing-an-issue), add a label to specify the reason (e.g., `r: duplicate`) and maybe add a short comment explaining why the issue has been closed, if that's not already clear from the discussion; optionally, to change the reason for closing the issue, click the arrow next to "Close issue" and select a reason;
   - otherwise, add a short comment indicating that you think the issue should be closed and someone else with the necessary rights will take care of this. 
   
   > If you think an issue has been prematurely be closed, feel free to reopen it.
 
-- For organizing, **instead of using meta-tickets**:
+### For organizing projects, instead of using meta-tickets
   - either open an Issue
     - it can include a checklist of things to do which can be checked off as they are dealt with by various PRs.
   - or [create a new Project](https://github.com/features/issues)
 
 # Release Manager's workflow
 
+see also discussion in https://github.com/sagemath/trac-to-github/issues/85
+
 - Unchanged: Release Manager @vbraun merges positively reviewed tickets into his branch https://github.com/vbraun/sage
   - The release manager uses [a filter to identify the pull requests that a reviewer has approved](https://docs.github.com/en/issues/tracking-your-work-with-issues/filtering-and-searching-issues-and-pull-requests#filtering-pull-requests-by-review-status)
   - Once released (currently targeted for Q4 2022), we instead use [Merge Queues](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue).
 - Unchanged: To make a beta or stable release, Release Manager merges (fast-forward) his branch into the `develop` branch and creates a tag
 - Unchanged: To make a stable release, Release Manager merges (fast-forward) the `develop` branch into the `main` branch.
-  - Only change is the rename of `master` to `main` due to cultural sensitivity - as proposed in https://trac.sagemath.org/ticket/31287
+  - Proposed in https://trac.sagemath.org/ticket/31287: Rename `master` to `main` due to cultural sensitivity
   - In the future, we might migrate from this [Gitflow workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) to the [Trunk-based workflow](https://www.atlassian.com/continuous-delivery/continuous-integration/trunk-based-development) where the `develop` branch is no longer needed and changes are directly merged into `main`.
 
 # Proposed permissions and protections
+
+see also discussion in https://github.com/sagemath/trac-to-github/issues/85
 
 Main repository https://github.com/sagemath/sage:
 - Only 2 named [branches](https://github.com/sagemath/sage/branches), `develop` and `master`
