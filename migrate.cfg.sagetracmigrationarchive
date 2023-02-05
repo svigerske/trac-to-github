@@ -216,6 +216,8 @@ label_colors = {
  't: refactoring': '696969',
  't: feature': '696969',
  't: tests': '696969',
+ 'r: invalid': 'c6c6c6',
+ 'r: duplicate': 'c6c6c6',
  'resolution': 'c6c6c6'}
 
 # values to be ignored on issue conversion
