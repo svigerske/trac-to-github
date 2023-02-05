@@ -1611,7 +1611,7 @@ def map_resolution(resolution):
         return None
     if not resolution:
         return None
-    return resolution
+    return 'r: ' + resolution
 
 component_frequency = defaultdict(lambda: 0)
 def map_component(component):
