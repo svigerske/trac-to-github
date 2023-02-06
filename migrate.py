@@ -1302,7 +1302,7 @@ class WikiConversionHelper:
         if keep_trac_ticket_references:
             return r'[#%s](%s/%s)' % (ticket, trac_url_ticket, ticket)
         issue = ticket
-        return r'#%s' % ticket
+        return r'[#%s](%s/issues/%s)' % (issue, target_url_issues_repo, issue)
 
     def ticket_comment_link(self, match):
         """

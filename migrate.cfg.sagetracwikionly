@@ -18,7 +18,7 @@ url: https://trac.sagemath.org/xmlrpc
 cgit_url: https://git.sagemath.org/sage.git/
 
 # if no, a trac ticket reference is converted to the corresponding issue reference
-keep_trac_ticket_references: yes
+keep_trac_ticket_references: no
 
 [issues]
 
