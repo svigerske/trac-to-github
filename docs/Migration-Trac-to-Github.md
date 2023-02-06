@@ -46,7 +46,7 @@ This is a guide for developers transiting from Trac to GitHub. The workflow prop
       ```
       git remote rename origin OLD-ORIGIN
       ```
-      where `OLD_ORIGIN` is some name of your choosing.
+      where `OLD-ORIGIN` is some name of your choosing.
 
       Finally, add your fork as a remote via (the URL `https://github.com/USERNAME/sage.git` can be copied from there)
       ```
@@ -148,10 +148,10 @@ For reporting a bug, planning an enhancement, describing a project:
 ### For contributing a change that addresses an existing open issue that already has a PR <a name="issue-with-pr"></a>
 
 **Instead of changing the branch-field of a Trac ticket:**
-  - Find the id `PULL_REQUEST_ID` of the pull request you want to contribute to. This is the sequence of digits right after the pull request's title.
+  - Find the id `PULL-REQUEST-ID` of the pull request you want to contribute to. This is the sequence of digits right after the pull request's title.
   - Pull the branch of the PR to a new local branch using
     ```
-    git fetch origin pull/PULL_REQUEST_ID/head:BRANCH-NAME
+    git fetch origin pull/PULL-REQUEST-ID/head:BRANCH-NAME
     git checkout BRANCH-NAME
     ```
     where `BRANCH-NAME` will be the name of your local branch.
@@ -179,13 +179,13 @@ For reporting a bug, planning an enhancement, describing a project:
   - **Instead of changing the status of the ticket** (e.g., "positive review" or "needs work"), choose the [correct type of your pull request review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/reviewing-proposed-changes-in-a-pull-request#submitting-your-review) (i.e. "approve" vs "request changes")
   - For trying the branch of a PR locally, **instead of using `git trac checkout TICKETNUMBER` or `git trac try TICKETNUMBER`**, use
       ```
-      git fetch upstream pull/PULL_REQUEST_ID/head:LOCAL_BRANCH_NAME
+      git fetch upstream pull/PULL-REQUEST-ID/head:LOCAL-BRANCH-NAME
       ```
       Consult https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally.
 
     Alternatively, with the [GitHub command-line interface](https://trac.sagemath.org/ticket/34523), use
     ```
-    gh pr checkout PULL_REQUEST_ID
+    gh pr checkout PULL-REQUEST-ID
     ```
     Consult https://cli.github.com/manual/gh_pr_checkout.
 
