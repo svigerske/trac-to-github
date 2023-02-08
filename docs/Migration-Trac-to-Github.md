@@ -94,8 +94,7 @@ This is a guide for developers transiting from Trac to GitHub. The workflow prop
 
 For reporting a bug, planning an enhancement, describing a project:
 
-  - Open an [issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues) on GitHub.
-    - Preview of issues (converted from Trac tickets): https://github.com/sagemath/sage-migration-preview-2023-02-02/issues
+  - Open an [issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues) on GitHub [in our repository sagemath/sage](https://github.com/sagemath/sage/issues)
   - Trac ticket box attributes are mapped (to [labels](https://docs.github.com/en/issues/using-labels-and-milestones-to-track-work/managing-labels)) as follows:
     - **Type** ("defect", "enhancement", "task") are mapped to *type labels* `t: bug`, `t: enhancement`.
     - **Component** ("basic arithmetic", "linear algebra", "geometry", etc.) are mapped to *component labels*
@@ -227,22 +226,8 @@ Main repository https://github.com/sagemath/sage:
   - the Write access does not allow pushing to `develop` or `master`
   - the Write access allows members of the team to push commits to branches of PRs ([unless the PR owner has disabled this for this PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork)).
 
-# Conversion of Trac tickets and the Trac wiki to GitHub
 
-Conversion script: https://github.com/sagemath/trac-to-github
--  [issues there](https://github.com/sagemath/trac-to-github/issues) are various technical discussions on the topic
-
-Preview of the converted issues:
-- Iteration 0 (2022-09): A few issues converted from Trac tickets at https://github.com/sagemath/trac_to_gh/issues?q=is%3Aissue
-- Iterations 1–50 (2022-12): Migration archive (all 35000 issues) formatted as Markdown at https://github.com/sagemath/trac_to_gh/tree/main/Issues-11xxx etc.
-- Iterations 51- (2023-01): Migration archive imported into a GitHub Enterprise Server instance https://34.105.185.241/sagemath
-
-Preview of the converted wiki: https://github.com/sagemath/trac_to_gh/wiki
-
-Switchover day (confirmed: Feb 1, 2023):
-- Steps see https://github.com/sagemath/trac-to-github/issues/73
-
-# Retrieving data from GitHub
+# Retrieving data from GitHub (for backups etc)
 
 [GitHub REST API](https://docs.github.com/en/rest)
 
