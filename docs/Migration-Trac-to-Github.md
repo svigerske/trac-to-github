@@ -150,7 +150,7 @@ For reporting a bug, planning an enhancement, describing a project:
   - Find the id `PULL-REQUEST-ID` of the pull request you want to contribute to. This is the sequence of digits right after the pull request's title.
   - Pull the branch of the PR to a new local branch using
     ```
-    git fetch origin pull/PULL-REQUEST-ID/head:BRANCH-NAME
+    git fetch upstream pull/PULL-REQUEST-ID/head:BRANCH-NAME
     git checkout BRANCH-NAME
     ```
     where `BRANCH-NAME` will be the name of your local branch.
