@@ -6,6 +6,7 @@ import sys
 import configparser
 import logging
 import json
+from time import sleep
 from github import Github, GithubObject, InputFileContent
 from github.Issue import Issue
 from github.IssueComment import IssueComment
@@ -64,11 +65,13 @@ if __name__ == "__main__":
         issue_numbers.add(issue_number)
 
     minimized_node_ids = []
-    for issue_number in sorted(issue_numbers):
-        i = repo.get_issue(issue_number)
-        node_ids = [c.node_id for c in i.get_comments() if to_minimize(c)]
-        print(i.html_url, node_ids)
-        minimized_node_ids.extend(node_ids)
-
-    with open("minimized_issue_comment_node_ids.json", "w") as f:
-        json.dump(minimized_issue_comments, f, indent=4)
+    try:
+        for issue_number in sorted(issue_numbers):
+            i = repo.get_issue(issue_number)
+            node_ids = [c.node_id for c in i.get_comments() if to_minimize(c)]
+            print(i.html_url, node_ids)
+            minimized_node_ids.extend(node_ids)
+        sleep(2)
+    finally:
+        with open("minimized_issue_comment_node_ids.json", "w") as f:
+            json.dump(minimized_issue_comments, f, indent=4)
