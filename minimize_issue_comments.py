@@ -74,4 +74,4 @@ if __name__ == "__main__":
         sleep(2)
     finally:
         with open("minimized_issue_comment_node_ids.json", "w") as f:
-            json.dump(minimized_issue_comments, f, indent=4)
+            json.dump(minimized_node_ids, f, indent=4)
