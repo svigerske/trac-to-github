@@ -71,7 +71,7 @@ if __name__ == "__main__":
             node_ids = [c.node_id for c in i.get_comments() if to_minimize(c)]
             print(i.html_url, node_ids)
             minimized_node_ids.extend(node_ids)
-        sleep(2)
+            sleep(1.5)
     finally:
         with open("minimized_issue_comment_node_ids.json", "w") as f:
             json.dump(minimized_node_ids, f, indent=4)
