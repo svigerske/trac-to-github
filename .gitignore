@@ -14,3 +14,4 @@ __pycache__
 /unmapped_milestones.txt
 /component_frequency.txt
 /minimized_issue_comments.json
+minimizing_query*.json
