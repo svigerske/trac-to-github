@@ -88,6 +88,10 @@ This is a guide for developers transiting from Trac to GitHub. The workflow prop
      ```
      git remote add trac https://github.com/sagemath/sagetrac-mirror.git
      ```
+   - To prevent accidental pushes to `upstream` (instead of `origin`), you may want to disable it by running
+     ```
+     git remote set-url --push upstream DISABLE
+     `̀ `
    - Of course, you can give arbitrary names to your git remotes, but `origin` and `upstream` are the established defaults, which will make it easier to use tools such as the GitHub command-line tools.
 
 ## Instead of opening a Trac ticket
