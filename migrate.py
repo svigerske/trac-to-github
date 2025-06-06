@@ -376,8 +376,8 @@ RE_UNDERLINED_CODE1 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_(?=[\s,)])')
 RE_UNDERLINED_CODE2 = re.compile(r'(?<=\s)_([a-zA-Z_]+)_$')
 RE_UNDERLINED_CODE3 = re.compile(r'^_([a-zA-Z_]+)_(?=\s)')
 RE_CODE_SNIPPET = re.compile(r'(?<!`){{{(.*?)}}}(?!\})')
-RE_GITHUB_MENTION1 = re.compile('(?<=\s)@([a-zA-Z][-a-zA-Z0-9._]*[a-zA-Z0-9])')
-RE_GITHUB_MENTION2 = re.compile('^@([a-zA-Z][-a-zA-Z0-9._]*[a-zA-Z0-9])')
+RE_GITHUB_MENTION1 = re.compile(r'(?<=\s)@([a-zA-Z][-a-zA-Z0-9._]*[a-zA-Z0-9])')
+RE_GITHUB_MENTION2 = re.compile(r'^@([a-zA-Z][-a-zA-Z0-9._]*[a-zA-Z0-9])')
 RE_RULE = re.compile(r'^[-]{4,}\s*')
 RE_NO_CAMELCASE = re.compile(r'\!(([A-Z][a-z0-9]+){2,})')
 RE_COLOR = re.compile(r'<span style="color: ([a-zA-Z]+)">([a-zA-Z]+)</span>')
@@ -694,7 +694,7 @@ def commits_list(match):
         if m:
             commit_id = m.group(1)
             commit_url = m.group(2)
-            commit_msg = m.group(3).replace('\`', '`')
+            commit_msg = m.group(3).replace(r'\`', '`')
             t += r'<tr><td><a href="{}"><code>{}</code></a></td><td><code>{}</code></td></tr>'.format(commit_url, commit_id, commit_msg)
         else:
             m = RE_COMMIT_LIST2.match(c)
@@ -792,10 +792,10 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
         if not (in_code or in_html):
             # quote
             prefix = ''
-            m = re.match('^((?:>\s)*>\s)', line)
+            m = re.match(r'^((?:>\s)*>\s)', line)
             if m:
                 prefix += m.group(1)
-            m = re.match('^(>[>\s]*)', line[len(prefix):])
+            m = re.match(r'^(>[>\s]*)', line[len(prefix):])
             if m:
                 prefix += m.group(1)
             quote_prefix += prefix
@@ -896,19 +896,19 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             # adjust badly indented codeblocks
             if in_td:
                 if line.strip():
-                    indent = re.search('[^\s]', line).start()
+                    indent = re.search(r'[^\s]', line).start()
                     if indent < in_td_prefix:
                         in_td_defect = max(in_td_defect, in_td_prefix - indent)
                 in_td_n += 1
             if in_html:
                 if line.strip():
-                    indent = re.search('[^\s]', line).start()
+                    indent = re.search(r'[^\s]', line).start()
                     if indent < in_html_prefix:
                         in_html_defect = max(in_html_defect, in_html_prefix - indent)
                 in_html_n += 1
             if in_code:
                 if line.strip():
-                    indent = re.search('[^\s]', line).start()
+                    indent = re.search(r'[^\s]', line).start()
                     if indent < in_code_prefix:
                         in_code_defect = max(in_code_defect, in_code_prefix - indent)
                 in_code_n += 1
@@ -1077,12 +1077,12 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
             # lists
             if in_list:
                 if line.strip():
-                    indent = re.search('[^\s]', line).start()
+                    indent = re.search(r'[^\s]', line).start()
                     if indent > list_leading_spaces:
                         line = line[list_leading_spaces:]
 
                         # adjust slightly-malformed paragraph in list for right indent -- fingers crossed
-                        indent = re.search('[^\s]', line).start()
+                        indent = re.search(r'[^\s]', line).start()
                         if indent == 1 and list_indents[0][1] == '*':
                             line =  ' ' + line
                         elif indent == 1 and list_indents[0][1] == '-':
@@ -1095,18 +1095,18 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                         list_indents = []
                     elif indent == list_leading_spaces:
                         l = line[indent:]
-                        if not (l.startswith('* ') or l.startswith('- ') or re.match('^[^\s]+\.\s', l)):
+                        if not (l.startswith('* ') or l.startswith('- ') or re.match(r'^[^\s]+\.\s', l)):
                             in_list = False
                             list_indents = []
                         else:
                             line = line[list_leading_spaces:]
             l = line.lstrip()
-            if l.startswith('* ') or  l.startswith('- ') or re.match('^[^\s]+\.\s', l):
+            if l.startswith('* ') or  l.startswith('- ') or re.match(r'^[^\s]+\.\s', l):
                 if not in_list:
-                    list_leading_spaces = re.search('[^\s]', line).start()
+                    list_leading_spaces = re.search(r'[^\s]', line).start()
                     line = line[list_leading_spaces:]
                     in_list = True
-                indent = re.search('[^\s]', line).start()
+                indent = re.search(r'[^\s]', line).start()
                 for i in range(len(list_indents)):
                     d, t, c = list_indents[i]
                     if indent == d:
