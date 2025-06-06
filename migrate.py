@@ -76,6 +76,9 @@ default_config = {
     'url' : 'https://api.github.com'
 }
 
+# set to .md if the wiki pages need to be browseable via a normal GitHub repo
+MD_EXT = ''
+
 sleep_after_request = 2.0
 sleep_after_attachment = 60.0
 sleep_after_10tickets = 0.0  # TODO maybe this can be reduced due to the longer sleep after attaching something
@@ -1401,9 +1404,9 @@ class WikiConversionHelper:
             return self.protect_wiki_link(display, link)
         elif pagename in self._pagenames_splitted:
             link = pagename_ori.replace(' ', '-')
-            return self.protect_wiki_link(display, link)
+            return self.protect_wiki_link(display, link + MD_EXT)
         elif pagename in self._pagenames_not_splitted:
-            link = pagename_ori.replace('/', ' ').replace(' ', '-')  # convert to github link
+            link = pagename_ori.replace('/', MD_EXT + ' ').replace(' ', '-')  # convert to github link
             return self.protect_wiki_link(display, link)
         else:
             # We assume that this is a Trac macro like TicketQuery
@@ -1437,7 +1440,7 @@ class WikiConversionHelper:
         """
         if match.group(1) in self._pagenames_splitted:
             return self.wiki_link(match)
-        return match.group(0)
+        return "[" + match.group(0) + "](" + match.group(0) + MD_EXT + ")"
 
 class IssuesConversionHelper(WikiConversionHelper):
     """
