@@ -363,6 +363,7 @@ RE_LINEBREAK3 = re.compile(r'(\\\\\s*)')
 RE_WIKI1 = re.compile(r'\[\["([^\]\|]+)["]\s*([^\[\]"]+)?["]?\]\]')
 RE_WIKI2 = re.compile(r'\[\[\s*([^\]|]+)[\|]([^\[\]\|]+)\]\]')
 RE_WIKI3 = re.compile(r'\[\[\s*([^\]]+)\]\]')
+RE_WIKI31 = re.compile(r'\[\s*([A-Z][a-zA-Z0-9]+)\s([^\]]+)\]')
 RE_WIKI4 = re.compile(r'\[wiki:"([^\[\]\|]+)["]\s*([^\[\]"]+)?["]?\]')
 RE_WIKI5 = re.compile(r'\[wiki:([^\s\[\]\|]+)\s*[\s\|]\s*([^\[\]]+)\]')
 RE_WIKI6 = re.compile(r'\[wiki:([^\s\[\]]+)\]')
@@ -1157,6 +1158,7 @@ def trac2markdown(text, base_path, conv_help, multilines=default_multilines):
                         part = RE_WIKI1.sub(conv_help.wiki_link, part)
                         part = RE_WIKI2.sub(conv_help.wiki_link, part)
                         part = RE_WIKI3.sub(conv_help.wiki_link, part)
+                        part = RE_WIKI31.sub(conv_help.wiki_link, part)
 
                     new_line += part
                     start = end
@@ -1409,6 +1411,8 @@ class WikiConversionHelper:
             link = pagename_ori.replace('/', MD_EXT + ' ').replace(' ', '-')  # convert to github link
             return self.protect_wiki_link(display, link)
         else:
+            # we matched something '[Word text]', where Word is not a pagename (from RE_WIKI31): return it back
+            return '[' + pagename + ' ' + display + ']'
             # We assume that this is a Trac macro like TicketQuery
             m = re.fullmatch(r'[a-zA-Z]+[?]?', pagename)
             if m:
